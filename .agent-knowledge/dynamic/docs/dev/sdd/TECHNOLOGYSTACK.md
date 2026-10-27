@@ -17,6 +17,6 @@
 | **Real-Time Communication**   | Socket.IO                 | ^4.8.0                      | Bidirectional WebSocket protocol for real-time telemetry streaming and instant Andon alerting       |
 | **Programming Language**      | TypeScript                | ~6.0.0                      | End-to-end static type safety from machine event contracts to UI view components                    |
 | **Test Runner (Backend)**     | Vitest                    | ^4.1.2                      | Fast unit, integration, and property-based verification engine                                      |
-| **Linter & Code Quality**     | Oxlint & ESLint           | Oxlint ^1.58, ESLint ^10.13 | High-speed linting and static analysis across backend and frontend workspaces                       |
+| **Linter & Code Quality**     | Oxlint                    | Oxlint ^1.89                | Unified ultra-fast Rust-based static analysis across backend and frontend workspaces |
 | **Code Formatter**            | Prettier                  | ^3.4.2                      | Unified code style enforcement configured at the monorepo root                                      |
 | **Process Concurrency**       | Concurrently              | ^9.0.0                      | Orchestrates parallel execution of backend and frontend dev servers under a single command          |
