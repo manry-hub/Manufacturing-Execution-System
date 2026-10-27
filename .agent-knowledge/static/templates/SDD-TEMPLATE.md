@@ -1,24 +1,24 @@
-# Software Design Documents — {Nama Produk}
+# Software Design Documents — {Product Name}
 
-> **IMMUTABLE — AI TIDAK BOLEH mengubah file ini.**
+> **IMMUTABLE — DO NOT MODIFY THIS FILE.**
 >
-> Gunakan setiap bagian sebagai panduan struktur. Tulis atau perbarui hasilnya hanya pada file output yang tercantum di bawah.
+> Use each section as a structural guide. Write or update content only in the output files listed below.
 
-> **Status:** `{PLANNING / CURRENT}` — pilih berdasarkan status sistem dan ubah hanya dengan bukti atau diskusi.
+> **Status:** `{PLANNING / CURRENT}` — choose according to system status and change only with evidence or discussion.
 
 ---
 
-# Architecture Plan — {Nama Produk}
+# Architecture Plan — {Product Name}
 
 > **Output:** `.agent-knowledge/dynamic/docs/dev/sdd/ARCHITECTURE.md`
-> **Purpose:** Cetak biru teknis untuk system design, komponen, alur data, keamanan, deployment, dan keputusan utama.
+> **Purpose:** Technical blueprint for system design, components, data flow, security, deployment, and key decisions.
 
 ## Project Type Declaration
 
 | Item | Value |
 |------|-------|
 | Project Type | `{Monolith / Fullstack}` |
-| Git Location | `{apps/ — single repo} / {backend/ dan frontend/ — dual repo}` |
+| Git Location | `{apps/ — single repository} / {backend/ and frontend/ — dual repository}` |
 
 ## 1. System Design
 
@@ -26,12 +26,12 @@
 
 `{Monolith / Modular Monolith / Microservices / Layered Architecture}`
 
-**Alasan:** `{kenapa pola ini dipilih}`
+**Rationale:** `{why this pattern was selected}`
 
 ### High-Level Diagram
 
 ```text
-{deskripsi tekstual alur sistem — bisa diganti diagram nanti}
+{textual description of system flow — replace with a diagram later if needed}
 
 [Client] → [Nginx] → [Backend PHP/Node/Go] → [DB]
                            ↓
@@ -42,12 +42,12 @@
 
 ## 2. Component Breakdown
 
-| Komponen | Tipe | Tanggung Jawab | Teknologi |
-|----------|------|---------------|----------|
-| `{API Server}` | Backend | `{deskripsi}` | `{tek}` |
-| `{Admin Panel}` | Frontend | `{deskripsi}` | `{tek}` |
-| `{Public Site}` | Frontend | `{deskripsi}` | `{tek}` |
-| `{Worker}` | Background | `{deskripsi}` | `{tek}` |
+| Component | Type | Responsibility | Technology |
+|----------|------|----------------|------------|
+| `{API Server}` | Backend | `{description}` | `{technology}` |
+| `{Admin Panel}` | Frontend | `{description}` | `{technology}` |
+| `{Public Site}` | Frontend | `{description}` | `{technology}` |
+| `{Worker}` | Background | `{description}` | `{technology}` |
 
 ## 3. Routing & Middleware Strategy
 
@@ -66,7 +66,7 @@
 ## 4. Data Flow
 
 ```text
-{deskripsi bagaimana data mengalir antar komponen}
+{description of how data flows between components}
 
 [Form Submit] → [Validate] → [Controller] → [Service] → [DB]
                                   ↓
@@ -98,73 +98,73 @@
 
 ## 7. Key Decisions
 
-| # | Keputusan | Alasan | ADR |
-|---|----------|--------|-----|
-| 1 | `{keputusan}` | `{alasan}` | `{ADR path}` |
+| # | Decision | Rationale | ADR |
+|---|----------|-----------|-----|
+| 1 | `{decision}` | `{rationale}` | `{ADR path}` |
 
 ---
 
-# Technology Stack — {Nama Produk}
+# Technology Stack — {Product Name}
 
 > **Output:** `.agent-knowledge/dynamic/docs/dev/sdd/TECHNOLOGYSTACK.md`
-> **Purpose:** Daftar kanonis teknologi, versi, dan perannya dalam sistem.
+> **Purpose:** Canonical list of technologies, versions, and their roles in the system.
 
 | Layer | Technology | Version | Role |
 |-------|------------|---------|------|
-| Backend | `{framework}` | `{versi}` | `{peran}` |
-| Frontend | `{framework}` | `{versi}` | `{peran}` |
-| Database | `{engine}` | `{versi}` | `{peran}` |
-| Cache | `{engine}` | `{versi}` | `{peran}` |
-| Queue | `{engine}` | `{versi}` | `{peran}` |
-| Search | `{engine}` | `{versi}` | `{peran}` |
-| Storage | `{engine}` | `{versi}` | `{peran}` |
-| Web Server | `{engine}` | `{versi}` | `{peran}` |
+| Backend | `{framework}` | `{version}` | `{role}` |
+| Frontend | `{framework}` | `{version}` | `{role}` |
+| Database | `{engine}` | `{version}` | `{role}` |
+| Cache | `{engine}` | `{version}` | `{role}` |
+| Queue | `{engine}` | `{version}` | `{role}` |
+| Search | `{engine}` | `{version}` | `{role}` |
+| Storage | `{engine}` | `{version}` | `{role}` |
+| Web Server | `{engine}` | `{version}` | `{role}` |
 
 ---
 
-# Database Plan — {Nama Produk}
+# Database Plan — {Product Name}
 
 > **Output:** `.agent-knowledge/dynamic/docs/dev/sdd/DATABASE.md`
-> **Purpose:** Cetak biru database: ERD, schema, relasi, indexing strategy.
+> **Purpose:** Database blueprint: ERD, schema, relationships, and indexing strategy.
 
 ## 1. Database Topology
 
 | Connection | DB Engine | Database Name | Purpose |
-|-----------|----------|--------------|---------|
-| `{default}` | `{MySQL/PostgreSQL}` | `{nama_db}` | Primary data |
-| `{connection_2}` | `{engine}` | `{nama_db}` | `{purpose}` |
+|-----------|----------|---------------|---------|
+| `{default}` | `{MySQL/PostgreSQL}` | `{database_name}` | Primary data |
+| `{connection_2}` | `{engine}` | `{database_name}` | `{purpose}` |
 
 ## 2. Table Schemas
 
-### `{nama_tabel}`
+### `{table_name}`
 
 | Column | Type | Constraints | Index | Notes |
-|--------|------|------------|-------|-------|
+|--------|------|-------------|-------|-------|
 | `id` | `{bigint}` | PK, auto-increment | PRIMARY | |
-| `{field}` | `{type}` | `{NOT NULL / nullable}` | `{INDEX / UNIQUE}` | `{catatan}` |
+| `{field}` | `{type}` | `{NOT NULL / nullable}` | `{INDEX / UNIQUE}` | `{notes}` |
 | `created_at` | `timestamp` | | | |
 | `updated_at` | `timestamp` | | | |
-| `deleted_at` | `timestamp` | nullable | | Soft delete (jika ada) |
+| `deleted_at` | `timestamp` | nullable | | Soft delete (if applicable) |
 
 ## 3. Relationships Summary
 
 | Table A | Relation | Table B | Foreign Key |
 |---------|----------|---------|-------------|
-| `{tabel_a}` | `{hasMany}` | `{tabel_b}` | `{tabel_a}_id` |
-| `{tabel_b}` | `{belongsTo}` | `{tabel_a}` | `{tabel_a}_id` |
+| `{table_a}` | `{hasMany}` | `{table_b}` | `{table_a}_id` |
+| `{table_b}` | `{belongsTo}` | `{table_a}` | `{table_a}_id` |
 
 ## 4. Indexing Strategy
 
 | Table | Index | Columns | Type | Reason |
 |-------|-------|---------|------|--------|
-| `{tabel}` | `{idx_name}` | `{field1, field2}` | `{BTREE / UNIQUE / FULLTEXT}` | `{alasan}` |
+| `{table}` | `{idx_name}` | `{field1, field2}` | `{BTREE / UNIQUE / FULLTEXT}` | `{rationale}` |
 
 ## 5. Migration Plan
 
 | # | Migration | Table | Domain | Notes |
 |---|-----------|-------|--------|-------|
 | 1 | `create_users_table` | `users` | Core | |
-| 2 | `create_{nama}_table` | `{nama}` | `{modul}` | |
+| 2 | `create_{name}_table` | `{name}` | `{module}` | |
 
 ## 6. Seed Data
 

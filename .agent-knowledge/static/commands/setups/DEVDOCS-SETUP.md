@@ -1,75 +1,72 @@
-# SETUPDOCS — Inisialisasi Dokumentasi Proyek
+# SETUPDOCS — Initialize Project Documentation
 
-Gunakan prompt ini secara manual untuk mengisi atau merapikan PRD dan dokumen SDD. Prompt ini mendukung proyek yang sudah berjalan maupun proyek yang akan dibangun. Tugas ini hanya mengubah dokumentasi.
+Use this prompt manually to populate or refine the PRD and SDD documents. It supports both existing and new projects. This task changes documentation only.
 
-## Pilih Mode Terlebih Dahulu
+## Select a Mode First
 
-Sebelum membaca codebase atau menulis dokumen, tanyakan pengguna untuk memilih satu mode:
+Before reading the codebase or writing documents, ask the user to select one mode:
 
-1. **Proyek Berjalan** — proyek sudah memiliki implementasi yang menjadi sumber bukti utama.
-2. **Proyek Baru** — proyek belum dibangun atau implementasinya belum menjadi sumber kebenaran.
+1. **Existing Project** — the project already has an implementation that is the primary source of evidence.
+2. **New Project** — the project has not been built, or its implementation is not yet the source of truth.
 
-Jangan mulai menulis PRD maupun dokumen SDD sebelum pengguna memilih mode.
+Do not begin writing the PRD or SDD documents until the user has selected a mode.
 
-## Dokumen Sasaran
+## Target Documents
 
-- `.agent-knowledge/static/templates/PRD-TEMPLATE.md` — struktur kanonis yang immutable; jangan diubah.
-- `.agent-knowledge/dynamic/docs/dev/PRD.md` — output yang boleh dibuat atau diperbarui dari template.
-- `.agent-knowledge/static/templates/SDD-TEMPLATE.md` — struktur kanonis yang immutable; jangan diubah.
-- `.agent-knowledge/dynamic/docs/dev/sdd/ARCHITECTURE.md` — output arsitektur.
-- `.agent-knowledge/dynamic/docs/dev/sdd/TECHNOLOGYSTACK.md` — output technology stack.
-- `.agent-knowledge/dynamic/docs/dev/sdd/DATABASE.md` — output database.
+- `.agent-knowledge/static/templates/PRD-TEMPLATE.md` — immutable canonical structure; do not modify it.
+- `.agent-knowledge/dynamic/docs/dev/PRD.md` — output that may be created or updated from the template.
+- `.agent-knowledge/static/templates/SDD-TEMPLATE.md` — immutable canonical structure; do not modify it.
+- `.agent-knowledge/dynamic/docs/dev/sdd/ARCHITECTURE.md` — architecture output.
+- `.agent-knowledge/dynamic/docs/dev/sdd/TECHNOLOGYSTACK.md` — technology-stack output.
+- `.agent-knowledge/dynamic/docs/dev/sdd/DATABASE.md` — database output.
+- `.agent-knowledge/static/templates/ADR-TEMPLATE.md` — immutable canonical structure for architecture decision records.
+- `.agent-knowledge/static/templates/SPEC-TEMPLATE.md` — immutable canonical structure for implementation-facing specifications.
+- `.agent-knowledge/dynamic/docs/notes/ADR-{incremental-number}-{adr-summary}.md` — architecture decision record output.
+- `.agent-knowledge/dynamic/docs/notes/SPEC-{incremental-number}-{spec-summary}.md` — specification output.
 
-## Prosedur
+## Procedure
 
-1. Baca `AGENTS.md`, instruksi lokal yang berlaku, lessons yang relevan, kedua template, dan seluruh dokumen output yang sudah ada. Template adalah struktur kanonis dan tidak boleh diubah.
-2. Ikuti prosedur untuk mode yang dipilih, lalu buat atau perbarui `PRD.md`, `ARCHITECTURE.md`, `TECHNOLOGYSTACK.md`, dan `DATABASE.md` dengan struktur template. Ganti placeholder dengan informasi yang terverifikasi atau pertanyaan terbuka.
+1. Read `AGENTS.md`, applicable local instructions, relevant lessons, both templates, and every existing output document. The templates are the canonical structure and must not be modified.
+2. Follow the selected-mode procedure, then create or update `PRD.md`, `ARCHITECTURE.md`, `TECHNOLOGYSTACK.md`, and `DATABASE.md` using the templates' structure. Replace placeholders with verified information or open questions.
 
-### Mode: Proyek Berjalan
+### Existing Project Mode
 
-1. Petakan codebase yang relevan sebelum menulis: stack dan versinya, entry point, alur utama, antarmuka atau API, modul penting, autentikasi dan otorisasi, integrasi, penyimpanan data, serta konfigurasi dan tes yang membantu mengonfirmasi perilaku. Ikuti package manager dan versi yang dinyatakan oleh project.
-2. Jika tersedia dan sesuai instruksi proyek, gunakan skill `codebase-memory` untuk pertanyaan struktural; verifikasi temuan penting pada file sumber.
-3. Petakan informasi ke bagian template: visi dan masalah, target users, epic dan user stories, fitur MVP atau post-MVP, constraints dan assumptions, success metrics, serta out of scope.
-4. Petakan bukti teknis ke Architecture, Technology Stack, dan Database: batas sistem, komponen, alur data, keamanan, deployment, teknologi dan versinya, serta topology, schema, relasi, indeks, migration, dan seed data.
-5. Pisahkan tiga jenis informasi:
-   - **Kondisi saat ini**: perilaku dan desain yang terbukti dari codebase atau dokumentasi yang dipercaya.
-   - **Keputusan bisnis atau produk**: maksud yang dinyatakan pengguna atau dokumen proyek yang masih berlaku.
-   - **Perubahan yang diinginkan**: fitur tambahan atau perubahan yang belum terbukti diimplementasikan. Catat sebagai rencana atau usulan.
-6. Hubungkan perubahan yang diminta dengan keadaan proyek sekarang. Jangan menganggap fitur baru sudah dibangun.
+1. Map the relevant codebase before writing: stack and versions, entry points, primary flows, interfaces or APIs, important modules, authentication and authorization, integrations, data storage, and configuration and tests that help confirm behavior. Follow the project's declared package manager and versions.
+2. When available and permitted by project instructions, use the `codebase-memory` skill for structural questions; verify material findings in source files.
+3. Map information to template sections: vision and problem, target users, epics and user stories, MVP or post-MVP features, constraints and assumptions, success metrics, and out of scope.
+4. Map technical evidence to Architecture, Technology Stack, and Database: system boundaries, components, data flows, security, deployment, technologies and versions, topology, schema, relationships, indexes, migrations, and seed data.
+5. Separate **current state** (evidenced behavior and design), **business or product decisions** (stated intent or valid documentation), and **requested changes** (unimplemented plans or proposals).
+6. Connect requested changes to the current project state. Do not represent a new feature as already built.
 
-### Mode: Proyek Baru
+### New Project Mode
 
-1. Kumpulkan informasi yang dibutuhkan oleh setiap bagian template: visi dan masalah, target users, epic dan user stories, fitur MVP dan post-MVP, constraints, assumptions, success metrics, serta out of scope.
-2. Kumpulkan keputusan teknis yang dibutuhkan oleh SDD: jenis proyek, batas dan pola arsitektur, komponen, alur data, keamanan, deployment, teknologi dan versi, serta database topology, schema, relasi, indeks, migration, dan seed data.
-3. Jika informasi penting belum tersedia, tanyakan kepada pengguna dan tunggu jawaban. Jangan mengisi requirement, persona, keputusan bisnis, atau keputusan teknis dengan asumsi.
-4. Tulis PRD sebagai spesifikasi kebutuhan dan dokumen SDD sebagai rencana teknis. Tandai keputusan yang belum dibuat sebagai pertanyaan terbuka.
-5. Jangan menyatakan fitur atau perilaku sebagai implementasi sampai ada bukti bahwa proyek telah dibangun.
+1. Collect the information needed by each template section: vision and problem, target users, epics and user stories, MVP and post-MVP features, constraints, assumptions, success metrics, and out of scope.
+2. Collect the technical decisions needed by the SDD: project type, architectural boundaries and patterns, components, data flows, security, deployment, technologies and versions, database topology, schema, relationships, indexes, migrations, and seed data.
+3. If material information is unavailable, ask the user and wait for an answer. Do not fill requirements, personas, business decisions, or technical decisions with assumptions.
+4. Write the PRD as a requirements specification and the SDD documents as technical plans. Mark unmade decisions as open questions.
+5. Do not represent features or behavior as implemented until evidence confirms that the project has been built.
 
-## Pengisian PRD
+## Completing the Documents
 
-### PRD — Product Requirements Document
+- Follow the headings, tables, and MVP, post-MVP, and out-of-scope separation in `PRD-TEMPLATE.md`. Use implementation evidence to record capabilities of an existing project; describe a new project's requirements as plans until implemented.
+- Follow the three sections in `SDD-TEMPLATE.md`: Architecture for system design, components, security, deployment, and decisions; Technology Stack for layers, technologies, versions, and roles; and Database for topology, schema, relationships, indexes, migrations, and seed data. Do not duplicate the technology-stack table in Architecture.
+- For a durable architectural decision, create an ADR from `ADR-TEMPLATE.md`. For a behavior, interface, data, or integration contract that needs independent implementation review, create a SPEC from `SPEC-TEMPLATE.md`. Link either document from the affected living documentation when useful.
 
-Ikuti heading, tabel, dan pemisahan MVP, post-MVP, serta out of scope dalam `PRD-TEMPLATE.md`. Pada proyek berjalan, gunakan implementasi untuk mencatat kemampuan yang tersedia. Pada proyek baru, nyatakan kebutuhan sebagai rencana sampai diimplementasikan. Jangan menambah struktur baru kecuali pengguna memintanya atau template tidak dapat menampung informasi penting.
+## Writing and Research Rules
 
-## Pengisian SDD
+- Populate empty documents with established information. Preserve valid existing content and update only affected sections; do not overwrite a complete document with a codebase summary.
+- Cross-check the PRD and all SDD documents so terminology, scope, feature status, priorities, and decisions do not conflict. Leave unanswered items as open questions.
+- The topics above are scope guidance, not mandatory headings. Keep documents concise and easy to update.
+- Use the language already used by the document. If all are empty, use the language of the user's request.
+- Include references to codebase files or artifacts for material technical decisions when that helps readers verify them.
+- Do not perform web research to populate routine documentation. If the user requests or supplies research, record its sources and dates and label it as a recommendation, approved decision, or current implementation.
+- Do not change source code, configuration, dependencies, schema, or tests. Document mismatches between implementation and requirements; do not fix them in this task.
 
-Ikuti tiga bagian dalam `SDD-TEMPLATE.md`: Architecture untuk desain sistem, komponen, keamanan, deployment, dan keputusan; Technology Stack untuk layer, teknologi, versi, dan peran; Database untuk topology, schema, relasi, indeks, migration, dan seed data. Jangan menduplikasi tabel technology stack dalam Architecture. Pada proyek berjalan, gunakan implementasi sebagai bukti. Pada proyek baru, nyatakan desain sebagai rencana sampai diimplementasikan.
+## Completion Criteria
 
-## Aturan Penulisan dan Riset
-
-- Isi dokumen yang kosong dengan informasi yang dapat dipastikan. Untuk dokumen yang sudah berisi, pertahankan konten yang masih berlaku dan ubah hanya bagian yang perlu diperbarui. Jangan menimpa dokumen lengkap dengan ringkasan codebase.
-- Periksa silang PRD dan seluruh dokumen SDD agar istilah, cakupan, status fitur, prioritas, serta keputusan produk dan teknis tidak saling bertentangan. Biarkan pertanyaan yang belum terjawab sebagai pertanyaan terbuka.
-- Topik di atas adalah panduan cakupan, bukan daftar heading wajib. Susun dokumen mengikuti bentuk dan kebutuhan proyek; jaga tetap ringkas dan mudah diperbarui.
-- Gunakan bahasa dokumen yang sudah ada. Jika semuanya kosong, gunakan bahasa permintaan pengguna.
-- Sertakan rujukan file atau artefak codebase untuk keputusan desain teknis yang penting bila membantu pembaca memverifikasinya.
-- Jangan melakukan riset web untuk mengisi dokumentasi rutin. Jika pengguna meminta atau memberikan hasil riset, catat sumber dan tanggal serta tandai apakah isinya rekomendasi, keputusan yang disetujui, atau implementasi saat ini.
-- Jangan mengubah source code, konfigurasi, dependency, schema, atau tes. Jika menemukan ketidaksesuaian implementasi dengan kebutuhan, dokumentasikan perbedaannya; jangan memperbaikinya dalam tugas ini.
-
-## Kriteria Selesai
-
-- Pengguna telah memilih mode sebelum dokumentasi ditulis.
-- PRD mengikuti struktur `PRD-TEMPLATE.md` tanpa mengubah template.
-- ARCHITECTURE, TECHNOLOGYSTACK, dan DATABASE mengikuti bagian masing-masing dalam `SDD-TEMPLATE.md` tanpa mengubah template.
-- Untuk proyek berjalan, fakta implementasi dapat dibedakan dari perubahan yang direncanakan.
-- Untuk proyek baru, kebutuhan dan desain teknis diperlakukan sebagai rencana atau usulan, dan informasi yang belum tersedia dicatat sebagai pertanyaan terbuka.
-- Laporkan dokumen yang diubah, ringkasan pembaruan, bukti codebase yang dipakai bila ada, serta pertanyaan atau keputusan yang masih terbuka.
+- The user selected a mode before documentation was written.
+- The PRD follows `PRD-TEMPLATE.md`, and ARCHITECTURE, TECHNOLOGYSTACK, and DATABASE follow their respective parts of `SDD-TEMPLATE.md`, without modifying those templates.
+- Any ADR or SPEC created follows its canonical template and uses the required numbered filename.
+- In an existing project, implementation facts are distinguishable from planned changes.
+- In a new project, requirements and technical design are treated as plans or proposals, and unavailable information is recorded as an open question.
+- Report changed documents, updates, codebase evidence used when applicable, and remaining open questions or decisions.

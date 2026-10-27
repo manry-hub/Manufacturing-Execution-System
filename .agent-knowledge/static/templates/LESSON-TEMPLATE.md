@@ -1,7 +1,7 @@
-# TEMPLATE LESSON
+# Lesson Template
 
-> **Jangan ubah file ini saat mencatat lesson.** Tambahkan aturan pencegahan ke `.agent-knowledge/dynamic/reports/LESSON.md` dengan mengikuti format di bawah. Pertahankan entri yang sudah ada.
+> **DO NOT MODIFY THIS FILE WHEN RECORDING A LESSON.** Add a prevention rule to `.agent-knowledge/dynamic/reports/LESSON.md` using the format below. Preserve existing entries.
 
 # Lessons
 
-- Saat {kondisi atau kesalahan yang berulang}, {tindakan konkret untuk mencegahnya}.
+- When {a recurring condition or error occurs}, {take a concrete action to prevent it}.
