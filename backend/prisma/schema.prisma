@@ -1,0 +1,328 @@
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -----------------------------------------------------------------------------
+// Identity, Roles & Access Control
+// -----------------------------------------------------------------------------
+
+model User {
+  id           String               @id @default(uuid())
+  username     String               @unique
+  email        String               @unique
+  passwordHash String               @map("password_hash")
+  isActive     Boolean              @default(true) @map("is_active")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @default(now()) @updatedAt @map("updated_at")
+
+  userRoles       UserRoleAssignment[]
+  auditLogs       AuditLog[]
+  reportedTickets AndonTicket[]        @relation("ReportedTickets")
+  assignedTickets AndonTicket[]        @relation("AssignedTickets")
+
+  @@map("users")
+}
+
+model Role {
+  id          String               @id @default(uuid())
+  name        String               @unique
+  description String?
+
+  userRoles UserRoleAssignment[]
+
+  @@map("roles")
+}
+
+model UserRoleAssignment {
+  userId String @map("user_id")
+  roleId String @map("role_id")
+
+  user User @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_role_assignments")
+}
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  userId     String?  @map("user_id")
+  action     String   @db.VarChar(100)
+  entityType String   @map("entity_type") @db.VarChar(50)
+  entityId   String   @map("entity_id") @db.VarChar(36)
+  oldValues  String?  @map("old_values") @db.NVarChar(Max)
+  newValues  String?  @map("new_values") @db.NVarChar(Max)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt(sort: Desc)], name: "idx_audit_query")
+  @@map("audit_logs")
+}
+
+// -----------------------------------------------------------------------------
+// Factory Structure & Master Data
+// -----------------------------------------------------------------------------
+
+model Plant {
+  id        String   @id @default(uuid())
+  code      String   @unique @db.VarChar(50)
+  name      String   @db.VarChar(150)
+  timezone  String   @default("UTC") @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  productionAreas ProductionArea[]
+
+  @@map("plants")
+}
+
+model ProductionArea {
+  id        String   @id @default(uuid())
+  plantId   String   @map("plant_id")
+  code      String   @db.VarChar(50)
+  name      String   @db.VarChar(150)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  plant    Plant     @relation(fields: [plantId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  machines Machine[]
+
+  @@unique([plantId, code], name: "uq_area_plant_code")
+  @@index([plantId], name: "idx_area_plant")
+  @@map("production_areas")
+}
+
+model Machine {
+  id              String   @id @default(uuid())
+  areaId          String   @map("area_id")
+  code            String   @unique @db.VarChar(50)
+  name            String   @db.VarChar(150)
+  clampingTonnage Int?     @map("clamping_tonnage")
+  isVirtual       Boolean  @default(true) @map("is_virtual")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  area           ProductionArea       @relation(fields: [areaId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  currentState   MachineCurrentState?
+  eventLogs      MachineEventLog[]
+  timeSegments   MachineTimeSegment[]
+  oeeResults     OeeResult[]
+  andonTickets   AndonTicket[]
+  productionRuns ProductionRun[]
+
+  @@index([areaId], name: "idx_machine_area")
+  @@map("machines")
+}
+
+// -----------------------------------------------------------------------------
+// Products, Tooling & Process Recipes
+// -----------------------------------------------------------------------------
+
+model Product {
+  id                String   @id @default(uuid())
+  partNumber        String   @unique @map("part_number") @db.VarChar(100)
+  name              String   @db.VarChar(200)
+  standardCycleTime Decimal  @map("standard_cycle_time") @db.Decimal(8, 2)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  compatibilities  MoldProductCompatibility[]
+  productionOrders ProductionOrder[]
+
+  @@map("products")
+}
+
+model Mold {
+  id          String   @id @default(uuid())
+  code        String   @unique @db.VarChar(50)
+  name        String   @db.VarChar(150)
+  cavityCount Int      @default(1) @map("cavity_count")
+  totalShots  BigInt   @default(0) @map("total_shots")
+  status      String   @default("AVAILABLE") @db.VarChar(30)
+
+  compatibilities MoldProductCompatibility[]
+  productionRuns  ProductionRun[]
+
+  @@map("molds")
+}
+
+model MoldProductCompatibility {
+  id             String  @id @default(uuid())
+  moldId         String  @map("mold_id")
+  productId      String  @map("product_id")
+  idealCycleTime Decimal @map("ideal_cycle_time") @db.Decimal(8, 2)
+
+  mold    Mold    @relation(fields: [moldId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+
+  @@unique([moldId, productId], name: "uq_mold_product")
+  @@index([moldId], name: "idx_comp_mold")
+  @@index([productId], name: "idx_comp_product")
+  @@map("mold_product_compatibilities")
+}
+
+// -----------------------------------------------------------------------------
+// Production Planning & Execution
+// -----------------------------------------------------------------------------
+
+model ProductionOrder {
+  id               String    @id @default(uuid())
+  orderNumber      String    @unique @map("order_number") @db.VarChar(50)
+  productId        String    @map("product_id")
+  targetQuantity   Int       @map("target_quantity")
+  status           String    @default("DRAFT") @db.VarChar(30)
+  plannedStartTime DateTime  @map("planned_start_time")
+  actualStartTime  DateTime? @map("actual_start_time")
+  actualEndTime    DateTime? @map("actual_end_time")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  product Product         @relation(fields: [productId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  runs    ProductionRun[]
+
+  @@index([productId], name: "idx_po_product")
+  @@index([status], name: "idx_po_status")
+  @@map("production_orders")
+}
+
+model ProductionRun {
+  id                String    @id @default(uuid())
+  productionOrderId String    @map("production_order_id")
+  machineId         String    @map("machine_id")
+  moldId            String    @map("mold_id")
+  status            String    @default("SETUP") @db.VarChar(30)
+  totalShots        Int       @default(0) @map("total_shots")
+  goodQuantity      Int       @default(0) @map("good_quantity")
+  rejectQuantity    Int       @default(0) @map("reject_quantity")
+  startTime         DateTime  @default(now()) @map("start_time")
+  endTime           DateTime? @map("end_time")
+
+  productionOrder     ProductionOrder       @relation(fields: [productionOrderId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  machine             Machine               @relation(fields: [machineId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  mold                Mold                  @relation(fields: [moldId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  currentStates       MachineCurrentState[]
+  oeeResults          OeeResult[]
+
+  @@index([productionOrderId], name: "idx_pr_order")
+  @@index([machineId], name: "idx_pr_machine")
+  @@index([status], name: "idx_pr_status")
+  @@map("production_runs")
+}
+
+// -----------------------------------------------------------------------------
+// Machine Integration & Telemetry Projections
+// -----------------------------------------------------------------------------
+
+model MachineCurrentState {
+  machineId          String   @id @map("machine_id")
+  normalizedStatus   String   @map("normalized_status") @db.VarChar(30)
+  rawStatus          String?  @map("raw_status") @db.VarChar(100)
+  activeRunId        String?  @map("active_run_id")
+  currentCycleTime   Decimal? @map("current_cycle_time") @db.Decimal(8, 2)
+  lastEventTimestamp DateTime @map("last_event_timestamp")
+  connectionStatus   String   @default("ONLINE") @map("connection_status") @db.VarChar(30)
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at")
+
+  machine   Machine        @relation(fields: [machineId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  activeRun ProductionRun? @relation(fields: [activeRunId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@map("machine_current_states")
+}
+
+model MachineEventLog {
+  id                 BigInt   @id @default(autoincrement())
+  eventId            String   @unique @map("event_id") @db.VarChar(64)
+  machineId          String   @map("machine_id")
+  eventType          String   @map("event_type") @db.VarChar(50)
+  normalizedStatus   String   @map("normalized_status") @db.VarChar(30)
+  sourceTimestamp    DateTime @map("source_timestamp")
+  receivedTimestamp  DateTime @default(now()) @map("received_timestamp")
+  cycleCounter       BigInt?  @map("cycle_counter")
+  faultCode          String?  @map("fault_code") @db.VarChar(50)
+  rawPayload         String?  @map("raw_payload") @db.NVarChar(Max)
+  isSimulated        Boolean  @default(true) @map("is_simulated")
+
+  machine Machine @relation(fields: [machineId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+
+  @@index([machineId, sourceTimestamp(sort: Desc)], name: "idx_mel_machine_time")
+  @@index([eventType], name: "idx_mel_type")
+  @@map("machine_event_logs")
+}
+
+// -----------------------------------------------------------------------------
+// OEE & Downtime Segments
+// -----------------------------------------------------------------------------
+
+model DowntimeReason {
+  id          String  @id @default(uuid())
+  code        String  @unique @db.VarChar(50)
+  category    String  @db.VarChar(50)
+  description String  @db.VarChar(200)
+  isPlanned   Boolean @default(false) @map("is_planned")
+
+  timeSegments MachineTimeSegment[]
+
+  @@map("downtime_reasons")
+}
+
+model MachineTimeSegment {
+  id               BigInt   @id @default(autoincrement())
+  machineId        String   @map("machine_id")
+  category         String   @db.VarChar(30)
+  startTime        DateTime @map("start_time")
+  endTime          DateTime @map("end_time")
+  durationSeconds  Int      @map("duration_seconds")
+  downtimeReasonId String?  @map("downtime_reason_id")
+
+  machine        Machine         @relation(fields: [machineId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  downtimeReason DowntimeReason? @relation(fields: [downtimeReasonId], references: [id], onUpdate: NoAction, onDelete: SetNull)
+
+  @@index([machineId, startTime, endTime], name: "idx_mts_machine_window")
+  @@map("machine_time_segments")
+}
+
+model OeeResult {
+  id                String   @id @default(uuid())
+  machineId         String   @map("machine_id")
+  runId             String?  @map("run_id")
+  calculationWindow String   @map("calculation_window") @db.VarChar(20)
+  availability      Decimal  @db.Decimal(5, 4)
+  performance       Decimal  @db.Decimal(5, 4)
+  quality           Decimal  @db.Decimal(5, 4)
+  oee               Decimal  @db.Decimal(5, 4)
+  timestamp         DateTime @default(now())
+
+  machine Machine        @relation(fields: [machineId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  run     ProductionRun? @relation(fields: [runId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@index([machineId, timestamp(sort: Desc)], name: "idx_oee_lookup")
+  @@map("oee_results")
+}
+
+// -----------------------------------------------------------------------------
+// Digital Andon Tickets
+// -----------------------------------------------------------------------------
+
+model AndonTicket {
+  id                 String    @id @default(uuid())
+  ticketNumber       String    @unique @map("ticket_number") @db.VarChar(50)
+  machineId          String    @map("machine_id")
+  category           String    @db.VarChar(50)
+  status             String    @default("OPEN") @db.VarChar(30)
+  reportedById       String    @map("reported_by_id")
+  assignedToId       String?   @map("assigned_to_id")
+  reportTime         DateTime  @default(now()) @map("report_time")
+  responseTime       DateTime? @map("response_time")
+  resolutionTime     DateTime? @map("resolution_time")
+  confirmedRootCause String?   @map("confirmed_root_cause") @db.NVarChar(500)
+  correctiveAction   String?   @map("corrective_action") @db.NVarChar(500)
+
+  machine    Machine @relation(fields: [machineId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  reportedBy User    @relation("ReportedTickets", fields: [reportedById], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  assignedTo User?   @relation("AssignedTickets", fields: [assignedToId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@index([machineId, status], name: "idx_andon_active")
+  @@map("andon_tickets")
+}
