@@ -8,6 +8,9 @@ import { MasterDataModule } from './modules/master-data/master-data.module.js';
 import { AuditModule } from './modules/audit/audit.module.js';
 import { TelemetryModule } from './modules/telemetry/telemetry.module.js';
 import { SimulatorModule } from './modules/simulator/simulator.module.js';
+import { ProductionModule } from './modules/production/production.module.js';
+import { OeeModule } from './modules/oee/oee.module.js';
+import { AndonModule } from './modules/andon/andon.module.js';
 
 @Module({
   imports: [
@@ -21,6 +24,9 @@ import { SimulatorModule } from './modules/simulator/simulator.module.js';
     MasterDataModule,
     TelemetryModule,
     SimulatorModule,
+    ProductionModule,
+    OeeModule,
+    AndonModule,
   ],
   controllers: [AppController],
   providers: [AppService],
