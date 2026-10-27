@@ -30,36 +30,47 @@ async function main() {
   }
   console.log(`✓ Seeded ${roles.length} canonical roles.`);
 
-  // 2. Default Administrator User
-  const adminPasswordHash = await bcrypt.hash('AdminPassword123!', 10);
-  const adminUser = await prisma.user.upsert({
-    where: { username: 'admin' },
-    update: { passwordHash: adminPasswordHash },
-    create: {
-      username: 'admin',
-      email: 'admin@mes.local',
-      passwordHash: adminPasswordHash,
-      isActive: true,
-    },
-  });
+  // 2. Default Users & Role Assignments
+  const defaultPasswordHash = await bcrypt.hash('password123', 10);
+  const demoUsers = [
+    { username: 'admin', email: 'admin@mes.local', role: 'System Administrator' },
+    { username: 'supervisor', email: 'supervisor@mes.local', role: 'Production Supervisor' },
+    { username: 'operator', email: 'operator@mes.local', role: 'Machine Operator' },
+    { username: 'technician', email: 'technician@mes.local', role: 'Maintenance Technician' },
+    { username: 'planner', email: 'planner@mes.local', role: 'Production Planner' },
+    { username: 'quality_inspector', email: 'quality@mes.local', role: 'Quality Inspector' },
+  ];
 
-  const adminRoleId = createdRoles.get('System Administrator');
-  if (adminRoleId) {
-    await prisma.userRoleAssignment.upsert({
-      where: {
-        userId_roleId: {
-          userId: adminUser.id,
-          roleId: adminRoleId,
-        },
-      },
-      update: {},
+  for (const u of demoUsers) {
+    const user = await prisma.user.upsert({
+      where: { username: u.username },
+      update: { passwordHash: defaultPasswordHash, isActive: true },
       create: {
-        userId: adminUser.id,
-        roleId: adminRoleId,
+        username: u.username,
+        email: u.email,
+        passwordHash: defaultPasswordHash,
+        isActive: true,
       },
     });
+
+    const roleId = createdRoles.get(u.role);
+    if (roleId) {
+      await prisma.userRoleAssignment.upsert({
+        where: {
+          userId_roleId: {
+            userId: user.id,
+            roleId,
+          },
+        },
+        update: {},
+        create: {
+          userId: user.id,
+          roleId,
+        },
+      });
+    }
   }
-  console.log('✓ Seeded default admin user (admin / AdminPassword123!).');
+  console.log(`✓ Seeded ${demoUsers.length} standard demo users with password "password123".`);
 
   // 3. Factory Topology (Plant 01, 4 Areas, 10 Virtual Machines)
   const plant = await prisma.plant.upsert({

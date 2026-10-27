@@ -24,7 +24,12 @@ export function useTelemetrySocket(options: UseTelemetrySocketOptions = {}) {
 
   useEffect(() => {
     // Socket.IO client connects to /ws/telemetry namespace
-    const socket = io('/ws/telemetry', {
+    const socketUrl =
+      typeof window !== 'undefined' && window.location.hostname === 'localhost'
+        ? 'http://localhost:3000/ws/telemetry'
+        : '/ws/telemetry';
+
+    const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: Infinity,
