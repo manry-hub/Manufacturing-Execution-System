@@ -6,6 +6,8 @@ import { PrismaModule } from './database/prisma.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { MasterDataModule } from './modules/master-data/master-data.module.js';
 import { AuditModule } from './modules/audit/audit.module.js';
+import { TelemetryModule } from './modules/telemetry/telemetry.module.js';
+import { SimulatorModule } from './modules/simulator/simulator.module.js';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { AuditModule } from './modules/audit/audit.module.js';
     AuditModule,
     AuthModule,
     MasterDataModule,
+    TelemetryModule,
+    SimulatorModule,
   ],
   controllers: [AppController],
   providers: [AppService],
