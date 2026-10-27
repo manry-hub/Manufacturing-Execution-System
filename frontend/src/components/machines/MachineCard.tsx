@@ -52,7 +52,7 @@ export const MachineCard: React.FC<MachineCardProps> = ({
               <h3 className="font-bold text-lg text-[#292A2E] tracking-tight">
                 {machine.code}
               </h3>
-              <span className="text-[11px] font-mono text-[#505258] bg-[#F1F2F4] px-1.5 py-0.5 rounded-[3px] border border-[#DCDFE4]">
+              <span className="text-xs font-mono text-[#505258] bg-[#F1F2F4] px-1.5 py-0.5 rounded-[3px] border border-[#DCDFE4]">
                 {machine.tonnage}T
               </span>
             </div>
@@ -79,7 +79,7 @@ export const MachineCard: React.FC<MachineCardProps> = ({
 
           {/* Output Progress */}
           <div>
-            <div className="flex items-center justify-between text-[11px] text-[#505258] mb-1">
+            <div className="flex items-center justify-between text-xs text-[#505258] mb-1">
               <span>Progress</span>
               <span>
                 {goodQuantity.toLocaleString()} / {targetQuantity.toLocaleString()} ({progressPercent}%)
@@ -106,7 +106,7 @@ export const MachineCard: React.FC<MachineCardProps> = ({
                 <span>Cycle time</span>
               </span>
               {isSlowCycle && (
-                <span className="text-[10px] text-[#693200] bg-[#FFF5DB] border border-[#E06C00] px-1 rounded-[3px] font-bold">
+                <span className="text-xs text-[#693200] bg-[#FFF5DB] border border-[#E06C00] px-1 rounded-[3px] font-bold">
                   Slow
                 </span>
               )}
@@ -196,7 +196,7 @@ export const MachineCard: React.FC<MachineCardProps> = ({
 
       {/* Simulator scenario active badge */}
       {machine.isSlowCycleActive && (
-        <div className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-[3px] bg-[#FFF5DB] text-[#693200] border border-[#E06C00] font-bold text-[10px] tracking-wide flex items-center gap-1 shadow-xs">
+        <div className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-[3px] bg-[#FFF5DB] text-[#693200] border border-[#E06C00] font-bold text-xs tracking-wide flex items-center gap-1 shadow-xs">
           <Sparkles className="h-3 w-3 text-[#E06C00]" />
           <span>Scenario: slow cycle</span>
         </div>

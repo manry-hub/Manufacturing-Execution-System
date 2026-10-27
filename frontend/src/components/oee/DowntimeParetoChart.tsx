@@ -74,7 +74,7 @@ export const DowntimeParetoChart: React.FC = () => {
                 <div className="flex items-center gap-2 font-mono">
                   <span className="text-[#292A2E] font-bold">{item.durationMinutes}m</span>
                   <span className="text-[#505258]">({item.pctOfTotal}%)</span>
-                  <span className="text-[#AE2E24] text-[11px] font-bold">
+                  <span className="text-[#AE2E24] text-xs font-bold">
                     Cum: {item.cumPct}%
                   </span>
                 </div>
@@ -124,7 +124,7 @@ export const DowntimeParetoChart: React.FC = () => {
                 <div className="flex items-center gap-2 font-mono">
                   <span className="text-[#292A2E] font-bold">{item.count} pcs</span>
                   <span className="text-[#505258]">({item.pctOfTotal}%)</span>
-                  <span className="text-[#9E4C00] text-[11px] font-bold">
+                  <span className="text-[#9E4C00] text-xs font-bold">
                     Cum: {item.cumPct}%
                   </span>
                 </div>

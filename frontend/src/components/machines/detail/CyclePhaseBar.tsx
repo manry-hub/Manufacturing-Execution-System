@@ -72,7 +72,7 @@ export const CyclePhaseBar: React.FC<CyclePhaseBarProps> = ({
         <div>
           <h3 className="text-sm font-bold text-[#292A2E] flex items-center gap-2">
             <span>Injection molding cycle sequence</span>
-            <span className="text-[11px] font-mono font-normal text-[#505258] bg-[#F1F2F4] px-2 py-0.5 rounded-[3px] border border-[#DCDFE4]">
+            <span className="text-xs font-mono font-normal text-[#505258] bg-[#F1F2F4] px-2 py-0.5 rounded-[3px] border border-[#DCDFE4]">
               6-phase standard
             </span>
           </h3>
@@ -124,7 +124,7 @@ export const CyclePhaseBar: React.FC<CyclePhaseBarProps> = ({
                 <span className={`p-1.5 rounded-md ${iconStyle}`}>
                   {phase.icon}
                 </span>
-                <span className="text-[10px] font-mono text-[#6B6E76]">
+                <span className="text-xs font-mono text-[#6B6E76]">
                   ~{phase.durationApprox}
                 </span>
               </div>
@@ -133,7 +133,7 @@ export const CyclePhaseBar: React.FC<CyclePhaseBarProps> = ({
                 <span className="text-xs font-semibold block text-[#292A2E]">
                   {phase.label}
                 </span>
-                <p className="text-[11px] text-[#505258] line-clamp-2 mt-0.5 leading-tight">
+                <p className="text-xs text-[#505258] line-clamp-2 mt-0.5 leading-tight">
                   {phase.description}
                 </p>
               </div>

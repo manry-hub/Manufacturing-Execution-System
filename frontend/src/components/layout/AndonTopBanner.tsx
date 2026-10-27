@@ -41,11 +41,11 @@ export const AndonTopBanner: React.FC<AndonTopBannerProps> = ({
               <span className="font-bold text-[#AE2E24] text-xs uppercase tracking-wide">
                 Active andon alert: {first.machine?.code || first.machineId}
               </span>
-              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-[3px] bg-[#FFFFFF] text-[#AE2E24] uppercase border border-[#E2483D]">
+              <span className="text-xs font-mono font-bold px-1.5 py-0.5 rounded-[3px] bg-[#FFFFFF] text-[#AE2E24] uppercase border border-[#E2483D]">
                 {first.category.replace('_', ' ')}
               </span>
               {openTickets.length > 1 && (
-                <span className="text-[11px] bg-[#FFFFFF] text-[#505258] px-2 py-0.5 rounded-full border border-[#0B120E24]">
+                <span className="text-xs bg-[#FFFFFF] text-[#505258] px-2 py-0.5 rounded-full border border-[#0B120E24]">
                   +{openTickets.length - 1} more
                 </span>
               )}

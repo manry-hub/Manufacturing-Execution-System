@@ -87,7 +87,7 @@ export const OeeScorecards: React.FC<OeeScorecardsProps> = ({ result }) => {
             <span>Overall OEE</span>
           </span>
           {isWorldClass && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#37471F] bg-[#EFFFD6] px-2 py-0.5 rounded-[3px] border border-[#6A9A23]">
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-[#37471F] bg-[#EFFFD6] px-2 py-0.5 rounded-[3px] border border-[#6A9A23]">
               <Award className="h-3 w-3" />
               <span>World-class</span>
             </span>
@@ -121,7 +121,7 @@ export const OeeScorecards: React.FC<OeeScorecardsProps> = ({ result }) => {
             <Clock className="h-4 w-4 text-[#22A06B]" />
             <span>Availability (A)</span>
           </span>
-          <span className="text-[10px] font-mono text-[#505258]">Run / planned</span>
+          <span className="text-xs font-mono text-[#505258]">Run / planned</span>
         </div>
 
         <div className="my-2">
@@ -151,7 +151,7 @@ export const OeeScorecards: React.FC<OeeScorecardsProps> = ({ result }) => {
             <span>Performance (P)</span>
           </span>
           {isOverSpeed && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#693200] bg-[#FFF5DB] px-2 py-0.5 rounded-[3px] border border-[#E06C00]">
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-[#693200] bg-[#FFF5DB] px-2 py-0.5 rounded-[3px] border border-[#E06C00]">
               <AlertTriangle className="h-3 w-3" />
               <span>Over-speed</span>
             </span>
@@ -184,7 +184,7 @@ export const OeeScorecards: React.FC<OeeScorecardsProps> = ({ result }) => {
             <CheckCircle2 className="h-4 w-4 text-[#206A83]" />
             <span>Quality (Q)</span>
           </span>
-          <span className="text-[10px] font-mono text-[#505258]">Good / total</span>
+          <span className="text-xs font-mono text-[#505258]">Good / total</span>
         </div>
 
         <div className="my-2">

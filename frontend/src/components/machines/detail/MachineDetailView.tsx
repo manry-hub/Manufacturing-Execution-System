@@ -69,10 +69,10 @@ export const MachineDetailView: React.FC<MachineDetailViewProps> = ({
 
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold text-[#292A2E] tracking-tight flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-[#292A2E] tracking-tight flex items-center gap-2">
                 <Cpu className="h-6 w-6 text-[#1868DB]" />
                 <span>{machine.code}</span>
-              </h2>
+              </h1>
 
               <StatusBadge status={currentStatus} size="md" />
 
@@ -173,14 +173,14 @@ export const MachineDetailView: React.FC<MachineDetailViewProps> = ({
               <span className="text-xl font-bold font-mono text-[#37471F]">
                 {goodQuantity.toLocaleString()}
               </span>
-              <span className="text-[11px] text-[#505258] block">Good parts</span>
+              <span className="text-xs text-[#505258] block">Good parts</span>
             </div>
             <div className="text-right">
               <span className="text-sm font-bold font-mono text-[#5D1F1A] flex items-center justify-end gap-1">
                 <Trash2 className="h-3.5 w-3.5" />
                 <span>{scrapQuantity}</span>
               </span>
-              <span className="text-[11px] text-[#505258] block">Scrap ({scrapRate}%)</span>
+              <span className="text-xs text-[#505258] block">Scrap ({scrapRate}%)</span>
             </div>
           </div>
         </div>
@@ -210,7 +210,7 @@ export const MachineDetailView: React.FC<MachineDetailViewProps> = ({
                   : 'Nominal steady-state'}
               </span>
             </div>
-            <span className="text-[11px] text-[#505258] block">
+            <span className="text-xs text-[#505258] block">
               {machine.isSlowCycleActive
                 ? 'Cycle prolonged to 42s; degrades performance'
                 : machine.isFaultActive

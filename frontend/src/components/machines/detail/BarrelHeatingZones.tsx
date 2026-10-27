@@ -32,7 +32,7 @@ export const BarrelHeatingZones: React.FC<BarrelHeatingZonesProps> = ({
           <h3 className="text-sm font-bold text-[#292A2E] flex items-center gap-2">
             <Flame className="h-4 w-4 text-[#E06C00]" />
             <span>Barrel thermal zones</span>
-            <span className="text-[11px] font-mono font-normal text-[#505258] bg-[#F1F2F4] px-2 py-0.5 rounded-[3px] border border-[#DCDFE4]">
+            <span className="text-xs font-mono font-normal text-[#505258] bg-[#F1F2F4] px-2 py-0.5 rounded-[3px] border border-[#DCDFE4]">
               Closed-loop PID control
             </span>
           </h3>
@@ -62,7 +62,7 @@ export const BarrelHeatingZones: React.FC<BarrelHeatingZonesProps> = ({
           const percent = Math.min(Math.round((actual / 300) * 100), 100);
 
           let statusBadge = (
-            <span className="flex items-center gap-1 text-[11px] text-[#37471F] font-mono bg-[#EFFFD6] border border-[#6A9A23] px-1.5 py-0.5 rounded-[3px]">
+            <span className="flex items-center gap-1 text-xs text-[#37471F] font-mono bg-[#EFFFD6] border border-[#6A9A23] px-1.5 py-0.5 rounded-[3px]">
               <CheckCircle className="h-3 w-3" />
               <span>Optimal ({delta >= 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1)}°C)</span>
             </span>
@@ -72,7 +72,7 @@ export const BarrelHeatingZones: React.FC<BarrelHeatingZonesProps> = ({
 
           if (absDelta > 15 || (hasHeaterFault && zone.id === 'zone4')) {
             statusBadge = (
-              <span className="flex items-center gap-1 text-[11px] text-[#5D1F1A] font-mono font-bold bg-[#FFECEB] border border-[#E2483D] px-1.5 py-0.5 rounded-[3px]">
+              <span className="flex items-center gap-1 text-xs text-[#5D1F1A] font-mono font-bold bg-[#FFECEB] border border-[#E2483D] px-1.5 py-0.5 rounded-[3px]">
                 <AlertTriangle className="h-3 w-3" />
                 <span>Fault ({delta >= 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1)}°C)</span>
               </span>
@@ -81,7 +81,7 @@ export const BarrelHeatingZones: React.FC<BarrelHeatingZonesProps> = ({
             textColor = 'text-[#5D1F1A] font-bold';
           } else if (absDelta > 5) {
             statusBadge = (
-              <span className="flex items-center gap-1 text-[11px] text-[#693200] font-mono bg-[#FFF5DB] border border-[#E06C00] px-1.5 py-0.5 rounded-[3px]">
+              <span className="flex items-center gap-1 text-xs text-[#693200] font-mono bg-[#FFF5DB] border border-[#E06C00] px-1.5 py-0.5 rounded-[3px]">
                 <AlertTriangle className="h-3 w-3" />
                 <span>Adjusting ({delta >= 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1)}°C)</span>
               </span>
@@ -98,9 +98,9 @@ export const BarrelHeatingZones: React.FC<BarrelHeatingZonesProps> = ({
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="font-semibold text-[#292A2E]">{zone.name}</span>
-                  <span className="text-[10px] text-[#505258] font-mono">SP: {zone.setpoint}°C</span>
+                  <span className="text-xs text-[#505258] font-mono">SP: {zone.setpoint}°C</span>
                 </div>
-                <p className="text-[10px] text-[#505258] mb-2">{zone.description}</p>
+                <p className="text-xs text-[#505258] mb-2">{zone.description}</p>
               </div>
 
               <div>
@@ -118,7 +118,7 @@ export const BarrelHeatingZones: React.FC<BarrelHeatingZonesProps> = ({
                     style={{ width: `${percent}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-[9px] text-[#6B6E76] font-mono mt-1">
+                <div className="flex justify-between text-xs text-[#6B6E76] font-mono mt-1">
                   <span>0°C</span>
                   <span>150°C</span>
                   <span>300°C</span>

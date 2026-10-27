@@ -98,6 +98,8 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
 
   return (
     <div className="space-y-6">
+      <h1 className="sr-only">Shop floor matrix</h1>
+
       {/* Top Controls & Simulator Bar */}
       <div className="bg-[#F8F8F8] border border-[#0B120E24] rounded-lg p-4 flex flex-wrap items-center justify-between gap-4">
         {/* Left: Filter Controls */}
@@ -111,7 +113,7 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
           <select
             value={selectedArea}
             onChange={(e) => setSelectedArea(e.target.value)}
-            className="bg-[#FFFFFF] border border-[#8C8F97] text-xs font-medium text-[#292A2E] rounded-md px-3 py-1.5 focus:border-[#4688EC] focus:ring-2 focus:ring-[#4688EC]/30 outline-none"
+            className="bg-[#FFFFFF] border border-[#8C8F97] text-xs font-medium text-[#292A2E] rounded-md px-3 py-1.5 min-h-[32px] focus:border-[#4688EC] focus:ring-2 focus:ring-[#4688EC]/30 outline-none"
           >
             <option value="ALL">All areas</option>
             {areas.map((a) => (
@@ -138,7 +140,7 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
                 key={st.id}
                 type="button"
                 onClick={() => setSelectedStatus(st.id)}
-                className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
+                className={`text-xs px-3 py-1.5 min-h-[32px] rounded-md font-medium transition-all ${
                   isSelected
                     ? 'bg-[#1868DB] text-white border border-[#1868DB]'
                     : 'bg-[#FFFFFF] text-[#505258] hover:bg-[#F0F1F2] border border-[#0B120E24]'
@@ -152,7 +154,7 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
 
         {/* Right: Simulator Controls */}
         <div className="flex items-center gap-2 bg-[#FFFFFF] border border-[#0B120E24] rounded-md p-1.5 shadow-xs">
-          <span className="text-[11px] font-mono text-[#505258] px-2 flex items-center gap-1">
+          <span className="text-xs font-mono text-[#505258] px-2 flex items-center gap-1">
             <Gauge className="h-3.5 w-3.5 text-[#1868DB]" />
             <span>Sim: {simulatorStatus?.isRunning ? 'Running' : 'Paused'}</span>
           </span>
@@ -163,7 +165,7 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
               onClick={() => void onStopSimulator()}
               title="Pause simulator loop"
               aria-label="Pause simulator"
-              className="p-1 rounded-md bg-[#FFF5DB] text-[#693200] border border-[#E06C00] hover:bg-[#FCE4A6] transition-colors"
+              className="p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-md bg-[#FFF5DB] text-[#693200] border border-[#E06C00] hover:bg-[#FCE4A6] transition-colors"
             >
               <Pause className="h-3.5 w-3.5" />
             </button>
@@ -173,7 +175,7 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
               onClick={() => void onStartSimulator()}
               title="Start simulator loop"
               aria-label="Start simulator"
-              className="p-1 rounded-md bg-[#EFFFD6] text-[#37471F] border border-[#6A9A23] hover:bg-[#D3F1A7] transition-colors"
+              className="p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-md bg-[#EFFFD6] text-[#37471F] border border-[#6A9A23] hover:bg-[#D3F1A7] transition-colors"
             >
               <Play className="h-3.5 w-3.5" />
             </button>
@@ -188,7 +190,7 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
                   key={spd}
                   type="button"
                   onClick={() => void onSetSimulatorSpeed(spd)}
-                  className={`text-[11px] font-mono px-2 py-0.5 rounded-md transition-colors ${
+                  className={`text-xs font-mono px-2.5 py-1 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-md transition-colors ${
                     isActive
                       ? 'bg-[#1868DB] text-white font-bold'
                       : 'text-[#505258] hover:text-[#292A2E] hover:bg-[#091E420F]'
@@ -205,7 +207,7 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
             onClick={() => void onResetSimulator()}
             title="Reset simulator to deterministic baseline"
             aria-label="Reset simulator"
-            className="p-1 rounded-md text-[#505258] hover:text-[#292A2E] hover:bg-[#091E420F] transition-colors ml-1"
+            className="p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-md text-[#505258] hover:text-[#292A2E] hover:bg-[#091E420F] transition-colors ml-1"
           >
             <RotateCcw className="h-3.5 w-3.5" />
           </button>

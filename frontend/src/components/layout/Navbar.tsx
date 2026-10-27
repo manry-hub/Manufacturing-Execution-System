@@ -59,11 +59,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-[#292A2E] text-base tracking-tight">MES Core</span>
-                <span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[3px] bg-[#E9F2FE] text-[#123263] border border-[#8FB8F6]">
+                <span className="text-xs font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[3px] bg-[#E9F2FE] text-[#123263] border border-[#8FB8F6]">
                   Injection
                 </span>
               </div>
-              <p className="text-[11px] text-[#6B6E76]">Model injection plant 01</p>
+              <p className="text-xs text-[#6B6E76]">Model injection plant 01</p>
             </div>
           </div>
 
@@ -85,7 +85,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {item.icon}
                   <span>{item.label}</span>
                   {item.badge !== undefined && (
-                    <span className="ml-1 inline-flex items-center px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-[#C9372C] text-white">
+                    <span className="ml-1 inline-flex items-center px-1.5 py-0.2 text-xs font-bold rounded-full bg-[#C9372C] text-white">
                       {item.badge}
                     </span>
                   )}
@@ -126,7 +126,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </option>
                 ))}
               </select>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-[3px] font-mono border bg-[#FFFFFF] text-[#505258] border-[#0B120E24]">
+              <span className="text-xs px-1.5 py-0.5 rounded-[3px] font-mono border bg-[#FFFFFF] text-[#505258] border-[#0B120E24]">
                 {currentRoleConfig.username}
               </span>
             </div>
@@ -152,7 +152,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {item.icon}
               <span>{item.label}</span>
               {item.badge !== undefined && (
-                <span className="ml-1 px-1 text-[10px] rounded-full bg-[#C9372C] text-white">
+                <span className="ml-1 px-1 text-xs rounded-full bg-[#C9372C] text-white">
                   {item.badge}
                 </span>
               )}

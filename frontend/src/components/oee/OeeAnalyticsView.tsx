@@ -47,9 +47,9 @@ export const OeeAnalyticsView: React.FC<OeeAnalyticsViewProps> = ({ machines }) 
         <div>
           <div className="flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-[#1868DB]" />
-            <h2 className="text-xl font-bold text-[#292A2E] tracking-tight">
+            <h1 className="text-xl font-bold text-[#292A2E] tracking-tight">
               ISO 22400-2 OEE executive analytics
-            </h2>
+            </h1>
           </div>
           <p className="text-xs text-[#505258] mt-1">
             Plant-wide weighted OEE, equipment effectiveness loss breakdown, and Pareto 80/20 root-cause analysis

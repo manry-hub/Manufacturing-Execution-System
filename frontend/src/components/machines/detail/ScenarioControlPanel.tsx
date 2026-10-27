@@ -59,7 +59,7 @@ export const ScenarioControlPanel: React.FC<ScenarioControlPanelProps> = ({
           <h3 className="text-sm font-bold text-[#292A2E] flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-[#803FA5]" />
             <span>Demonstration & scenario injector</span>
-            <span className="text-[11px] font-mono font-normal text-[#505258] bg-[#F1F2F4] px-2 py-0.5 rounded-[3px] border border-[#DCDFE4]">
+            <span className="text-xs font-mono font-normal text-[#505258] bg-[#F1F2F4] px-2 py-0.5 rounded-[3px] border border-[#DCDFE4]">
               Virtual node control
             </span>
           </h3>
@@ -91,7 +91,7 @@ export const ScenarioControlPanel: React.FC<ScenarioControlPanelProps> = ({
         >
           <Play className="h-5 w-5 mb-1.5 text-[#6A9A23]" />
           <span className="text-xs font-bold">Normal flow</span>
-          <span className="text-[10px] text-[#37471F]/80 font-mono mt-0.5">22.0s cycle</span>
+          <span className="text-xs text-[#37471F]/80 font-mono mt-0.5">22.0s cycle</span>
         </button>
 
         {/* 2. Slow Cycle (Performance Drop) */}
@@ -107,7 +107,7 @@ export const ScenarioControlPanel: React.FC<ScenarioControlPanelProps> = ({
         >
           <Clock className="h-5 w-5 mb-1.5 text-[#E06C00]" />
           <span className="text-xs font-bold">Slow cycle</span>
-          <span className="text-[10px] text-[#693200]/80 font-mono mt-0.5">42.0s (+90%)</span>
+          <span className="text-xs text-[#693200]/80 font-mono mt-0.5">42.0s (+90%)</span>
         </button>
 
         {/* 3. Heater Band Fault */}
@@ -123,7 +123,7 @@ export const ScenarioControlPanel: React.FC<ScenarioControlPanelProps> = ({
         >
           <Flame className="h-5 w-5 mb-1.5 text-[#C9372C]" />
           <span className="text-xs font-bold">Heater fault</span>
-          <span className="text-[10px] text-[#5D1F1A]/80 font-mono mt-0.5">ALM-TEMP-04</span>
+          <span className="text-xs text-[#5D1F1A]/80 font-mono mt-0.5">ALM-TEMP-04</span>
         </button>
 
         {/* 4. Emergency Stop (E-Stop) */}
@@ -139,7 +139,7 @@ export const ScenarioControlPanel: React.FC<ScenarioControlPanelProps> = ({
         >
           <AlertOctagon className="h-5 w-5 mb-1.5 text-[#C9372C]" />
           <span className="text-xs font-bold">E-stop trip</span>
-          <span className="text-[10px] text-[#5D1F1A]/80 font-mono mt-0.5">ALM-ESTOP-01</span>
+          <span className="text-xs text-[#5D1F1A]/80 font-mono mt-0.5">ALM-ESTOP-01</span>
         </button>
 
         {/* 5. Telemetry Disconnect */}
@@ -153,7 +153,7 @@ export const ScenarioControlPanel: React.FC<ScenarioControlPanelProps> = ({
         >
           <WifiOff className="h-5 w-5 mb-1.5 text-[#505258]" />
           <span className="text-xs font-bold">Disconnect</span>
-          <span className="text-[10px] text-[#505258] font-mono mt-0.5">Network drop</span>
+          <span className="text-xs text-[#505258] font-mono mt-0.5">Network drop</span>
         </button>
 
         {/* 6. Clear & Reset Machine */}
@@ -169,7 +169,7 @@ export const ScenarioControlPanel: React.FC<ScenarioControlPanelProps> = ({
         >
           <RotateCcw className="h-5 w-5 mb-1.5 text-[#1868DB]" />
           <span className="text-xs font-bold">Reset node</span>
-          <span className="text-[10px] text-[#123263]/80 font-mono mt-0.5">Clear faults</span>
+          <span className="text-xs text-[#123263]/80 font-mono mt-0.5">Clear faults</span>
         </button>
       </div>
     </div>

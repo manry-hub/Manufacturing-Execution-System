@@ -58,9 +58,9 @@ export const AndonBoardView: React.FC<AndonBoardViewProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-6 w-6 text-[#C9372C]" />
-            <h2 className="text-xl font-bold text-[#292A2E] tracking-tight">
+            <h1 className="text-xl font-bold text-[#292A2E] tracking-tight">
               Digital andon incident response center
-            </h2>
+            </h1>
           </div>
           <p className="text-xs text-[#505258] mt-1">
             Real-time problem dispatch, technician assignment, root-cause downtime classification, and MTTR tracking
@@ -93,7 +93,7 @@ export const AndonBoardView: React.FC<AndonBoardViewProps> = ({
             <span className="text-2xl font-bold font-mono text-[#292A2E]">2.4</span>
             <span className="text-xs text-[#505258]">minutes</span>
           </div>
-          <span className="text-[10px] text-[#216E4E] mt-1">Within target (&lt;5 min)</span>
+          <span className="text-xs text-[#216E4E] mt-1">Within target (&lt;5 min)</span>
         </div>
 
         {/* Mean Time to Resolve */}
@@ -106,7 +106,7 @@ export const AndonBoardView: React.FC<AndonBoardViewProps> = ({
             <span className="text-2xl font-bold font-mono text-[#292A2E]">14.8</span>
             <span className="text-xs text-[#505258]">minutes</span>
           </div>
-          <span className="text-[10px] text-[#505258] mt-1">Directly fed into OEE downtime</span>
+          <span className="text-xs text-[#505258] mt-1">Directly fed into OEE downtime</span>
         </div>
 
         {/* Active Open Incidents */}
@@ -116,7 +116,7 @@ export const AndonBoardView: React.FC<AndonBoardViewProps> = ({
             <AlertOctagon className="h-4 w-4 text-[#C9372C]" />
           </div>
           <span className="text-2xl font-bold font-mono text-[#5D1F1A]">{openTickets.length}</span>
-          <span className="text-[10px] text-[#505258] mt-1">Awaiting technician response</span>
+          <span className="text-xs text-[#505258] mt-1">Awaiting technician response</span>
         </div>
 
         {/* Resolved Today */}
@@ -126,7 +126,7 @@ export const AndonBoardView: React.FC<AndonBoardViewProps> = ({
             <CheckCircle2 className="h-4 w-4 text-[#6A9A23]" />
           </div>
           <span className="text-2xl font-bold font-mono text-[#37471F]">{resolvedTickets.length}</span>
-          <span className="text-[10px] text-[#505258] mt-1">Closed and verified</span>
+          <span className="text-xs text-[#505258] mt-1">Closed and verified</span>
         </div>
       </div>
 
@@ -159,7 +159,7 @@ export const AndonBoardView: React.FC<AndonBoardViewProps> = ({
                       <span className="font-bold text-[#292A2E] text-sm block">
                         {t.machine?.code ?? t.machineId}
                       </span>
-                      <span className="text-[11px] font-mono text-[#AE2E24] font-semibold">
+                      <span className="text-xs font-mono text-[#AE2E24] font-semibold">
                         {t.category.replace('_', ' ')}
                       </span>
                     </div>
@@ -170,7 +170,7 @@ export const AndonBoardView: React.FC<AndonBoardViewProps> = ({
                     {t.description}
                   </p>
 
-                  <div className="flex items-center justify-between text-[11px] text-[#505258] font-mono pt-2 border-t border-[#0B120E24]">
+                  <div className="flex items-center justify-between text-xs text-[#505258] font-mono pt-2 border-t border-[#0B120E24]">
                     <span>{new Date(t.createdAt).toLocaleTimeString()}</span>
                     {canAcknowledgeOrResolve && (
                       <button
@@ -216,7 +216,7 @@ export const AndonBoardView: React.FC<AndonBoardViewProps> = ({
                       <span className="font-bold text-[#292A2E] text-sm block">
                         {t.machine?.code ?? t.machineId}
                       </span>
-                      <span className="text-[11px] font-mono text-[#9E4C00] font-semibold">
+                      <span className="text-xs font-mono text-[#9E4C00] font-semibold">
                         {t.category.replace('_', ' ')}
                       </span>
                     </div>
@@ -227,7 +227,7 @@ export const AndonBoardView: React.FC<AndonBoardViewProps> = ({
                     {t.description}
                   </p>
 
-                  <div className="flex items-center justify-between text-[11px] text-[#505258] font-mono pt-2 border-t border-[#0B120E24]">
+                  <div className="flex items-center justify-between text-xs text-[#505258] font-mono pt-2 border-t border-[#0B120E24]">
                     <span>Ack: {t.acknowledgedAt ? new Date(t.acknowledgedAt).toLocaleTimeString() : '--'}</span>
                     {canAcknowledgeOrResolve && (
                       <button
@@ -273,7 +273,7 @@ export const AndonBoardView: React.FC<AndonBoardViewProps> = ({
                       <span className="font-bold text-[#292A2E] text-sm block">
                         {t.machine?.code ?? t.machineId}
                       </span>
-                      <span className="text-[10px] font-mono text-[#216E4E]">
+                      <span className="text-xs font-mono text-[#216E4E]">
                         {t.downtimeClassification ?? 'RESOLVED'}
                       </span>
                     </div>
@@ -286,7 +286,7 @@ export const AndonBoardView: React.FC<AndonBoardViewProps> = ({
                     </p>
                   )}
 
-                  <div className="flex items-center justify-between text-[10px] text-[#505258] font-mono pt-2 border-t border-[#0B120E24]">
+                  <div className="flex items-center justify-between text-xs text-[#505258] font-mono pt-2 border-t border-[#0B120E24]">
                     <span>Duration: {t.resolutionTimeSeconds ? `${Math.round(t.resolutionTimeSeconds / 60)} min` : '15 min'}</span>
                     <span className="text-[#216E4E] font-medium">Closed</span>
                   </div>

@@ -38,12 +38,13 @@
     --color-neutral-text: #505258;
     --color-neutral-bg: #f1f2f4;
     --color-neutral-border: #dcdfe4;
+    --color-blanket: #050c1f75;
   }
 
   body {
     background-color: var(--color-surface);
     color: var(--color-text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Atlassian Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
@@ -57,7 +58,7 @@
   dialog::backdrop {
     overflow: hidden;
     overscroll-behavior: contain;
-    background: rgba(9, 30, 66, 0.54);
+    background: #050c1f75;
     backdrop-filter: blur(2px);
   }
 
@@ -65,5 +66,27 @@
   :focus-visible {
     outline: 2px solid var(--color-border-focused);
     outline-offset: 2px;
+  }
+
+  /* Intentional reduced-motion alternative that preserves state visibility */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001s !important;
+    }
+    .animate-spin {
+      animation: none !important;
+    }
+    .animate-pulse {
+      animation: none !important;
+      opacity: 1 !important;
+    }
+    .animate-ping {
+      animation: none !important;
+      display: none !important;
+    }
   }
 }

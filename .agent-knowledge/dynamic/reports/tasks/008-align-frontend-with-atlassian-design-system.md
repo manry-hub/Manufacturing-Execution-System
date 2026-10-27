@@ -15,7 +15,14 @@ Tanggal: 2026-10-28
 - [x] Refactored ISO 22400-2 OEE Analytics (`OeeAnalyticsView`, `OeeScorecards`, `MultiMachineOeeChart`, `DowntimeParetoChart`)
 - [x] Refactored Digital Andon Kanban Board (`AndonBoardView`, `CreateAndonModal`, `ResolveAndonModal`)
 - [x] Migrated linting to Oxlint, verified 0 errors and 0 warnings on all 31 frontend files
-- [x] Verified full production bundle build with `vite build` and end-to-end browser verification
+- [x] Executed Impeccable Design System audit and resolved all 5 recommended actions
+- [x] Normalized typography to the Atlassian type ramp floor (`text-xs` / 0.75rem / 12px), eliminating off-ramp literal micro-fonts (`text-[9px]`, `text-[10px]`, `text-[11px]`)
+- [x] Established top-level accessible `<h1>` semantic landmarks across all dashboard views
+- [x] Implemented intentional `@media (prefers-reduced-motion: reduce)` rules preserving state visibility while silencing continuous motion
+- [x] Enlarged secondary simulator and filter interactive targets to meet `>=32px` touch target threshold
+- [x] Optimized computation of multi-machine fleet metrics using `useMemo`
+- [x] Removed dead `App.css` asset and normalized modal backdrop to `#050c1f75`
+- [x] Verified 0 mechanical detector antipatterns via Impeccable detector and completed clean production build
 
 ## Deskripsi Perubahan
 
@@ -28,6 +35,7 @@ Comprehensive UI refactoring to enforce strict conformance with `DESIGN.md`:
 
 ## Daftar File yang Diubah
 
+- `frontend/src/App.css` — delete
 - `frontend/src/index.css` — edit
 - `frontend/src/App.tsx` — edit
 - `frontend/src/components/common/StatusBadge.tsx` — edit
@@ -55,8 +63,8 @@ Comprehensive UI refactoring to enforce strict conformance with `DESIGN.md`:
 
 ## Review
 
-- Result: Selesai. Seluruh antarmuka frontend telah diselaraskan 100% dengan panduan `DESIGN.md`.
-- Verification: Oxlint monorepo linting (0 errors, 0 warnings across 104 files), TypeScript compilation, production build, dan pengujian browser visual Playwright.
+- Result: Selesai. Seluruh antarmuka frontend telah diselaraskan 100% dengan panduan `DESIGN.md` dan lulus audit Impeccable Design System dengan 0 antipattern.
+- Verification: Impeccable mechanical detector (0 antipatterns), Oxlint monorepo linting (0 errors, 0 warnings across all files), TypeScript compilation (`tsc -b`), production build (`vite build`), dan pengujian browser visual Playwright di seluruh tab.
 - Follow-up: Tidak ada.
 
 ## Verifikasi UAT (User Acceptance Test)
@@ -64,8 +72,11 @@ Comprehensive UI refactoring to enforce strict conformance with `DESIGN.md`:
 | # | Tes | Hasil |
 | --- | --- | --- |
 | 1 | Full monorepo linting via `pnpm lint` (Oxlint) | Lulus (0 errors, 0 warnings) |
-| 2 | Production build via `pnpm --filter frontend build` | Lulus (Vite bundle built in <2.5s) |
-| 3 | Outer canvas light surface verification (`#FFFFFF`) | Lulus |
-| 4 | Semantic Lozenges visible border verification per `DESIGN.md` | Lulus |
-| 5 | Sentence case verification across buttons, tabs, headers, and labels | Lulus |
-| 6 | Interactive navigation across all 5 views in browser | Lulus |
+| 2 | Production build via `pnpm --filter frontend build` | Lulus (Vite bundle built cleanly) |
+| 3 | Impeccable mechanical detector scan (`impeccable detect --json`) | Lulus (0 antipatterns detected) |
+| 4 | Outer canvas light surface verification (`#FFFFFF`) | Lulus |
+| 5 | Semantic Lozenges visible border verification per `DESIGN.md` | Lulus |
+| 6 | Sentence case verification across buttons, tabs, headers, and labels | Lulus |
+| 7 | Typography scale floor verification (all labels at or above `text-xs`) | Lulus |
+| 8 | Reduced motion rule implementation (`@media (prefers-reduced-motion: reduce)`) | Lulus |
+| 9 | Interactive navigation across all 5 views in browser | Lulus |

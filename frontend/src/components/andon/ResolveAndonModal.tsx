@@ -100,7 +100,7 @@ export const ResolveAndonModal: React.FC<ResolveAndonModalProps> = ({
               </option>
             ))}
           </select>
-          <p className="text-[11px] text-[#505258] mt-1">
+          <p className="text-xs text-[#505258] mt-1">
             Links directly to ISO 22400-2 downtime Pareto analytics
           </p>
         </div>

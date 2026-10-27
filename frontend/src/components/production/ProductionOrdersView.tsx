@@ -58,9 +58,9 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <PlaySquare className="h-6 w-6 text-[#1868DB]" />
-            <h2 className="text-xl font-bold text-[#292A2E] tracking-tight">
+            <h1 className="text-xl font-bold text-[#292A2E] tracking-tight">
               Production execution & run management
-            </h2>
+            </h1>
           </div>
           <p className="text-xs text-[#505258] mt-1">
             Order lifecycle execution (Draft → Released → In progress → Completed) and shop floor scrap logging
@@ -154,7 +154,7 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                           <span className="font-bold text-[#292A2E] block text-sm">
                             {run.machine?.code ?? run.machineId}
                           </span>
-                          <span className="text-[11px] text-[#505258]">{run.machine?.name}</span>
+                          <span className="text-xs text-[#505258]">{run.machine?.name}</span>
                         </td>
                         <td className="py-3.5 px-4 font-mono font-medium text-[#292A2E]">
                           {run.productionOrder?.orderNumber ?? 'PO-ACTIVE'}
@@ -163,7 +163,7 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                           <span className="font-mono text-[#292A2E] block">
                             {run.productionOrder?.product?.partNumber ?? 'PART-01'}
                           </span>
-                          <span className="text-[11px] text-[#505258]">
+                          <span className="text-xs text-[#505258]">
                             {run.mold?.code ?? 'MLD-01'} ({run.mold?.cavityCount ?? 4} cavities)
                           </span>
                         </td>
@@ -171,7 +171,7 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                           <StatusBadge status={run.status} size="sm" />
                         </td>
                         <td className="py-3.5 px-4 min-w-[180px]" aria-label="Production progress">
-                          <div className="flex justify-between text-[11px] text-[#292A2E] mb-1 font-mono">
+                          <div className="flex justify-between text-xs text-[#292A2E] mb-1 font-mono">
                             <span>{run.goodQuantity.toLocaleString()} pcs</span>
                             <span className="text-[#505258]">/ {targetQty.toLocaleString()} ({progress}%)</span>
                           </div>
@@ -186,7 +186,7 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                           <span className={Number(scrapPct) > 3.0 ? 'text-[#AE2E24] font-bold' : 'text-[#292A2E]'}>
                             {scrapPct}%
                           </span>
-                          <span className="text-[10px] text-[#6B6E76] block">({run.rejectQuantity} rej)</span>
+                          <span className="text-xs text-[#6B6E76] block">({run.rejectQuantity} rej)</span>
                         </td>
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
@@ -274,7 +274,7 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                       <span className="font-mono text-[#292A2E] block">
                         {ord.product?.partNumber ?? ord.productId}
                       </span>
-                      <span className="text-[11px] text-[#505258]">{ord.product?.name}</span>
+                      <span className="text-xs text-[#505258]">{ord.product?.name}</span>
                     </td>
                     <td className="py-3.5 px-4 font-mono text-[#292A2E] font-semibold">
                       {ord.targetQuantity.toLocaleString()} pcs
@@ -282,7 +282,7 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                     <td className="py-3.5 px-4">
                       <StatusBadge status={ord.status} size="sm" />
                     </td>
-                    <td className="py-3.5 px-4 text-[#505258] font-mono text-[11px]">
+                    <td className="py-3.5 px-4 text-[#505258] font-mono text-xs">
                       {new Date(ord.plannedStartTime).toLocaleString()}
                     </td>
                     <td className="py-3.5 px-4 text-right">

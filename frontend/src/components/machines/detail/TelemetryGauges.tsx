@@ -28,7 +28,7 @@ export const TelemetryGauges: React.FC<TelemetryGaugesProps> = ({ metrics }) => 
               <Gauge className="h-4 w-4 text-[#1868DB]" />
               <span>Injection pressure</span>
             </span>
-            <span className="text-[11px] font-mono text-[#505258] bg-[#F1F2F4] border border-[#DCDFE4] px-2 py-0.5 rounded-[3px]">
+            <span className="text-xs font-mono text-[#505258] bg-[#F1F2F4] border border-[#DCDFE4] px-2 py-0.5 rounded-[3px]">
               0 - 200 bar
             </span>
           </div>
@@ -57,7 +57,7 @@ export const TelemetryGauges: React.FC<TelemetryGaugesProps> = ({ metrics }) => 
               style={{ width: `${pressurePercent}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] text-[#6B6E76] font-mono mt-1.5">
+          <div className="flex justify-between text-xs text-[#6B6E76] font-mono mt-1.5">
             <span>0 bar</span>
             <span className="text-[#505258]">Target: 130 bar</span>
             <span>200 bar</span>
@@ -73,7 +73,7 @@ export const TelemetryGauges: React.FC<TelemetryGaugesProps> = ({ metrics }) => 
               <Sliders className="h-4 w-4 text-[#206A83]" />
               <span>Cushion position</span>
             </span>
-            <span className="text-[11px] font-mono text-[#505258] bg-[#F1F2F4] border border-[#DCDFE4] px-2 py-0.5 rounded-[3px]">
+            <span className="text-xs font-mono text-[#505258] bg-[#F1F2F4] border border-[#DCDFE4] px-2 py-0.5 rounded-[3px]">
               0 - 150 mm
             </span>
           </div>
@@ -102,7 +102,7 @@ export const TelemetryGauges: React.FC<TelemetryGaugesProps> = ({ metrics }) => 
               style={{ width: `${cushionPercent}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] text-[#6B6E76] font-mono mt-1.5">
+          <div className="flex justify-between text-xs text-[#6B6E76] font-mono mt-1.5">
             <span>0 mm</span>
             <span className="text-[#505258]">Ideal: 12 - 16 mm</span>
             <span>150 mm</span>
@@ -118,7 +118,7 @@ export const TelemetryGauges: React.FC<TelemetryGaugesProps> = ({ metrics }) => 
               <Activity className="h-4 w-4 text-[#E06C00]" />
               <span>Auxiliary sensors</span>
             </span>
-            <span className="text-[11px] font-mono text-[#505258] bg-[#F1F2F4] border border-[#DCDFE4] px-2 py-0.5 rounded-[3px]">
+            <span className="text-xs font-mono text-[#505258] bg-[#F1F2F4] border border-[#DCDFE4] px-2 py-0.5 rounded-[3px]">
               Hydraulics & tooling
             </span>
           </div>
