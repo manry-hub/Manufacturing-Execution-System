@@ -1,0 +1,23 @@
+{
+  "name": "manufacturing-execution-system",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Industrial Manufacturing Execution System (MES) monorepo",
+  "packageManager": "pnpm@12.6.0",
+  "scripts": {
+    "build": "pnpm --recursive run build",
+    "lint": "pnpm --recursive run lint",
+    "test": "pnpm --recursive run test",
+    "dev:backend": "pnpm --filter @mes/backend run start:dev",
+    "dev:frontend": "pnpm --filter @mes/frontend run dev",
+    "build:backend": "pnpm --filter @mes/backend run build",
+    "build:frontend": "pnpm --filter @mes/frontend run build",
+    "lint:backend": "pnpm --filter @mes/backend run lint",
+    "lint:frontend": "pnpm --filter @mes/frontend run lint",
+    "test:backend": "pnpm --filter @mes/backend run test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2"
+  }
+}
