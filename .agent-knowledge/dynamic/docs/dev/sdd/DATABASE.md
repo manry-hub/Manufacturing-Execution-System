@@ -103,7 +103,7 @@
 | `actual_end_time`    | `DATETIME2`   | NULL                             |                   | Production order close                                                  |
 | `created_at`         | `DATETIME2`   | NOT NULL, DEFAULT `GETUTCDATE()` |                   |                                                                         |
 
-#### `production_runs`
+#### `production_runs` (Primary Execution Record for Operation 10: MOLDING)
 
 | Column                | Type          | Constraints                          | Index            | Notes                                          |
 | --------------------- | ------------- | ------------------------------------ | ---------------- | ---------------------------------------------- |
@@ -117,6 +117,22 @@
 | `reject_quantity`     | `INT`         | NOT NULL, DEFAULT `0`                |                  | Scrap output count                             |
 | `start_time`          | `DATETIME2`   | NOT NULL, DEFAULT `GETUTCDATE()`     |                  |                                                |
 | `end_time`            | `DATETIME2`   | NULL                                 |                  |                                                |
+
+#### `order_operation_steps` (Hybrid Multi-Stage Routing)
+
+| Column                | Type          | Constraints                          | Index            | Notes                                                       |
+| --------------------- | ------------- | ------------------------------------ | ---------------- | ----------------------------------------------------------- |
+| `id`                  | `VARCHAR(36)` | PK, UUID                             | PRIMARY          | Step routing ID                                             |
+| `production_order_id` | `VARCHAR(36)` | NOT NULL, FK `production_orders(id)` | `idx_oos_order`  | Parent work order                                           |
+| `sequence`            | `INT`         | NOT NULL                             |                  | Execution sequence (`10`, `20`, `30`)                        |
+| `operation_name`      | `VARCHAR(50)` | NOT NULL                             |                  | `MOLDING`, `SECONDARY_FINISHING`, `PACKAGING`              |
+| `station_type`        | `VARCHAR(50)` | NOT NULL                             |                  | `INJECTION_MACHINE`, `MANUAL_WORKBENCH`, `PACKAGING_STATION`|
+| `status`              | `VARCHAR(30)` | NOT NULL, DEFAULT `'PENDING'`        | `idx_oos_status` | `PENDING`, `IN_PROGRESS`, `COMPLETED`, `SKIPPED`            |
+| `quantity_in`         | `INT`         | NOT NULL, DEFAULT `0`                |                  | Input WIP received from prior operation                     |
+| `quantity_passed`     | `INT`         | NOT NULL, DEFAULT `0`                |                  | Good parts successfully processed in this step              |
+| `quantity_scrapped`   | `INT`         | NOT NULL, DEFAULT `0`                |                  | Parts scrapped during this specific operation               |
+| `started_at`          | `DATETIME2`   | NULL                                 |                  | Stage start timestamp                                       |
+| `completed_at`        | `DATETIME2`   | NULL                                 |                  | Stage completion timestamp                                  |
 
 ---
 
@@ -391,6 +407,7 @@
 | `molds`                  | `hasMany` | `mold_product_compatibilities`| `mold_product_compatibilities.mold_id`   |
 | `products`               | `hasMany` | `production_orders`           | `production_orders.product_id`            |
 | `production_orders`      | `hasMany` | `production_runs`             | `production_runs.production_order_id`     |
+| `production_orders`      | `hasMany` | `order_operation_steps`       | `order_operation_steps.production_order_id`|
 | `machines`               | `hasMany` | `production_runs`             | `production_runs.machine_id`              |
 | `machines`               | `hasOne`  | `machine_current_states`      | `machine_current_states.machine_id`       |
 | `machines`               | `hasMany` | `machine_event_logs`          | `machine_event_logs.machine_id`           |

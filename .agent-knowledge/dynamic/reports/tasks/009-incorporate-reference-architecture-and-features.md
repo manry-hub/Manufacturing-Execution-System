@@ -7,8 +7,9 @@ Tanggal: 2026-10-28
 - [x] Analyzed reference documents in `.reference/dev/*` and evaluated conceptual alignment against current MES project
 - [x] Maintained existing technical foundation (NestJS 12 + Prisma ORM + MS SQL Server + Socket.IO + React 19 + Atlassian Design System)
 - [x] Updated `PRD.md` with Epics 7 to 12 (Material Genealogy, Quality Gates, Tool PM, Visual Gantt, Packaging, IoT Adapters)
-- [x] Updated `sdd/ARCHITECTURE.md` with modular service boundaries, high-level system diagram, and 4 detailed data flow diagrams
-- [x] Updated `sdd/DATABASE.md` with 11 candidate SQL Server table schemas, relationships summary, indexing strategy, and migration plan (007–011)
+- [x] Defined Section 1.4 in `PRD.md` detailing the Hybrid ISA-95 Work Center Architecture (Injection Molding Core + Downstream Operation Routing)
+- [x] Updated `sdd/ARCHITECTURE.md` with Section 1.2 Hybrid Architecture diagram, modular service boundaries, and 4 detailed data flow diagrams
+- [x] Updated `sdd/DATABASE.md` with `order_operation_steps`, candidate SQL Server table schemas, relationships summary, indexing strategy, and migration plan (007–011)
 - [x] Updated `sdd/TECHNOLOGYSTACK.md` with declared libraries for barcode processing, scanning, and industrial IoT fieldbus clients
 
 ## Deskripsi Perubahan

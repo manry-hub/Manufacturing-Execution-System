@@ -27,7 +27,40 @@
 2. **Modular Isolation:** Each bounded domain context (Master Data, Production Execution, Machine Integration, OEE Analytics, Digital Andon, Security & Audit) is encapsulated in an isolated NestJS module with explicit public service interfaces.
 3. **Evolutionary Decoupling:** The machine integration layer operates behind an adapter interface. If high-throughput ingestion or telemetry caching requires independent horizontal scaling in the future, it can be extracted into a dedicated service without altering core MES domain rules.
 
-### High-Level Diagram
+### 1.2 Hybrid ISA-95 Work Center Architecture
+
+To balance deep vertical equipment telemetry (plastic injection mechanics) with discrete shop-floor routing workflows, the system implements a **Hybrid ISA-95 Work Center Model**:
+
+```text
+                                  SHOP FLOOR WORKFLOW (HYBRID ROUTING)
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                                        │
+│  [Operation 10: MOLDING]          ──►  [Operation 20: SECONDARY]      ──►  [Operation 30: PACKAGING]   │
+│  (Mandatory Primary Heavy Station)     (Optional Manual / Finishing)       (Final Barcode Verification)│
+│  ┌───────────────────────────┐         ┌─────────────────────────┐         ┌─────────────────────────┐ │
+│  │ Primary Work Center:      │         │ Downstream Station:     │         │ Downstream Station:     │ │
+│  │ INJECTION MOLDING MACHINE │         │ WORK BENCH / ASSEMBLY   │         │ PACKAGING TERMINAL      │ │
+│  ├───────────────────────────┤         ├─────────────────────────┤         ├─────────────────────────┤ │
+│  │ • Mold & Cavity Count     │         │ • Runner Degating       │         │ • Handheld Barcode Scan │ │
+│  │ • Barrel Temperatures PID │         │ • Ultrasonic Welding    │         │ • Carton & Pallet Serial│ │
+│  │ • Hydraulic Line Pressure │         │ • Manual Assembly Steps │         │ • Shot-to-Pack Match    │ │
+│  │ • Real-Time Automated OEE │         │ • Post-Molding Scrap Log│         │ • Shipping Clearance    │ │
+│  └───────────────────────────┘         └─────────────────────────┘         └─────────────────────────┘ │
+│                                                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Architectural Separation of Concerns:
+1. **Physical Equipment Layer (Injection Specialization):**
+   - Bound to `Machine`, `Mold`, `MachineCurrentState`, and `MachineEventLog`.
+   - Maintains sub-second telemetry (hydraulic pressure, cushion position, barrel zone heating, and stroke accumulation).
+   - Serves as the primary operational station (`Operation 10: MOLDING`) where automated OEE (ISO 22400-2) is derived directly from raw cycle completion pulses.
+2. **Operational Routing Layer (Discrete Workflow Tracking):**
+   - Bound to `ProductionOrder`, `ProductionRun`, `OrderOperationStep`, and `PackagingUnit`.
+   - Allows orders to be executed in **Simple 1-Step Mode** (`Molding -> Completed`) for commodity parts, or **Multi-Step Regulated Mode** (`Molding -> Secondary Finishing -> Packaging Verification`) for high-precision components.
+   - Preserves complete backward compatibility with all existing Phase 1–4 dashboards and database structures.
+
+### 1.3 High-Level Diagram
 
 ```text
 +---------------------------------------------------------------------------------------------------+

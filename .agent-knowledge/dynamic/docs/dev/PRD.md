@@ -35,6 +35,50 @@ Injection molding facilities face persistent operational challenges:
 | **Material Handler**               | Warehouse and raw material coordinator           | Registering resin material lots, assigning lots to machines/orders, and managing WIP transfer between stations.                                            |
 | **Management / Read-only Analyst** | Executive leadership and industrial engineers    | High-level OEE trend analytics, downtime Pareto charts, reject loss breakdowns, and plant/shift efficiency comparisons.                                    |
 
+### 1.4 Execution Philosophy: Hybrid ISA-95 Work Center Architecture
+
+To bridge the gap between deep vertical process telemetry (injection molding mechanics) and multi-echelon discrete manufacturing operations, MES implements a **Hybrid ISA-95 Work Center Model**:
+
+#### 1. Shop Floor Reality in Plastic Manufacturing
+Manufacturing execution in real-world injection facilities spans two production models:
+* **Single-Stage Simple Products:** For commodity goods (e.g., bottle caps, disposable cutlery), parts eject fully formed from the mold and proceed directly to bulk packing. The machine-centric model (`Machine + Mold -> Output`) is 100% sufficient and optimal.
+* **Multi-Stage Precision & Regulated Products:** For automotive, medical, and electronic assemblies, molded parts require downstream sequential processing:
+  1. *Stage 1 (Molding):* High-pressure injection molding on the IMM (Injection Molding Machine) using tooling molds, barrel heat profiles, and hydraulic cycle telemetry.
+  2. *Stage 2 (Secondary / Finishing - Optional):* Runner/sprue gate degating, ultrasonic welding, hot stamping, or pad printing.
+  3. *Stage 3 (Sub-Assembly - Optional):* Inserting metal threaded clips, O-rings, or secondary fasteners.
+  4. *Stage 4 (Final QC & Packaging):* Handheld barcode scan verification, serial pallet aggregation, and final inspection clearance.
+
+#### 2. Resolving the Model Extremes
+* **The Pitfall of Pure Routing-Centric Models:** Treating an injection molding machine as just an abstract generic "workstation" loses all mission-critical telemetry fidelity (closed-loop PID barrel thermal zones, cushion distance, clamp tonnage, and stroke accumulation).
+* **The Pitfall of Pure Machine-Centric Models:** Treating manufacturing as strictly ending at the machine clamp makes the MES blind to work-in-progress (WIP) assembly, secondary finishing defects, and packaging discrepancies.
+* **The Hybrid Resolution:** MES establishes **Injection Molding Machines as Primary Heavy Work Centers (The Core Heart)** while seamlessly linking **Downstream Operational Steps** within `ProductionOrder` lifecycles:
+
+```text
+                                  PRODUCTION ORDER OPERATION ROUTING
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                                        │
+│  [Operation 10: MOLDING]          ──►  [Operation 20: FINISHING]      ──►  [Operation 30: PACKAGING]   │
+│  (Mandatory Primary Station)           (Optional Manual/Assembly)          (Recommended Verification)  │
+│  ┌───────────────────────────┐         ┌─────────────────────────┐         ┌─────────────────────────┐ │
+│  │ Assigned Work Center:     │         │ Assigned Work Center:   │         │ Assigned Work Center:   │ │
+│  │ INJECTION MOLDING MACHINE │         │ WORK BENCH / ASSEMBLY   │         │ PACKAGING TERMINAL      │ │
+│  ├───────────────────────────┤         ├─────────────────────────┤         ├─────────────────────────┤ │
+│  │ • Mold & Cavity Count     │         │ • Manual WIP Assembly   │         │ • Barcode Scan Handheld │ │
+│  │ • Barrel Temperatures PID │         │ • Finishing Scrap Log   │         │ • Carton/Pallet Serial  │ │
+│  │ • Hydraulic Pressure      │         │ • Operator Checklist    │         │ • Shot-to-Pack Match    │ │
+│  │ • Automated OEE Telemetry │         │                         │         │                         │ │
+│  └───────────────────────────┘         └─────────────────────────┘         └─────────────────────────┘ │
+│                                                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 3. Core Architectural Principles
+1. **Primary Work Center Preservation:** `Machine` remains a first-class physical aggregate root with real-time state projections, time-series telemetry, barrel zones, and ISO 22400-2 OEE calculations. Existing simulator, database, and dashboard implementations remain 100% preserved.
+2. **Decoupled Downstream Steps:** Production runs represent primary molding executions. Subsequent finishing or packaging stations receive molded output as incoming WIP, recording stage-specific scrap and packed tallies.
+3. **Operational Flexibility (Dual-Mode):**
+   * *Simple Direct-Pack Mode:* 1-step routing (`Molding -> Completed`).
+   * *Full Regulated Mode (ISO 9001 / IATF 16949):* Multi-step routing (`Material Lot Intake -> Mold Setup QC Gate -> Molding Run -> Secondary/Finishing -> Packaging Verification`).
+
 ---
 
 ## 2. User Stories / Use Cases
