@@ -1,17 +1,22 @@
 # Technology Stack — Manufacturing Execution System (MES)
 
-> **Output:** `.agent-knowledge/dynamic/docs/dev/sdd/TECHNOLOGYSTACK.md`
-> **Purpose:** Daftar kanonis teknologi, versi, dan perannya dalam sistem.
+> **Status:** `PLANNING` — New Project Mode (Canonical Technology Registry & Declared Versions)  
+> **Output:** `.agent-knowledge/dynamic/docs/dev/sdd/TECHNOLOGYSTACK.md`  
+> **Purpose:** Canonical registry of technologies, declared versions, and system roles.
 
-| Layer | Technology | Version | Role |
-|-------|------------|---------|------|
-| Workspace / Monorepo | pnpm Workspaces | 12.6.0 | Workspace management, shared package dependency resolution, unified lockfile |
-| Runtime | Node.js | ^24.0.0 | JavaScript/TypeScript server & build runtime |
-| Backend Framework | NestJS | ^12.0.1 | Industrial MES core services, API controllers, dependency injection |
-| Frontend Library | React | ^19.3.1 | Web HMI / Operations dashboard UI |
-| Frontend Build Tool | Vite | ^8.3.4 | Development server and production bundling |
-| Language | TypeScript | ~6.0.2 | End-to-end static type safety |
-| Testing (Backend) | Vitest | ^4.1.2 | Unit, integration, and property-based test runner |
-| Linter (Backend) | Oxlint | ^1.58.0 | High-performance type-aware TypeScript linter |
-| Linter (Frontend) | ESLint | ^10.13.0 | React/DOM linting and rule validation |
-| Code Formatter | Prettier | ^3.4.2 | Code style formatting across monorepo |
+| Layer                         | Technology                | Version                     | Role                                                                                                |
+| ----------------------------- | ------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Monorepo & Workspace**      | pnpm Workspaces           | 12.6.0                      | Workspace package management, isolated dependency resolution, and monorepo script execution         |
+| **Runtime Environment**       | Node.js                   | >=20.0.0 (Active: 24.x)     | Execution runtime for backend services, simulator tasks, and frontend build pipeline                |
+| **Backend Framework**         | NestJS                    | ^12.0.1                     | Modular monolith framework, dependency injection, REST controllers, and WebSocket gateways          |
+| **Compiler / Transpiler**     | SWC (@swc/core, @swc/cli) | ^1.10.0                     | High-performance Rust-based TypeScript builder replacing standard `tsc` for fast compilation        |
+| **Database ORM & Migrations** | Prisma ORM                | ^6.0.0                      | Type-safe database queries, schema modeling, relation constraints, and migration management         |
+| **Database Engine**           | Microsoft SQL Server      | 2022                        | Enterprise relational database for master data, production transactions, and time-series event logs |
+| **Frontend Framework**        | React                     | ^19.3.1                     | Single-Page Application (SPA) library for operator HMI and management dashboards                    |
+| **Frontend Build Tool**       | Vite                      | ^8.3.4                      | Development server with zero-CORS backend proxy and production asset bundling                       |
+| **Real-Time Communication**   | Socket.IO                 | ^4.8.0                      | Bidirectional WebSocket protocol for real-time telemetry streaming and instant Andon alerting       |
+| **Programming Language**      | TypeScript                | ~6.0.0                      | End-to-end static type safety from machine event contracts to UI view components                    |
+| **Test Runner (Backend)**     | Vitest                    | ^4.1.2                      | Fast unit, integration, and property-based verification engine                                      |
+| **Linter & Code Quality**     | Oxlint & ESLint           | Oxlint ^1.58, ESLint ^10.13 | High-speed linting and static analysis across backend and frontend workspaces                       |
+| **Code Formatter**            | Prettier                  | ^3.4.2                      | Unified code style enforcement configured at the monorepo root                                      |
+| **Process Concurrency**       | Concurrently              | ^9.0.0                      | Orchestrates parallel execution of backend and frontend dev servers under a single command          |

@@ -14,6 +14,7 @@ Tanggal: 2026-10-27
 ## Deskripsi Perubahan
 
 Menyelaraskan konfigurasi monorepo dengan panduan standar MES:
+
 1. Menambahkan root `.npmrc`, `.editorconfig`, `.gitattributes`, dan `.prettierrc` (menghapus `.prettierrc` lokal pada backend).
 2. Memperbarui `pnpm-workspace.yaml` untuk mengizinkan native builds (`@swc/core`, `esbuild`, `bcrypt`, `@nestjs/core`).
 3. Memperbarui skrip `package.json` di root dengan runner `concurrently` untuk `dev`, serta skrip build/lint/test/format.
@@ -46,10 +47,10 @@ Menyelaraskan konfigurasi monorepo dengan panduan standar MES:
 
 ## Verifikasi UAT (User Acceptance Test)
 
-| # | Tes | Hasil |
-| --- | --- | --- |
-| 1 | Eksekusi `pnpm install` dan persetujuan build native (`@swc/core`) | Lulus |
-| 2 | Kompilasi SWC backend & bundling Vite frontend lewat `pnpm build` | Lulus |
-| 3 | Linter validation via `pnpm lint` | Lulus |
-| 4 | Unit test runner via `pnpm test` | Lulus |
-| 5 | Code formatting via `pnpm format` | Lulus |
+| #   | Tes                                                                | Hasil |
+| --- | ------------------------------------------------------------------ | ----- |
+| 1   | Eksekusi `pnpm install` dan persetujuan build native (`@swc/core`) | Lulus |
+| 2   | Kompilasi SWC backend & bundling Vite frontend lewat `pnpm build`  | Lulus |
+| 3   | Linter validation via `pnpm lint`                                  | Lulus |
+| 4   | Unit test runner via `pnpm test`                                   | Lulus |
+| 5   | Code formatting via `pnpm format`                                  | Lulus |

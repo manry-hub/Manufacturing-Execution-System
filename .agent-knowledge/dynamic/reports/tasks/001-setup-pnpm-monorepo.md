@@ -36,9 +36,9 @@ Mengonfigurasi repository menjadi pnpm monorepo terpadu dengan workspace root ya
 
 ## Verifikasi UAT (User Acceptance Test)
 
-| # | Tes | Hasil |
-| --- | --- | --- |
-| 1 | Resolusi dependency workspace lewat `pnpm install` | Lulus |
-| 2 | Kompilasi seluruh workspace via `pnpm run build` | Lulus |
-| 3 | Static analysis linter seluruh workspace via `pnpm run lint` | Lulus |
-| 4 | Eksekusi test suite via `pnpm run test` | Lulus |
+| #   | Tes                                                          | Hasil |
+| --- | ------------------------------------------------------------ | ----- |
+| 1   | Resolusi dependency workspace lewat `pnpm install`           | Lulus |
+| 2   | Kompilasi seluruh workspace via `pnpm run build`             | Lulus |
+| 3   | Static analysis linter seluruh workspace via `pnpm run lint` | Lulus |
+| 4   | Eksekusi test suite via `pnpm run test`                      | Lulus |
