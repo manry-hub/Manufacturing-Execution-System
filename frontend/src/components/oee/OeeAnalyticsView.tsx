@@ -43,44 +43,44 @@ export const OeeAnalyticsView: React.FC<OeeAnalyticsViewProps> = ({ machines }) 
   return (
     <div className="space-y-6">
       {/* Header Bar */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+      <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-5 flex flex-wrap items-center justify-between gap-4 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-blue-400" />
-            <h2 className="text-xl font-bold text-slate-100 tracking-tight">
-              ISO 22400-2 OEE Executive Analytics
+            <BarChart3 className="h-6 w-6 text-[#1868DB]" />
+            <h2 className="text-xl font-bold text-[#292A2E] tracking-tight">
+              ISO 22400-2 OEE executive analytics
             </h2>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-[#505258] mt-1">
             Plant-wide weighted OEE, equipment effectiveness loss breakdown, and Pareto 80/20 root-cause analysis
           </p>
         </div>
 
         {/* Time Window Selector */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">Calculation Window:</span>
-          <div className="bg-slate-950/80 p-1 rounded-xl border border-slate-800 flex items-center gap-1">
+          <span className="text-xs text-[#505258]">Calculation window:</span>
+          <div className="bg-[#F1F2F4] p-1 rounded-md border border-[#0B120E24] flex items-center gap-1">
             <button
               type="button"
               onClick={() => setWindowType('SHIFT')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3 py-1.5 rounded-sm text-xs font-semibold transition-all ${
                 windowType === 'SHIFT'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#FFFFFF] text-[#1868DB] shadow-xs'
+                  : 'text-[#505258] hover:text-[#292A2E]'
               }`}
             >
-              Current Shift (8h)
+              Current shift (8h)
             </button>
             <button
               type="button"
               onClick={() => setWindowType('DAY')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3 py-1.5 rounded-sm text-xs font-semibold transition-all ${
                 windowType === 'DAY'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#FFFFFF] text-[#1868DB] shadow-xs'
+                  : 'text-[#505258] hover:text-[#292A2E]'
               }`}
             >
-              Full Day (24h)
+              Full day (24h)
             </button>
           </div>
         </div>
@@ -96,9 +96,9 @@ export const OeeAnalyticsView: React.FC<OeeAnalyticsViewProps> = ({ machines }) 
       <DowntimeParetoChart />
 
       {isLoading && (
-        <div className="fixed bottom-4 right-4 bg-slate-900/90 border border-slate-700 text-xs text-slate-300 px-3 py-2 rounded-xl flex items-center gap-2 shadow-lg">
-          <RefreshCw className="h-3.5 w-3.5 animate-spin text-blue-400" />
-          <span>Refreshing OEE aggregates...</span>
+        <div className="fixed bottom-4 right-4 bg-[#FFFFFF] border border-[#0B120E24] text-xs text-[#292A2E] px-3 py-2 rounded-md flex items-center gap-2 shadow-md">
+          <RefreshCw className="h-3.5 w-3.5 animate-spin text-[#1868DB]" />
+          <span>Refreshing telemetry analytics...</span>
         </div>
       )}
     </div>

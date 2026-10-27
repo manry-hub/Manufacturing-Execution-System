@@ -226,7 +226,7 @@ const DashboardContent: React.FC = () => {
   const openTickets = tickets.filter((t) => t.status === 'OPEN');
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#FFFFFF] text-[#292A2E] flex flex-col font-sans">
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -246,15 +246,15 @@ const DashboardContent: React.FC = () => {
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {fetchError && (
-          <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-center justify-between">
+          <div className="mb-6 p-4 rounded-lg bg-[#FFECEB] border border-[#E2483D] text-[#292A2E] flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5" />
+              <AlertCircle className="h-5 w-5 text-[#C9372C] flex-shrink-0" />
               <span className="text-sm font-medium">{fetchError}</span>
             </div>
             <button
               type="button"
               onClick={() => void refreshData()}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium bg-[#FFFFFF] hover:bg-[#F8F8F8] text-[#292A2E] border border-[#0B120E24] transition-colors shadow-sm"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               <span>Retry</span>
@@ -263,9 +263,9 @@ const DashboardContent: React.FC = () => {
         )}
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-400 space-y-3">
-            <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
-            <p className="text-sm font-medium">Connecting to Shop Floor Ingestion Engine...</p>
+          <div className="flex flex-col items-center justify-center py-24 text-[#505258] space-y-3">
+            <RefreshCw className="h-8 w-8 animate-spin text-[#1868DB]" />
+            <p className="text-sm font-medium">Connecting to shop floor ingestion engine...</p>
           </div>
         ) : (
           <>

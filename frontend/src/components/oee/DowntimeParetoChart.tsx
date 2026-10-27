@@ -7,20 +7,20 @@ interface ParetoItem {
 }
 
 const DOWNTIME_DATA: ParetoItem[] = [
-  { category: 'Heater Band Thermocouple Alarm', durationMinutes: 145 },
-  { category: 'Mechanical Hydraulic Leak', durationMinutes: 92 },
-  { category: 'Mold Parting Line Flash Choke', durationMinutes: 58 },
-  { category: 'Colorant & Resin Changeover', durationMinutes: 42 },
-  { category: 'Material Hopper Starvation', durationMinutes: 28 },
-  { category: 'Operator Break / Minor Stop', durationMinutes: 16 },
+  { category: 'Heater band thermocouple alarm', durationMinutes: 145 },
+  { category: 'Mechanical hydraulic leak', durationMinutes: 92 },
+  { category: 'Mold parting line flash choke', durationMinutes: 58 },
+  { category: 'Colorant & resin changeover', durationMinutes: 42 },
+  { category: 'Material hopper starvation', durationMinutes: 28 },
+  { category: 'Operator break / minor stop', durationMinutes: 16 },
 ];
 
 const DEFECT_DATA = [
-  { code: 'FLASH', label: 'Flash / Burrs', count: 68 },
-  { code: 'SHORT_SHOT', label: 'Short Shot', count: 42 },
-  { code: 'WARPAGE', label: 'Shrinkage Warpage', count: 24 },
-  { code: 'SINK_MARK', label: 'Sink Marks', count: 16 },
-  { code: 'CONTAMINATION', label: 'Black Specks', count: 8 },
+  { code: 'FLASH', label: 'Flash / burrs', count: 68 },
+  { code: 'SHORT_SHOT', label: 'Short shot', count: 42 },
+  { code: 'WARPAGE', label: 'Shrinkage warpage', count: 24 },
+  { code: 'SINK_MARK', label: 'Sink marks', count: 16 },
+  { code: 'CONTAMINATION', label: 'Black specks', count: 8 },
 ];
 
 // Module-level pre-calculations (pure and immutable during renders)
@@ -50,40 +50,40 @@ export const DowntimeParetoChart: React.FC = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* 1. Downtime Pareto */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-sm">
+      <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-5 shadow-xs">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-rose-400" />
-              <span>Downtime Losses Pareto (80/20)</span>
+            <h3 className="text-sm font-bold text-[#292A2E] flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-[#C9372C]" />
+              <span>Downtime losses Pareto (80/20)</span>
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-[#505258] mt-0.5">
               Cumulative root-cause downtime duration ({totalDowntime} total minutes logged)
             </p>
           </div>
-          <span className="text-xs font-mono text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
-            Availability Loss
+          <span className="text-xs font-mono text-[#5D1F1A] bg-[#FFECEB] px-2 py-0.5 rounded-[3px] border border-[#E2483D]">
+            Availability loss
           </span>
         </div>
 
         <div className="space-y-3">
           {DOWNTIME_WITH_CUMULATIVE.map((item) => (
-            <div key={item.category} className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+            <div key={item.category} className="bg-[#F8F8F8] p-3 rounded-md border border-[#0B120E14]">
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-semibold text-slate-200">{item.category}</span>
+                <span className="font-semibold text-[#292A2E]">{item.category}</span>
                 <div className="flex items-center gap-2 font-mono">
-                  <span className="text-slate-300 font-bold">{item.durationMinutes}m</span>
-                  <span className="text-slate-500">({item.pctOfTotal}%)</span>
-                  <span className="text-rose-400 text-[11px] font-bold">
+                  <span className="text-[#292A2E] font-bold">{item.durationMinutes}m</span>
+                  <span className="text-[#505258]">({item.pctOfTotal}%)</span>
+                  <span className="text-[#AE2E24] text-[11px] font-bold">
                     Cum: {item.cumPct}%
                   </span>
                 </div>
               </div>
 
               {/* Progress bar */}
-              <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 relative">
+              <div className="h-2 w-full bg-[#091E4214] rounded-full overflow-hidden border border-[#0B120E24] relative">
                 <div
-                  className="h-full bg-rose-500 rounded-full transition-all duration-300"
+                  className="h-full bg-[#C9372C] rounded-full transition-all duration-300"
                   style={{ width: `${item.pctOfTotal}%` }}
                 />
               </div>
@@ -91,49 +91,49 @@ export const DowntimeParetoChart: React.FC = () => {
           ))}
         </div>
 
-        <div className="mt-4 p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center gap-2 text-xs text-slate-400">
-          <TrendingUp className="h-4 w-4 text-rose-400 flex-shrink-0" />
+        <div className="mt-4 p-3 rounded-md bg-[#F8F8F8] border border-[#0B120E24] flex items-center gap-2 text-xs text-[#292A2E]">
+          <TrendingUp className="h-4 w-4 text-[#1868DB] flex-shrink-0" />
           <span>
-            <strong>Pareto Insight:</strong> Top 3 root causes contribute to <strong>76%</strong> of all unplanned equipment downtime.
+            <strong>Pareto insight:</strong> Top 3 root causes contribute to <strong>76%</strong> of all unplanned equipment downtime.
           </span>
         </div>
       </div>
 
       {/* 2. Scrap Defect Pareto */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-sm">
+      <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-5 shadow-xs">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
-              <Trash2 className="h-4 w-4 text-amber-400" />
-              <span>Scrap Defect Pareto (80/20)</span>
+            <h3 className="text-sm font-bold text-[#292A2E] flex items-center gap-2">
+              <Trash2 className="h-4 w-4 text-[#E06C00]" />
+              <span>Scrap defect Pareto (80/20)</span>
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-[#505258] mt-0.5">
               Cumulative scrap piece counts by defect classification ({totalScrap} pieces rejected)
             </p>
           </div>
-          <span className="text-xs font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-            Quality Loss
+          <span className="text-xs font-mono text-[#693200] bg-[#FFF5DB] px-2 py-0.5 rounded-[3px] border border-[#E06C00]">
+            Quality loss
           </span>
         </div>
 
         <div className="space-y-3">
           {SCRAP_WITH_CUMULATIVE.map((item) => (
-            <div key={item.code} className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+            <div key={item.code} className="bg-[#F8F8F8] p-3 rounded-md border border-[#0B120E14]">
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-semibold text-slate-200">{item.label}</span>
+                <span className="font-semibold text-[#292A2E]">{item.label}</span>
                 <div className="flex items-center gap-2 font-mono">
-                  <span className="text-slate-300 font-bold">{item.count} pcs</span>
-                  <span className="text-slate-500">({item.pctOfTotal}%)</span>
-                  <span className="text-amber-400 text-[11px] font-bold">
+                  <span className="text-[#292A2E] font-bold">{item.count} pcs</span>
+                  <span className="text-[#505258]">({item.pctOfTotal}%)</span>
+                  <span className="text-[#9E4C00] text-[11px] font-bold">
                     Cum: {item.cumPct}%
                   </span>
                 </div>
               </div>
 
               {/* Progress bar */}
-              <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+              <div className="h-2 w-full bg-[#091E4214] rounded-full overflow-hidden border border-[#0B120E24]">
                 <div
-                  className="h-full bg-amber-500 rounded-full transition-all duration-300"
+                  className="h-full bg-[#E06C00] rounded-full transition-all duration-300"
                   style={{ width: `${item.pctOfTotal}%` }}
                 />
               </div>
@@ -141,10 +141,10 @@ export const DowntimeParetoChart: React.FC = () => {
           ))}
         </div>
 
-        <div className="mt-4 p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center gap-2 text-xs text-slate-400">
-          <TrendingUp className="h-4 w-4 text-amber-400 flex-shrink-0" />
+        <div className="mt-4 p-3 rounded-md bg-[#F8F8F8] border border-[#0B120E24] flex items-center gap-2 text-xs text-[#292A2E]">
+          <TrendingUp className="h-4 w-4 text-[#1868DB] flex-shrink-0" />
           <span>
-            <strong>Pareto Insight:</strong> <strong>Flash</strong> and <strong>Short Shots</strong> account for <strong>69%</strong> of all scrap generation.
+            <strong>Pareto insight:</strong> <strong>Flash</strong> and <strong>short shots</strong> account for <strong>69%</strong> of all scrap generation.
           </span>
         </div>
       </div>

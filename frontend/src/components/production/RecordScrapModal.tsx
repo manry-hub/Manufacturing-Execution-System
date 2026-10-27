@@ -11,13 +11,13 @@ interface RecordScrapModalProps {
 }
 
 const DEFECT_CODES = [
-  { code: 'FLASH', label: 'Flash / Parting Line Burrs', category: 'Clamping / Pressure' },
-  { code: 'SHORT_SHOT', label: 'Short Shot / Incomplete Fill', category: 'Injection / Cushion' },
-  { code: 'WARPAGE', label: 'Warpage / Shrinkage Distortion', category: 'Cooling / Mold Temp' },
-  { code: 'SINK_MARK', label: 'Sink Mark on Thick Ribs', category: 'Holding Pressure' },
-  { code: 'CONTAMINATION', label: 'Black Specks / Resin Contamination', category: 'Material / Barrel' },
-  { code: 'BURN_MARK', label: 'Burn Mark / Trapped Air Dieseling', category: 'Venting / Speed' },
-  { code: 'DIMENSIONAL_OUT_OF_SPEC', label: 'Dimensional Out-of-Spec', category: 'Quality / Tooling' },
+  { code: 'FLASH', label: 'Flash / parting line burrs', category: 'Clamping / pressure' },
+  { code: 'SHORT_SHOT', label: 'Short shot / incomplete fill', category: 'Injection / cushion' },
+  { code: 'WARPAGE', label: 'Warpage / shrinkage distortion', category: 'Cooling / mold temp' },
+  { code: 'SINK_MARK', label: 'Sink mark on thick ribs', category: 'Holding pressure' },
+  { code: 'CONTAMINATION', label: 'Black specks / resin contamination', category: 'Material / barrel' },
+  { code: 'BURN_MARK', label: 'Burn mark / trapped air dieseling', category: 'Venting / speed' },
+  { code: 'DIMENSIONAL_OUT_OF_SPEC', label: 'Dimensional out-of-spec', category: 'Quality / tooling' },
 ];
 
 export const RecordScrapModal: React.FC<RecordScrapModalProps> = ({
@@ -63,34 +63,34 @@ export const RecordScrapModal: React.FC<RecordScrapModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Log Defect Scrap — ${run.productionOrder?.orderNumber ?? 'Active Run'}`}
+      title={`Log defect scrap — ${run.productionOrder?.orderNumber ?? 'Active run'}`}
       maxWidth="md"
     >
       <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
         {/* Run Details */}
-        <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 text-xs flex items-center justify-between">
+        <div className="bg-[#F8F8F8] rounded-md p-3 border border-[#0B120E14] text-xs flex items-center justify-between text-[#292A2E]">
           <div>
-            <span className="text-slate-400">Machine: </span>
-            <span className="font-bold text-slate-200">{run.machine?.code ?? run.machineId}</span>
-            <span className="text-slate-400 ml-2">Part: </span>
-            <span className="font-mono text-slate-200">{run.productionOrder?.product?.partNumber ?? 'PART-01'}</span>
+            <span className="text-[#505258]">Machine: </span>
+            <span className="font-bold text-[#292A2E]">{run.machine?.code ?? run.machineId}</span>
+            <span className="text-[#505258] ml-2">Part: </span>
+            <span className="font-mono text-[#292A2E]">{run.productionOrder?.product?.partNumber ?? 'PART-01'}</span>
           </div>
-          <span className="font-mono text-slate-400">Cavities: {run.mold?.cavityCount ?? 4}</span>
+          <span className="font-mono text-[#505258]">Cavities: {run.mold?.cavityCount ?? 4}</span>
         </div>
 
         {/* Defect Code Selector */}
         <div>
-          <label htmlFor="scrap-defect-code" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-            Defect Classification
+          <label htmlFor="scrap-defect-code" className="block text-xs font-semibold text-[#505258] mb-1.5">
+            Defect classification
           </label>
           <select
             id="scrap-defect-code"
             value={defectCode}
             onChange={(e) => setDefectCode(e.target.value)}
-            className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl p-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            className="w-full bg-[#FFFFFF] border border-[#8C8F97] hover:bg-[#F8F8F8] rounded-md p-2.5 text-sm text-[#292A2E] focus:border-[#4688EC] focus:ring-2 focus:ring-[#4688EC]/30 outline-none cursor-pointer"
           >
             {DEFECT_CODES.map((d) => (
-              <option key={d.code} value={d.code} className="bg-slate-900 text-slate-100">
+              <option key={d.code} value={d.code}>
                 {d.label} ({d.category})
               </option>
             ))}
@@ -99,8 +99,8 @@ export const RecordScrapModal: React.FC<RecordScrapModalProps> = ({
 
         {/* Scrap Quantity */}
         <div>
-          <label htmlFor="scrap-quantity" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-            Scrap Quantity (Pieces)
+          <label htmlFor="scrap-quantity" className="block text-xs font-semibold text-[#505258] mb-1.5">
+            Scrap quantity (pieces)
           </label>
           <input
             id="scrap-quantity"
@@ -109,14 +109,14 @@ export const RecordScrapModal: React.FC<RecordScrapModalProps> = ({
             max={10000}
             value={quantity}
             onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
-            className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl p-2.5 text-sm font-mono text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-[#FFFFFF] border border-[#8C8F97] hover:bg-[#F8F8F8] rounded-md p-2.5 text-sm font-mono text-[#292A2E] focus:border-[#4688EC] focus:ring-2 focus:ring-[#4688EC]/30 outline-none"
           />
         </div>
 
         {/* Notes */}
         <div>
-          <label htmlFor="scrap-notes" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-            Inspection Notes (Optional)
+          <label htmlFor="scrap-notes" className="block text-xs font-semibold text-[#505258] mb-1.5">
+            Inspection notes (optional)
           </label>
           <textarea
             id="scrap-notes"
@@ -124,33 +124,33 @@ export const RecordScrapModal: React.FC<RecordScrapModalProps> = ({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="e.g. Excessive burrs observed on Cavity #3 during first-off sampling..."
-            className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-[#FFFFFF] border border-[#8C8F97] hover:bg-[#F8F8F8] rounded-md p-2.5 text-xs text-[#292A2E] placeholder-[#6B6E76] focus:border-[#4688EC] focus:ring-2 focus:ring-[#4688EC]/30 outline-none"
           />
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+          <div className="p-3 rounded-md bg-[#FFECEB] border border-[#E2483D] text-[#292A2E] text-xs">
             {error}
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#0B120E24]">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            className="px-4 py-2 rounded-md text-xs font-medium text-[#292A2E] hover:bg-[#091E420F] border border-[#0B120E24] transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/30 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-md text-xs font-semibold bg-[#C9372C] hover:bg-[#AE2E24] active:bg-[#872821] text-white shadow-xs transition-colors disabled:opacity-50"
           >
             <Trash2 className="h-4 w-4" />
-            <span>{isSubmitting ? 'Recording...' : 'Record Scrap Defect'}</span>
+            <span>{isSubmitting ? 'Recording...' : 'Record scrap defect'}</span>
           </button>
         </div>
       </form>

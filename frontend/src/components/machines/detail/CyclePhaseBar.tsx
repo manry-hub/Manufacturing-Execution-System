@@ -67,27 +67,27 @@ export const CyclePhaseBar: React.FC<CyclePhaseBarProps> = ({
   const activeNormalized = (currentPhase ?? 'COOLING').toUpperCase();
 
   return (
-    <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-sm">
+    <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-5 shadow-xs">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
-            <span>Injection Molding Cycle Sequence</span>
-            <span className="text-[11px] font-mono font-normal text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700/60">
-              6-Phase Standard
+          <h3 className="text-sm font-bold text-[#292A2E] flex items-center gap-2">
+            <span>Injection molding cycle sequence</span>
+            <span className="text-[11px] font-mono font-normal text-[#505258] bg-[#F1F2F4] px-2 py-0.5 rounded-[3px] border border-[#DCDFE4]">
+              6-phase standard
             </span>
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-[#505258] mt-0.5">
             Real-time mechanical progression of the active molding shot
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400 font-medium">Active Phase:</span>
+          <span className="text-xs text-[#505258] font-medium">Active phase:</span>
           <span
-            className={`text-xs font-mono font-bold px-2.5 py-1 rounded-lg border ${
+            className={`text-xs font-mono font-bold px-2 py-0.5 rounded-[3px] border ${
               isMachineRunning
-                ? 'bg-blue-500/20 text-blue-300 border-blue-500/40 animate-pulse'
-                : 'bg-slate-800 text-slate-400 border-slate-700'
+                ? 'bg-[#E9F2FE] text-[#123263] border-[#357DE8]'
+                : 'bg-[#F1F2F4] text-[#505258] border-[#DCDFE4]'
             }`}
           >
             {isMachineRunning ? activeNormalized : 'CYCLE PAUSED'}
@@ -103,49 +103,49 @@ export const CyclePhaseBar: React.FC<CyclePhaseBarProps> = ({
             isMachineRunning &&
             PHASES.findIndex((p) => p.id === activeNormalized) > idx;
 
-          let cardStyle = 'border-slate-800 bg-slate-950/40 text-slate-400';
-          let iconStyle = 'bg-slate-800 text-slate-400';
+          let cardStyle = 'border-[#0B120E24] bg-[#F8F8F8] text-[#505258]';
+          let iconStyle = 'bg-[#091E420F] text-[#505258]';
 
           if (isActive) {
             cardStyle =
-              'border-blue-500/60 bg-blue-500/10 text-blue-200 ring-2 ring-blue-500/30 shadow-lg shadow-blue-950/30';
-            iconStyle = 'bg-blue-500 text-white animate-bounce';
+              'border-[#1868DB] bg-[#E9F2FE] text-[#123263] shadow-xs';
+            iconStyle = 'bg-[#1868DB] text-white';
           } else if (isPassed) {
-            cardStyle = 'border-emerald-500/30 bg-emerald-500/5 text-slate-300';
-            iconStyle = 'bg-emerald-500/20 text-emerald-400';
+            cardStyle = 'border-[#6A9A23] bg-[#EFFFD6] text-[#37471F]';
+            iconStyle = 'bg-[#6A9A23] text-white';
           }
 
           return (
             <div
               key={phase.id}
-              className={`rounded-xl border p-3 flex flex-col justify-between transition-all duration-200 ${cardStyle}`}
+              className={`rounded-md border p-3 flex flex-col justify-between transition-colors duration-150 ${cardStyle}`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className={`p-1.5 rounded-lg ${iconStyle}`}>
+                <span className={`p-1.5 rounded-md ${iconStyle}`}>
                   {phase.icon}
                 </span>
-                <span className="text-[10px] font-mono text-slate-500">
+                <span className="text-[10px] font-mono text-[#6B6E76]">
                   ~{phase.durationApprox}
                 </span>
               </div>
 
               <div>
-                <span className="text-xs font-semibold block text-slate-200">
+                <span className="text-xs font-semibold block text-[#292A2E]">
                   {phase.label}
                 </span>
-                <p className="text-[11px] text-slate-400 line-clamp-2 mt-0.5 leading-tight">
+                <p className="text-[11px] text-[#505258] line-clamp-2 mt-0.5 leading-tight">
                   {phase.description}
                 </p>
               </div>
 
               {/* Progress indicator bar at bottom of card */}
-              <div className="mt-3 h-1 w-full rounded-full bg-slate-800 overflow-hidden">
+              <div className="mt-3 h-1 w-full rounded-full bg-[#091E4214] overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-300 ${
                     isActive
-                      ? 'w-full bg-blue-500 animate-pulse'
+                      ? 'w-full bg-[#1868DB]'
                       : isPassed
-                      ? 'w-full bg-emerald-500/60'
+                      ? 'w-full bg-[#6A9A23]'
                       : 'w-0'
                   }`}
                 />

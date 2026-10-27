@@ -54,43 +54,43 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+      <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-5 flex flex-wrap items-center justify-between gap-4 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <PlaySquare className="h-6 w-6 text-blue-400" />
-            <h2 className="text-xl font-bold text-slate-100 tracking-tight">
-              Production Execution & Run Management
+            <PlaySquare className="h-6 w-6 text-[#1868DB]" />
+            <h2 className="text-xl font-bold text-[#292A2E] tracking-tight">
+              Production execution & run management
             </h2>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Order lifecycle execution (DRAFT → RELEASED → IN_PROGRESS → COMPLETED) and shop floor scrap logging
+          <p className="text-xs text-[#505258] mt-1">
+            Order lifecycle execution (Draft → Released → In progress → Completed) and shop floor scrap logging
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Sub-tab Switcher */}
-          <div className="bg-slate-950/80 p-1 rounded-xl border border-slate-800 flex items-center gap-1">
+          <div className="bg-[#F1F2F4] p-1 rounded-md border border-[#0B120E24] flex items-center gap-1">
             <button
               type="button"
               onClick={() => setActiveSubTab('runs')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3.5 py-1.5 rounded-sm text-xs font-semibold transition-all ${
                 activeSubTab === 'runs'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#FFFFFF] text-[#1868DB] shadow-xs'
+                  : 'text-[#505258] hover:text-[#292A2E]'
               }`}
             >
-              Active Machine Runs ({runs.length})
+              Active machine runs ({runs.length})
             </button>
             <button
               type="button"
               onClick={() => setActiveSubTab('orders')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3.5 py-1.5 rounded-sm text-xs font-semibold transition-all ${
                 activeSubTab === 'orders'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#FFFFFF] text-[#1868DB] shadow-xs'
+                  : 'text-[#505258] hover:text-[#292A2E]'
               }`}
             >
-              Production Orders ({orders.length})
+              Production orders ({orders.length})
             </button>
           </div>
 
@@ -99,10 +99,10 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
             <button
               type="button"
               onClick={() => setIsCreateOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/30 transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold bg-[#1868DB] hover:bg-[#1558BC] active:bg-[#144794] text-white shadow-xs transition-colors"
             >
               <PlusCircle className="h-4 w-4" />
-              <span>Create Order</span>
+              <span>Create order</span>
             </button>
           )}
         </div>
@@ -110,34 +110,34 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
 
       {/* View 1: Active Production Runs */}
       {activeSubTab === 'runs' && (
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-              <Layers className="h-4 w-4 text-blue-400" />
-              <span>Shop Floor Machine Dispatch & Runs</span>
+        <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg overflow-hidden shadow-xs">
+          <div className="p-4 border-b border-[#0B120E24] flex items-center justify-between">
+            <h3 className="text-sm font-bold text-[#292A2E] flex items-center gap-2">
+              <Layers className="h-4 w-4 text-[#1868DB]" />
+              <span>Shop floor machine dispatch & runs</span>
             </h3>
-            <span className="text-xs text-slate-400 font-mono">
-              {runs.filter((r) => r.status === 'ACTIVE').length} Active Executions
+            <span className="text-xs text-[#505258] font-mono">
+              {runs.filter((r) => r.status === 'ACTIVE').length} active executions
             </span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+              <thead className="bg-[#FFFFFF] text-[#505258] font-bold border-b-2 border-[#0B120E24]">
                 <tr>
                   <th className="py-3 px-4">Machine</th>
                   <th className="py-3 px-4">Order #</th>
-                  <th className="py-3 px-4">Part & Mold</th>
+                  <th className="py-3 px-4">Part & mold</th>
                   <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Progress / Output</th>
-                  <th className="py-3 px-4">Scrap Rate</th>
-                  <th className="py-3 px-4 text-right">Run Actions</th>
+                  <th className="py-3 px-4">Progress / output</th>
+                  <th className="py-3 px-4">Scrap rate</th>
+                  <th className="py-3 px-4 text-right">Run actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80">
+              <tbody className="divide-y divide-[#0B120E24]">
                 {runs.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-slate-500">
+                    <td colSpan={7} className="text-center py-8 text-[#6B6E76]">
                       No active production runs found. Start a run from an approved order.
                     </td>
                   </tr>
@@ -149,44 +149,44 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                     const scrapPct = totalParts > 0 ? ((run.rejectQuantity / totalParts) * 100).toFixed(1) : '0.0';
 
                     return (
-                      <tr key={run.id} className="hover:bg-slate-800/40 transition-colors">
+                      <tr key={run.id} className="hover:bg-[#F8F8F8] transition-colors">
                         <td className="py-3.5 px-4">
-                          <span className="font-bold text-slate-100 block text-sm">
+                          <span className="font-bold text-[#292A2E] block text-sm">
                             {run.machine?.code ?? run.machineId}
                           </span>
-                          <span className="text-[11px] text-slate-400">{run.machine?.name}</span>
+                          <span className="text-[11px] text-[#505258]">{run.machine?.name}</span>
                         </td>
-                        <td className="py-3.5 px-4 font-mono font-medium text-slate-200">
+                        <td className="py-3.5 px-4 font-mono font-medium text-[#292A2E]">
                           {run.productionOrder?.orderNumber ?? 'PO-ACTIVE'}
                         </td>
                         <td className="py-3.5 px-4">
-                          <span className="font-mono text-slate-200 block">
+                          <span className="font-mono text-[#292A2E] block">
                             {run.productionOrder?.product?.partNumber ?? 'PART-01'}
                           </span>
-                          <span className="text-[11px] text-slate-400">
-                            {run.mold?.code ?? 'MLD-01'} ({run.mold?.cavityCount ?? 4} Cavities)
+                          <span className="text-[11px] text-[#505258]">
+                            {run.mold?.code ?? 'MLD-01'} ({run.mold?.cavityCount ?? 4} cavities)
                           </span>
                         </td>
                         <td className="py-3.5 px-4">
                           <StatusBadge status={run.status} size="sm" />
                         </td>
                         <td className="py-3.5 px-4 min-w-[180px]" aria-label="Production progress">
-                          <div className="flex justify-between text-[11px] text-slate-300 mb-1 font-mono">
+                          <div className="flex justify-between text-[11px] text-[#292A2E] mb-1 font-mono">
                             <span>{run.goodQuantity.toLocaleString()} pcs</span>
-                            <span className="text-slate-400">/ {targetQty.toLocaleString()} ({progress}%)</span>
+                            <span className="text-[#505258]">/ {targetQty.toLocaleString()} ({progress}%)</span>
                           </div>
-                          <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                          <div className="h-1.5 w-full bg-[#091E4214] rounded-full overflow-hidden border border-[#0B120E24]">
                             <div
-                              className="h-full bg-blue-500 rounded-full transition-all"
+                              className="h-full bg-[#1868DB] rounded-full transition-all"
                               style={{ width: `${progress}%` }}
                             />
                           </div>
                         </td>
                         <td className="py-3.5 px-4 font-mono">
-                          <span className={Number(scrapPct) > 3.0 ? 'text-rose-400 font-bold' : 'text-slate-300'}>
+                          <span className={Number(scrapPct) > 3.0 ? 'text-[#AE2E24] font-bold' : 'text-[#292A2E]'}>
                             {scrapPct}%
                           </span>
-                          <span className="text-[10px] text-slate-500 block">({run.rejectQuantity} rej)</span>
+                          <span className="text-[10px] text-[#6B6E76] block">({run.rejectQuantity} rej)</span>
                         </td>
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
@@ -194,8 +194,8 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                             <button
                               type="button"
                               onClick={() => setSelectedRunForScrap(run)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 border border-rose-500/30 transition-colors"
-                              title="Report Scrap Defect on this Run"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-[#AE2E24] hover:bg-[#FFECEB] active:bg-[#FFD5D2] border border-[#FD9891] transition-colors"
+                              title="Report scrap defect on this run"
                             >
                               <Trash2 className="h-3 w-3" />
                               <span>Scrap</span>
@@ -206,9 +206,9 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                               <button
                                 type="button"
                                 onClick={() => void onPauseRun(run.id)}
-                                aria-label="Pause Run"
-                                className="p-1.5 rounded-lg bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 transition-colors"
-                                title="Pause Run"
+                                aria-label="Pause run"
+                                className="p-1.5 rounded-md bg-[#FFF5DB] text-[#693200] hover:bg-[#FCE4A6] border border-[#E06C00] transition-colors"
+                                title="Pause run"
                               >
                                 <Pause className="h-3.5 w-3.5" />
                               </button>
@@ -219,9 +219,9 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                               <button
                                 type="button"
                                 onClick={() => void onCompleteRun(run.id)}
-                                aria-label="Complete and Reconcile Run"
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
-                                title="Complete and Reconcile Run"
+                                aria-label="Complete and reconcile run"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-[#5B7F24] hover:bg-[#4C6B1F] text-white transition-colors"
+                                title="Complete and reconcile run"
                               >
                                 <CheckCircle className="h-3 w-3" />
                                 <span>Close</span>
@@ -241,48 +241,48 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
 
       {/* View 2: Production Orders List */}
       {activeSubTab === 'orders' && (
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-400" />
-              <span>Production Orders Schedule & Status</span>
+        <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg overflow-hidden shadow-xs">
+          <div className="p-4 border-b border-[#0B120E24] flex items-center justify-between">
+            <h3 className="text-sm font-bold text-[#292A2E] flex items-center gap-2">
+              <Clock className="h-4 w-4 text-[#1868DB]" />
+              <span>Production orders schedule & status</span>
             </h3>
-            <span className="text-xs text-slate-400 font-mono">
-              {orders.length} Total Registered Orders
+            <span className="text-xs text-[#505258] font-mono">
+              {orders.length} total registered orders
             </span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+              <thead className="bg-[#FFFFFF] text-[#505258] font-bold border-b-2 border-[#0B120E24]">
                 <tr>
                   <th className="py-3 px-4">Order #</th>
-                  <th className="py-3 px-4">Product Part</th>
-                  <th className="py-3 px-4">Target Qty</th>
+                  <th className="py-3 px-4">Product part</th>
+                  <th className="py-3 px-4">Target qty</th>
                   <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Planned Schedule</th>
+                  <th className="py-3 px-4">Planned schedule</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80">
+              <tbody className="divide-y divide-[#0B120E24]">
                 {orders.map((ord) => (
-                  <tr key={ord.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-100 text-sm">
+                  <tr key={ord.id} className="hover:bg-[#F8F8F8] transition-colors">
+                    <td className="py-3.5 px-4 font-mono font-bold text-[#292A2E] text-sm">
                       {ord.orderNumber}
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="font-mono text-slate-200 block">
+                      <span className="font-mono text-[#292A2E] block">
                         {ord.product?.partNumber ?? ord.productId}
                       </span>
-                      <span className="text-[11px] text-slate-400">{ord.product?.name}</span>
+                      <span className="text-[11px] text-[#505258]">{ord.product?.name}</span>
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-slate-200 font-semibold">
+                    <td className="py-3.5 px-4 font-mono text-[#292A2E] font-semibold">
                       {ord.targetQuantity.toLocaleString()} pcs
                     </td>
                     <td className="py-3.5 px-4">
                       <StatusBadge status={ord.status} size="sm" />
                     </td>
-                    <td className="py-3.5 px-4 text-slate-400 font-mono text-[11px]">
+                    <td className="py-3.5 px-4 text-[#505258] font-mono text-[11px]">
                       {new Date(ord.plannedStartTime).toLocaleString()}
                     </td>
                     <td className="py-3.5 px-4 text-right">
@@ -290,7 +290,7 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                         <button
                           type="button"
                           onClick={() => void onReleaseOrder(ord.id)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold bg-[#1868DB] hover:bg-[#1558BC] text-white transition-colors"
                         >
                           <span>Release</span>
                           <ArrowRight className="h-3 w-3" />

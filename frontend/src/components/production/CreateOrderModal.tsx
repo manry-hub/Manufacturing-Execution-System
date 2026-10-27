@@ -78,14 +78,14 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Create New Production Order"
+      title="Create production order"
       maxWidth="md"
     >
       <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
         {/* Order Number */}
         <div>
-          <label htmlFor="order-number" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-            Production Order Number
+          <label htmlFor="order-number" className="block text-xs font-semibold text-[#505258] mb-1.5">
+            Production order number
           </label>
           <input
             id="order-number"
@@ -93,23 +93,23 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             required
             value={orderNumber}
             onChange={(e) => setOrderNumber(e.target.value)}
-            className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl p-2.5 text-sm font-mono text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-[#FFFFFF] border border-[#8C8F97] hover:bg-[#F8F8F8] rounded-md p-2.5 text-sm font-mono text-[#292A2E] focus:border-[#4688EC] focus:ring-2 focus:ring-[#4688EC]/30 outline-none"
           />
         </div>
 
         {/* Product Selector */}
         <div>
-          <label htmlFor="order-product" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-            Product & Part Number
+          <label htmlFor="order-product" className="block text-xs font-semibold text-[#505258] mb-1.5">
+            Product & part number
           </label>
           <select
             id="order-product"
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
-            className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl p-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            className="w-full bg-[#FFFFFF] border border-[#8C8F97] hover:bg-[#F8F8F8] rounded-md p-2.5 text-sm text-[#292A2E] focus:border-[#4688EC] focus:ring-2 focus:ring-[#4688EC]/30 outline-none cursor-pointer"
           >
             {products.map((p) => (
-              <option key={p.id} value={p.id} className="bg-slate-900 text-slate-100">
+              <option key={p.id} value={p.id}>
                 {p.partNumber} — {p.name} ({p.nominalCycleTimeSeconds}s nominal)
               </option>
             ))}
@@ -118,8 +118,8 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
         {/* Target Quantity */}
         <div>
-          <label htmlFor="order-qty" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-            Target Quantity (Units)
+          <label htmlFor="order-qty" className="block text-xs font-semibold text-[#505258] mb-1.5">
+            Target quantity (units)
           </label>
           <input
             id="order-qty"
@@ -129,14 +129,14 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             step={100}
             value={targetQuantity}
             onChange={(e) => setTargetQuantity(Math.max(1, parseInt(e.target.value, 10) || 100))}
-            className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl p-2.5 text-sm font-mono text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-[#FFFFFF] border border-[#8C8F97] hover:bg-[#F8F8F8] rounded-md p-2.5 text-sm font-mono text-[#292A2E] focus:border-[#4688EC] focus:ring-2 focus:ring-[#4688EC]/30 outline-none"
           />
         </div>
 
         {/* Planned Start Time */}
         <div>
-          <label htmlFor="order-time" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-            Planned Start Schedule
+          <label htmlFor="order-time" className="block text-xs font-semibold text-[#505258] mb-1.5">
+            Planned start schedule
           </label>
           <input
             id="order-time"
@@ -144,33 +144,33 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             required
             value={plannedStartTime}
             onChange={(e) => setPlannedStartTime(e.target.value)}
-            className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl p-2.5 text-sm font-mono text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-[#FFFFFF] border border-[#8C8F97] hover:bg-[#F8F8F8] rounded-md p-2.5 text-sm font-mono text-[#292A2E] focus:border-[#4688EC] focus:ring-2 focus:ring-[#4688EC]/30 outline-none"
           />
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+          <div className="p-3 rounded-md bg-[#FFECEB] border border-[#E2483D] text-[#292A2E] text-xs">
             {error}
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#0B120E24]">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            className="px-4 py-2 rounded-md text-xs font-medium text-[#292A2E] hover:bg-[#091E420F] border border-[#0B120E24] transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/30 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-md text-xs font-semibold bg-[#1868DB] hover:bg-[#1558BC] active:bg-[#144794] text-white shadow-xs transition-colors disabled:opacity-50"
           >
             <PlusCircle className="h-4 w-4" />
-            <span>{isSubmitting ? 'Creating...' : 'Create Order'}</span>
+            <span>{isSubmitting ? 'Creating...' : 'Create order'}</span>
           </button>
         </div>
       </form>

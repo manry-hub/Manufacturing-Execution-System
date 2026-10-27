@@ -29,28 +29,29 @@ export const AndonTopBanner: React.FC<AndonTopBannerProps> = ({
   return (
     <div
       role="alert"
-      className="bg-gradient-to-r from-rose-950/90 via-rose-900/80 to-slate-900/90 border-b border-rose-500/40 text-rose-200 px-4 py-2.5 shadow-md shadow-rose-950/30"
+      className="bg-[#FFECEB] border-b border-[#E2483D] px-4 py-2.5 shadow-sm"
     >
       <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse">
-            <AlertTriangle className="h-5 w-5" />
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#FFE0DD] text-[#C9372C] border border-[#FD9891]">
+            <AlertTriangle className="h-4 w-4" />
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-white tracking-wide">
-                ACTIVE ANDON ALERT: {first.machine?.code || first.machineId}
+              <span className="font-bold text-[#AE2E24] text-xs uppercase tracking-wide">
+                Active andon alert: {first.machine?.code || first.machineId}
               </span>
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-rose-500/30 text-rose-200 uppercase border border-rose-500/50">
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-[3px] bg-[#FFFFFF] text-[#AE2E24] uppercase border border-[#E2483D]">
                 {first.category.replace('_', ' ')}
               </span>
               {openTickets.length > 1 && (
-                <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700">
+                <span className="text-[11px] bg-[#FFFFFF] text-[#505258] px-2 py-0.5 rounded-full border border-[#0B120E24]">
                   +{openTickets.length - 1} more
                 </span>
               )}
             </div>
-            <p className="text-xs text-rose-300/90 line-clamp-1">{first.description}</p>
+            {/* Body text must be neutral text #292A2E per SectionMessage spec in DESIGN.md */}
+            <p className="text-xs text-[#292A2E] line-clamp-1">{first.description}</p>
           </div>
         </div>
 
@@ -59,7 +60,7 @@ export const AndonTopBanner: React.FC<AndonTopBannerProps> = ({
             <button
               type="button"
               onClick={() => void onAcknowledge(first.id)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[#C9372C] hover:bg-[#AE2E24] text-white shadow-sm transition-colors"
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
               <span>Acknowledge</span>
@@ -68,9 +69,9 @@ export const AndonTopBanner: React.FC<AndonTopBannerProps> = ({
           <button
             type="button"
             onClick={onNavigateToAndon}
-            className="inline-flex items-center gap-1 text-xs font-medium text-rose-300 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-rose-800/40 transition-colors"
+            className="inline-flex items-center gap-1 text-xs font-medium text-[#1868DB] hover:text-[#1558BC] px-2.5 py-1.5 rounded-md hover:bg-[#091E420F] transition-colors"
           >
-            <span>View Board</span>
+            <span>View board</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>

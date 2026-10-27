@@ -34,7 +34,6 @@ export const Modal: React.FC<ModalProps> = ({
     }
   }, [isOpen]);
 
-  // Handle native cancel event (triggered by Escape key)
   const handleCancel = (e: React.SyntheticEvent<HTMLDialogElement, Event>) => {
     e.preventDefault();
     onClose();
@@ -55,22 +54,25 @@ export const Modal: React.FC<ModalProps> = ({
       ref={dialogRef}
       onCancel={handleCancel}
       aria-labelledby={titleId}
-      className={`fixed inset-0 m-auto p-0 rounded-2xl bg-slate-900 border border-slate-700/80 text-slate-100 shadow-2xl backdrop:bg-black/75 backdrop:backdrop-blur-sm w-full ${maxWidthClass} overflow-hidden`}
+      className={`fixed inset-0 m-auto p-0 rounded-xl bg-[#FFFFFF] border border-[#0B120E24] text-[#292A2E] shadow-2xl w-full ${maxWidthClass} overflow-hidden`}
     >
-      <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
-        <h2 id={titleId} className="text-lg font-semibold tracking-tight text-slate-100">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-[#0B120E24] px-6 py-4 bg-[#FFFFFF]">
+        <h2 id={titleId} className="text-base font-semibold text-[#292A2E]">
           {title}
         </h2>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close dialog"
-          className="rounded-lg p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="rounded-md p-1.5 text-[#505258] hover:text-[#292A2E] hover:bg-[#091E420F] transition-colors focus-visible:outline-2 focus-visible:outline-[#4688EC]"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
-      <div className="p-6 max-h-[80vh] overflow-y-auto overscroll-contain">
+
+      {/* Body */}
+      <div className="p-6 max-h-[80vh] overflow-y-auto overscroll-contain bg-[#FFFFFF]">
         {children}
       </div>
     </dialog>

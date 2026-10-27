@@ -14,10 +14,10 @@ export const MultiMachineOeeChart: React.FC<MultiMachineOeeChartProps> = ({ mach
     let q = 0.985;
 
     if (m.isSlowCycleActive) {
-      p = 0.524; // 22s / 42s
+      p = 0.524;
     }
     if (m.isFaultActive) {
-      a = 0.65; // Fault downtime
+      a = 0.65;
     }
     if (m.currentState?.normalizedStatus === 'IDLE') {
       a = 0.82;
@@ -36,37 +36,37 @@ export const MultiMachineOeeChart: React.FC<MultiMachineOeeChartProps> = ({ mach
   });
 
   return (
-    <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-sm">
+    <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-5 shadow-xs">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
-            <Layers className="h-4 w-4 text-blue-400" />
-            <span>Multi-Machine OEE Comparison</span>
-            <span className="text-[11px] font-mono font-normal text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700/60">
-              10-Machine Fleet Benchmarking
+          <h3 className="text-sm font-bold text-[#292A2E] flex items-center gap-2">
+            <Layers className="h-4 w-4 text-[#1868DB]" />
+            <span>Multi-machine OEE comparison</span>
+            <span className="text-[11px] font-mono font-normal text-[#505258] bg-[#F1F2F4] px-2 py-0.5 rounded-[3px] border border-[#DCDFE4]">
+              10-machine fleet benchmarking
             </span>
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Availability, Performance, Quality, and composite OEE per injection molding cell
+          <p className="text-xs text-[#505258] mt-0.5">
+            Availability, performance, quality, and composite OEE per injection molding cell
           </p>
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-3 text-xs text-slate-400 font-mono">
+        <div className="flex items-center gap-3 text-xs text-[#505258] font-mono">
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded bg-blue-500" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-[#1868DB]" />
             <span>OEE</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded bg-emerald-500" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-[#22A06B]" />
             <span>Avail</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded bg-purple-500" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-[#803FA5]" />
             <span>Perf</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded bg-cyan-500" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-[#206A83]" />
             <span>Qual</span>
           </span>
         </div>
@@ -75,34 +75,34 @@ export const MultiMachineOeeChart: React.FC<MultiMachineOeeChartProps> = ({ mach
       {/* Comparison Rows */}
       <div className="space-y-3">
         {machineMetrics.map((item) => (
-          <div key={item.code} className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3">
+          <div key={item.code} className="bg-[#F8F8F8] border border-[#0B120E24] rounded-md p-3">
             <div className="flex items-center justify-between text-xs mb-1.5">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-100 font-mono">{item.code}</span>
-                <span className="text-[11px] text-slate-400">{item.name}</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                <span className="font-bold text-[#292A2E] font-mono">{item.code}</span>
+                <span className="text-[11px] text-[#505258]">{item.name}</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-[3px] bg-[#FFFFFF] text-[#505258] border border-[#DCDFE4]">
                   {item.status}
                 </span>
               </div>
               <div className="flex items-center gap-3 font-mono">
-                <span className="text-slate-400 text-[11px]">A: <strong className="text-emerald-400">{item.a}%</strong></span>
-                <span className="text-slate-400 text-[11px]">P: <strong className="text-purple-400">{item.p}%</strong></span>
-                <span className="text-slate-400 text-[11px]">Q: <strong className="text-cyan-400">{item.q}%</strong></span>
-                <span className="text-sm font-extrabold text-blue-400">{item.oee}% OEE</span>
+                <span className="text-[#505258] text-[11px]">A: <strong className="text-[#216E4E]">{item.a}%</strong></span>
+                <span className="text-[#505258] text-[11px]">P: <strong className="text-[#803FA5]">{item.p}%</strong></span>
+                <span className="text-[#505258] text-[11px]">Q: <strong className="text-[#206A83]">{item.q}%</strong></span>
+                <span className="text-sm font-bold text-[#1868DB]">{item.oee}% OEE</span>
               </div>
             </div>
 
             {/* Composite Progress Bar */}
-            <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+            <div className="h-2 w-full bg-[#091E4214] rounded-full overflow-hidden border border-[#0B120E24]">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
                   item.oee >= 85
-                    ? 'bg-gradient-to-r from-blue-500 to-emerald-400'
+                    ? 'bg-[#1868DB]'
                     : item.oee >= 70
-                    ? 'bg-blue-500'
+                    ? 'bg-[#22A06B]'
                     : item.oee >= 50
-                    ? 'bg-amber-500'
-                    : 'bg-rose-500'
+                    ? 'bg-[#E06C00]'
+                    : 'bg-[#C9372C]'
                 }`}
                 style={{ width: `${item.oee}%` }}
               />

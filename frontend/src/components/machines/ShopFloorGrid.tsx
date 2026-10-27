@@ -99,10 +99,10 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Controls & Simulator Bar */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-[#F8F8F8] border border-[#0B120E24] rounded-lg p-4 flex flex-wrap items-center justify-between gap-4">
         {/* Left: Filter Controls */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 mr-2">
+          <div className="flex items-center gap-1.5 text-xs text-[#505258] mr-2">
             <Filter className="h-4 w-4" />
             <span>Filters:</span>
           </div>
@@ -111,9 +111,9 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
           <select
             value={selectedArea}
             onChange={(e) => setSelectedArea(e.target.value)}
-            className="bg-slate-800 border border-slate-700 text-xs font-medium text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-[#FFFFFF] border border-[#8C8F97] text-xs font-medium text-[#292A2E] rounded-md px-3 py-1.5 focus:border-[#4688EC] focus:ring-2 focus:ring-[#4688EC]/30 outline-none"
           >
-            <option value="ALL">All Areas</option>
+            <option value="ALL">All areas</option>
             {areas.map((a) => (
               <option key={a} value={a}>
                 {a}
@@ -122,29 +122,38 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
           </select>
 
           {/* Status Badges Filter */}
-          {(['ALL', 'RUNNING', 'IDLE', 'FAULT', 'SETUP', 'STOPPED'] as const).map((st) => {
-            const isSelected = selectedStatus === st;
+          {(
+            [
+              { id: 'ALL', label: 'All' },
+              { id: 'RUNNING', label: 'Running' },
+              { id: 'IDLE', label: 'Idle' },
+              { id: 'FAULT', label: 'Fault' },
+              { id: 'SETUP', label: 'Setup' },
+              { id: 'STOPPED', label: 'Stopped' },
+            ] as const
+          ).map((st) => {
+            const isSelected = selectedStatus === st.id;
             return (
               <button
-                key={st}
+                key={st.id}
                 type="button"
-                onClick={() => setSelectedStatus(st)}
-                className={`text-xs px-2.5 py-1 rounded-xl font-medium transition-all ${
+                onClick={() => setSelectedStatus(st.id)}
+                className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
                   isSelected
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80'
+                    ? 'bg-[#1868DB] text-white border border-[#1868DB]'
+                    : 'bg-[#FFFFFF] text-[#505258] hover:bg-[#F0F1F2] border border-[#0B120E24]'
                 }`}
               >
-                {st}
+                {st.label}
               </button>
             );
           })}
         </div>
 
         {/* Right: Simulator Controls */}
-        <div className="flex items-center gap-2 bg-slate-950/60 border border-slate-800/80 rounded-xl p-1.5">
-          <span className="text-[11px] font-mono text-slate-400 px-2 flex items-center gap-1">
-            <Gauge className="h-3.5 w-3.5 text-blue-400" />
+        <div className="flex items-center gap-2 bg-[#FFFFFF] border border-[#0B120E24] rounded-md p-1.5 shadow-xs">
+          <span className="text-[11px] font-mono text-[#505258] px-2 flex items-center gap-1">
+            <Gauge className="h-3.5 w-3.5 text-[#1868DB]" />
             <span>Sim: {simulatorStatus?.isRunning ? 'Running' : 'Paused'}</span>
           </span>
 
@@ -152,8 +161,9 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
             <button
               type="button"
               onClick={() => void onStopSimulator()}
-              title="Pause Simulator Loop"
-              className="p-1.5 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors"
+              title="Pause simulator loop"
+              aria-label="Pause simulator"
+              className="p-1 rounded-md bg-[#FFF5DB] text-[#693200] border border-[#E06C00] hover:bg-[#FCE4A6] transition-colors"
             >
               <Pause className="h-3.5 w-3.5" />
             </button>
@@ -161,15 +171,16 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
             <button
               type="button"
               onClick={() => void onStartSimulator()}
-              title="Start Simulator Loop"
-              className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 transition-colors"
+              title="Start simulator loop"
+              aria-label="Start simulator"
+              className="p-1 rounded-md bg-[#EFFFD6] text-[#37471F] border border-[#6A9A23] hover:bg-[#D3F1A7] transition-colors"
             >
               <Play className="h-3.5 w-3.5" />
             </button>
           )}
 
           {/* Speed multiplier selector */}
-          <div className="flex items-center gap-0.5 border-l border-slate-800 pl-1">
+          <div className="flex items-center gap-0.5 border-l border-[#0B120E24] pl-1">
             {[1, 2, 5].map((spd) => {
               const isActive = (simulatorStatus?.speedMultiplier ?? 1) === spd;
               return (
@@ -179,8 +190,8 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
                   onClick={() => void onSetSimulatorSpeed(spd)}
                   className={`text-[11px] font-mono px-2 py-0.5 rounded-md transition-colors ${
                     isActive
-                      ? 'bg-blue-600 text-white font-bold'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                      ? 'bg-[#1868DB] text-white font-bold'
+                      : 'text-[#505258] hover:text-[#292A2E] hover:bg-[#091E420F]'
                   }`}
                 >
                   {spd}x
@@ -192,8 +203,9 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
           <button
             type="button"
             onClick={() => void onResetSimulator()}
-            title="Reset Simulator to Deterministic Baseline"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors ml-1"
+            title="Reset simulator to deterministic baseline"
+            aria-label="Reset simulator"
+            className="p-1 rounded-md text-[#505258] hover:text-[#292A2E] hover:bg-[#091E420F] transition-colors ml-1"
           >
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
@@ -203,69 +215,79 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
       {/* Fleet KPI Summary Ribbon */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {/* Total Machines */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-            <span>Total Fleet</span>
-            <Layers className="h-4 w-4 text-slate-500" />
+        <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-4 flex flex-col justify-between shadow-xs">
+          <div className="flex items-center justify-between text-[#505258] text-xs mb-1">
+            <span>Total fleet</span>
+            <Layers className="h-4 w-4 text-[#6B6E76]" />
           </div>
-          <span className="text-2xl font-bold font-mono text-slate-100">{kpis.total}</span>
+          <span className="text-2xl font-bold font-mono text-[#292A2E]">{kpis.total}</span>
         </div>
 
         {/* Running */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-emerald-400 text-xs mb-1">
+        <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-4 flex flex-col justify-between shadow-xs">
+          <div className="flex items-center justify-between text-[#37471F] text-xs mb-1">
             <span>Running</span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+            <CheckCircle2 className="h-4 w-4 text-[#6A9A23]" />
           </div>
-          <span className="text-2xl font-bold font-mono text-emerald-400">{kpis.running}</span>
+          <span className="text-2xl font-bold font-mono text-[#37471F]">{kpis.running}</span>
         </div>
 
         {/* Faults */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-rose-400 text-xs mb-1">
-            <span>Fault Alarms</span>
-            <AlertTriangle className="h-4 w-4 text-rose-400" />
+        <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-4 flex flex-col justify-between shadow-xs">
+          <div className="flex items-center justify-between text-[#5D1F1A] text-xs mb-1">
+            <span>Fault alarms</span>
+            <AlertTriangle className="h-4 w-4 text-[#C9372C]" />
           </div>
-          <span className="text-2xl font-bold font-mono text-rose-400">{kpis.fault}</span>
+          <span className="text-2xl font-bold font-mono text-[#5D1F1A]">{kpis.fault}</span>
         </div>
 
         {/* Idle */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-amber-400 text-xs mb-1">
-            <span>Idle / Starved</span>
-            <Clock className="h-4 w-4 text-amber-400" />
+        <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-4 flex flex-col justify-between shadow-xs">
+          <div className="flex items-center justify-between text-[#693200] text-xs mb-1">
+            <span>Idle / starved</span>
+            <Clock className="h-4 w-4 text-[#E06C00]" />
           </div>
-          <span className="text-2xl font-bold font-mono text-amber-400">{kpis.idle}</span>
+          <span className="text-2xl font-bold font-mono text-[#693200]">{kpis.idle}</span>
         </div>
 
         {/* Setup */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-cyan-400 text-xs mb-1">
-            <span>In Setup</span>
-            <FastForward className="h-4 w-4 text-cyan-400" />
+        <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-4 flex flex-col justify-between shadow-xs">
+          <div className="flex items-center justify-between text-[#123263] text-xs mb-1">
+            <span>In setup</span>
+            <FastForward className="h-4 w-4 text-[#357DE8]" />
           </div>
-          <span className="text-2xl font-bold font-mono text-cyan-400">{kpis.setup}</span>
+          <span className="text-2xl font-bold font-mono text-[#123263]">{kpis.setup}</span>
         </div>
 
         {/* Fleet Utilization */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-blue-400 text-xs mb-1">
-            <span>Fleet Utilization</span>
-            <Gauge className="h-4 w-4 text-blue-400" />
+        <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-4 flex flex-col justify-between shadow-xs">
+          <div className="flex items-center justify-between text-[#123263] text-xs mb-1">
+            <span>Fleet utilization</span>
+            <Gauge className="h-4 w-4 text-[#357DE8]" />
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-bold font-mono text-blue-400">
+            <span className="text-2xl font-bold font-mono text-[#1868DB]">
               {kpis.utilization}%
             </span>
-            <span className="text-xs text-slate-500">running</span>
+            <span className="text-xs text-[#6B6E76]">running</span>
           </div>
         </div>
       </div>
 
       {/* Grid of Machine Cards */}
       {filteredMachines.length === 0 ? (
-        <div className="text-center py-12 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
-          <p className="text-slate-400 text-sm">No machines match the selected filter criteria.</p>
+        <div className="text-center py-12 bg-[#FFFFFF] border border-[#0B120E24] rounded-lg shadow-xs">
+          <p className="text-[#505258] text-sm mb-3">No machines match the selected filter criteria.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedArea('ALL');
+              setSelectedStatus('ALL');
+            }}
+            className="px-3 py-1.5 rounded-md text-xs font-medium bg-[#091E420F] hover:bg-[#091E4214] text-[#292A2E] border border-[#0B120E24] transition-colors"
+          >
+            Clear filters
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
