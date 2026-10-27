@@ -229,24 +229,187 @@
 
 ---
 
+### 2.8 Material Inventory & Bidirectional Genealogy
+
+#### `materials`
+
+| Column        | Type            | Constraints                      | Index                | Notes                                                      |
+| ------------- | --------------- | -------------------------------- | -------------------- | ---------------------------------------------------------- |
+| `id`          | `VARCHAR(36)`   | PK, UUID                         | PRIMARY              | Material definition ID                                     |
+| `code`        | `VARCHAR(50)`   | NOT NULL, UNIQUE                 | `uq_material_code`   | Material code (e.g., `RES-PP-01`, `MB-BLK-04`)             |
+| `name`        | `VARCHAR(150)`  | NOT NULL                         |                      | Trade name (e.g., `Polypropylene Homopolymer Grade A`)     |
+| `category`    | `VARCHAR(50)`   | NOT NULL                         |                      | `BASE_RESIN`, `MASTERBATCH`, `ADDITIVE`, `REGRIND`         |
+| `density_gcm3`| `DECIMAL(6,4)`  | NULL                             |                      | Material melt flow / physical density                      |
+| `created_at`  | `DATETIME2`     | NOT NULL, DEFAULT `GETUTCDATE()` |                      |                                                            |
+
+#### `material_lots`
+
+| Column            | Type           | Constraints                      | Index             | Notes                                                      |
+| ----------------- | -------------- | -------------------------------- | ----------------- | ---------------------------------------------------------- |
+| `id`              | `VARCHAR(36)`  | PK, UUID                         | PRIMARY           | Unique inventory lot identifier                            |
+| `material_id`     | `VARCHAR(36)`  | NOT NULL, FK `materials(id)`     | `idx_lot_mat`     | Associated material catalog entity                         |
+| `lot_number`      | `VARCHAR(100)` | NOT NULL, UNIQUE                 | `uq_lot_number`   | Internal receipt lot number / barcode                      |
+| `supplier_lot`    | `VARCHAR(100)` | NULL                             | `idx_lot_supp`    | Vendor heat / manufacturing batch number                   |
+| `initial_qty_kg`  | `DECIMAL(10,2)`| NOT NULL                         |                   | Received bulk quantity in kg                               |
+| `remaining_qty_kg`| `DECIMAL(10,2)`| NOT NULL                         |                   | Current available balance in line-side stock               |
+| `status`          | `VARCHAR(30)`  | NOT NULL, DEFAULT `'AVAILABLE'`  | `idx_lot_status`  | `AVAILABLE`, `CONSUMED`, `EXPIRED`, `QUARANTINE`           |
+| `expiration_date` | `DATETIME2`    | NULL                             |                   | Manufacturer shelf-life expiration                         |
+| `received_at`     | `DATETIME2`    | NOT NULL, DEFAULT `GETUTCDATE()` |                   | Goods receipt timestamp                                    |
+
+#### `run_material_consumptions`
+
+| Column            | Type           | Constraints                         | Index             | Notes                                                      |
+| ----------------- | -------------- | ----------------------------------- | ----------------- | ---------------------------------------------------------- |
+| `id`              | `VARCHAR(36)`  | PK, UUID                            | PRIMARY           | Consumption record ID                                      |
+| `run_id`          | `VARCHAR(36)`  | NOT NULL, FK `production_runs(id)`  | `idx_rmc_run`     | Target production run consuming material                   |
+| `material_lot_id` | `VARCHAR(36)`  | NOT NULL, FK `material_lots(id)`    | `idx_rmc_lot`     | Source material lot assigned                               |
+| `loaded_by_id`    | `VARCHAR(36)`  | NOT NULL, FK `users(id)`            |                   | Material handler / operator loading hopper                 |
+| `quantity_kg`     | `DECIMAL(10,2)`| NOT NULL                            |                   | Quantity charged into machine hopper                       |
+| `loaded_at`       | `DATETIME2`    | NOT NULL, DEFAULT `GETUTCDATE()`    |                   | Loading timestamp for chronological trace                  |
+
+---
+
+### 2.9 Quality Management & Inspection Plans
+
+#### `inspection_plans`
+
+| Column        | Type           | Constraints                      | Index             | Notes                                                      |
+| ------------- | ---------------| -------------------------------- | ----------------- | ---------------------------------------------------------- |
+| `id`          | `VARCHAR(36)`  | PK, UUID                         | PRIMARY           | Inspection plan identifier                                 |
+| `product_id`  | `VARCHAR(36)`  | NOT NULL, FK `products(id)`      | `idx_ip_product`  | Finished product being inspected                           |
+| `name`        | `VARCHAR(150)` | NOT NULL                         |                   | Plan title (e.g., `Standard Automotive Bumper QC Plan`)    |
+| `version`     | `INT`          | NOT NULL, DEFAULT `1`            |                   | Revision number                                            |
+| `is_active`   | `BIT`          | NOT NULL, DEFAULT `1`            |                   | Active inspection standard flag                            |
+| `created_at`  | `DATETIME2`    | NOT NULL, DEFAULT `GETUTCDATE()` |                   |                                                            |
+
+#### `inspection_plan_items`
+
+| Column              | Type           | Constraints                             | Index             | Notes                                                  |
+| ------------------- | -------------- | --------------------------------------- | ----------------- | ------------------------------------------------------ |
+| `id`                | `VARCHAR(36)`  | PK, UUID                                | PRIMARY           | Inspection metric ID                                   |
+| `plan_id`           | `VARCHAR(36)`  | NOT NULL, FK `inspection_plans(id)`     | `idx_ipi_plan`    | Parent inspection plan                                 |
+| `sequence`          | `INT`          | NOT NULL                                |                   | Check sequence index                                   |
+| `parameter_name`    | `VARCHAR(100)` | NOT NULL                                |                   | Parameter (e.g., `Part Weight`, `Wall Thickness #1`)  |
+| `measurement_type`  | `VARCHAR(30)`  | NOT NULL                                |                   | `VARIABLE` (numeric range) or `ATTRIBUTE` (pass/fail)  |
+| `target_value`      | `DECIMAL(10,3)`| NULL                                    |                   | Nominal design value                                   |
+| `upper_tolerance`   | `DECIMAL(10,3)`| NULL                                    |                   | Max acceptable limit ($+\Delta$)                       |
+| `lower_tolerance`   | `DECIMAL(10,3)`| NULL                                    |                   | Min acceptable limit ($-\Delta$)                       |
+| `inspection_stage`  | `VARCHAR(30)`  | NOT NULL, DEFAULT `'PATROL'`            |                   | `FIRST_PIECE`, `PATROL`, `FINAL_AUDIT`                 |
+
+#### `quality_checks`
+
+| Column              | Type           | Constraints                             | Index             | Notes                                                  |
+| ------------------- | -------------- | --------------------------------------- | ----------------- | ------------------------------------------------------ |
+| `id`                | `VARCHAR(36)`  | PK, UUID                                | PRIMARY           | Quality check header ID                                |
+| `run_id`            | `VARCHAR(36)`  | NOT NULL, FK `production_runs(id)`      | `idx_qc_run`      | Production run being evaluated                         |
+| `inspector_id`      | `VARCHAR(36)`  | NOT NULL, FK `users(id)`                |                   | Certified inspector user ID                            |
+| `check_type`        | `VARCHAR(30)`  | NOT NULL                                |                   | `FIRST_PIECE`, `HOURLY_PATROL`, `CONTAINMENT`          |
+| `disposition`       | `VARCHAR(30)`  | NOT NULL, DEFAULT `'PENDING'`           | `idx_qc_disp`     | `RELEASED`, `QUARANTINE`, `REWORK`, `SCRAP`            |
+| `notes`             | `NVARCHAR(500)`| NULL                                    |                   | Inspector diagnostic findings                          |
+| `checked_at`        | `DATETIME2`    | NOT NULL, DEFAULT `GETUTCDATE()`        |                   | Inspection execution timestamp                         |
+
+#### `quality_check_samples`
+
+| Column              | Type           | Constraints                             | Index             | Notes                                                  |
+| ------------------- | -------------- | --------------------------------------- | ----------------- | ------------------------------------------------------ |
+| `id`                | `BIGINT`       | PK, IDENTITY(1,1)                       | PRIMARY           | Discrete sample observation ID                         |
+| `quality_check_id`  | `VARCHAR(36)`  | NOT NULL, FK `quality_checks(id)`       | `idx_qcs_check`   | Parent inspection header                               |
+| `plan_item_id`      | `VARCHAR(36)`  | NOT NULL, FK `inspection_plan_items(id)`|                   | Inspected parameter definition                         |
+| `measured_value`    | `DECIMAL(10,3)`| NULL                                    |                   | Actual numerical measurement                           |
+| `is_passed`         | `BIT`          | NOT NULL                                |                   | Boolean evaluation against specification limits        |
+
+---
+
+### 2.10 Tooling & Mold Preventive Maintenance
+
+#### `mold_pm_schedules`
+
+| Column              | Type           | Constraints                             | Index             | Notes                                                  |
+| ------------------- | -------------- | --------------------------------------- | ----------------- | ------------------------------------------------------ |
+| `id`                | `VARCHAR(36)`  | PK, UUID                                | PRIMARY           | PM schedule ID                                         |
+| `mold_id`           | `VARCHAR(36)`  | NOT NULL, FK `molds(id)`                | `idx_pm_mold`     | Mold tooling asset                                     |
+| `pm_level`          | `VARCHAR(50)`  | NOT NULL                                |                   | `LEVEL_1_CLEAN`, `LEVEL_2_INSPECT`, `LEVEL_3_OVERHAUL` |
+| `interval_shots`    | `BIGINT`       | NOT NULL                                |                   | Shot count interval (e.g., 25,000 / 100,000 shots)     |
+| `last_serviced_shot`| `BIGINT`       | NOT NULL, DEFAULT `0`                   |                   | Stroke count at previous completed PM service          |
+| `is_active`         | `BIT`          | NOT NULL, DEFAULT `1`                   |                   |                                                        |
+
+#### `maintenance_work_orders`
+
+| Column              | Type           | Constraints                             | Index             | Notes                                                  |
+| ------------------- | -------------- | --------------------------------------- | ----------------- | ------------------------------------------------------ |
+| `id`                | `VARCHAR(36)`  | PK, UUID                                | PRIMARY           | Work order ID                                          |
+| `order_number`      | `VARCHAR(50)`  | NOT NULL, UNIQUE                        | `uq_mwo_number`   | Maintenance job ticket (e.g., `MWO-2026-0042`)         |
+| `mold_id`           | `VARCHAR(36)`  | NULL, FK `molds(id)`                    | `idx_mwo_mold`    | Target tooling asset (if mold PM)                      |
+| `machine_id`        | `VARCHAR(36)`  | NULL, FK `machines(id)`                 | `idx_mwo_mach`    | Target machine asset (if machine PM)                   |
+| `work_type`         | `VARCHAR(30)`  | NOT NULL                                |                   | `PREVENTIVE_SHOT`, `CORRECTIVE_BREAKDOWN`, `CHANGEOVER`|
+| `status`            | `VARCHAR(30)`  | NOT NULL, DEFAULT `'OPEN'`              | `idx_mwo_status`  | `OPEN`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`        |
+| `assigned_tech_id`  | `VARCHAR(36)`  | NULL, FK `users(id)`                    |                   | Assigned technician user                               |
+| `trigger_shots`     | `BIGINT`       | NULL                                    |                   | Mold cumulative shots when work order generated        |
+| `checklist_payload` | `NVARCHAR(MAX)`| NULL                                    |                   | JSON array of completed maintenance tasks              |
+| `created_at`        | `DATETIME2`    | NOT NULL, DEFAULT `GETUTCDATE()`        |                   | Generation timestamp                                   |
+| `completed_at`      | `DATETIME2`    | NULL                                    |                   | Service signoff timestamp                              |
+
+---
+
+### 2.11 Packaging Station & Finished Goods Tracking
+
+#### `packaging_units`
+
+| Column              | Type           | Constraints                             | Index             | Notes                                                  |
+| ------------------- | -------------- | --------------------------------------- | ----------------- | ------------------------------------------------------ |
+| `id`                | `VARCHAR(36)`  | PK, UUID                                | PRIMARY           | Carton / box container identifier                      |
+| `run_id`            | `VARCHAR(36)`  | NOT NULL, FK `production_runs(id)`      | `idx_pkg_run`     | Production run output source                           |
+| `barcode`           | `VARCHAR(100)` | NOT NULL, UNIQUE                        | `uq_pkg_barcode`  | Unique carton serialized barcode / QR Code             |
+| `part_count`        | `INT`          | NOT NULL                                |                   | Actual parts contained in this carton box              |
+| `packager_id`       | `VARCHAR(36)`  | NOT NULL, FK `users(id)`                |                   | Packaging station operator                             |
+| `pallet_id`         | `VARCHAR(36)`  | NULL                                    | `idx_pkg_pallet`  | Aggregated pallet container tag                        |
+| `packed_at`         | `DATETIME2`    | NOT NULL, DEFAULT `GETUTCDATE()`        |                   | Scan timestamp at packaging conveyor                   |
+
+---
+
+### 2.12 Production Scheduling & Mold Changeover Matrix
+
+#### `mold_changeovers`
+
+| Column              | Type           | Constraints                             | Index             | Notes                                                  |
+| ------------------- | -------------- | --------------------------------------- | ----------------- | ------------------------------------------------------ |
+| `id`                | `VARCHAR(36)`  | PK, UUID                                | PRIMARY           | Changeover rule identifier                             |
+| `from_mold_id`      | `VARCHAR(36)`  | NOT NULL, FK `molds(id)`                | `idx_mco_from`    | Existing mold installed on machine                     |
+| `to_mold_id`        | `VARCHAR(36)`  | NOT NULL, FK `molds(id)`                | `idx_mco_to`      | Next planned mold to mount                             |
+| `setup_minutes`     | `INT`          | NOT NULL                                |                   | Standard setup duration (crane, clamp, water lines)    |
+| `purge_minutes`     | `INT`          | NOT NULL, DEFAULT `15`                  |                   | Resin purge and barrel temperature stabilization time  |
+
+---
+
 ## 3. Relationships Summary
 
-| Table A             | Relation  | Table B                        | Foreign Key                               |
-| ------------------- | --------- | ------------------------------ | ----------------------------------------- |
-| `plants`            | `hasMany` | `production_areas`             | `production_areas.plant_id`               |
-| `production_areas`  | `hasMany` | `machines`                     | `machines.area_id`                        |
-| `products`          | `hasMany` | `mold_product_compatibilities` | `mold_product_compatibilities.product_id` |
-| `molds`             | `hasMany` | `mold_product_compatibilities` | `mold_product_compatibilities.mold_id`    |
-| `products`          | `hasMany` | `production_orders`            | `production_orders.product_id`            |
-| `production_orders` | `hasMany` | `production_runs`              | `production_runs.production_order_id`     |
-| `machines`          | `hasMany` | `production_runs`              | `production_runs.machine_id`              |
-| `machines`          | `hasOne`  | `machine_current_states`       | `machine_current_states.machine_id`       |
-| `machines`          | `hasMany` | `machine_event_logs`           | `machine_event_logs.machine_id`           |
-| `machines`          | `hasMany` | `machine_time_segments`        | `machine_time_segments.machine_id`        |
-| `machines`          | `hasMany` | `oee_results`                  | `oee_results.machine_id`                  |
-| `machines`          | `hasMany` | `andon_tickets`                | `andon_tickets.machine_id`                |
-| `users`             | `hasMany` | `user_role_assignments`        | `user_role_assignments.user_id`           |
-| `roles`             | `hasMany` | `user_role_assignments`        | `user_role_assignments.role_id`           |
+| Table A                  | Relation  | Table B                       | Foreign Key                               |
+| ------------------------ | --------- | ----------------------------- | ----------------------------------------- |
+| `plants`                 | `hasMany` | `production_areas`            | `production_areas.plant_id`               |
+| `production_areas`       | `hasMany` | `machines`                    | `machines.area_id`                        |
+| `products`               | `hasMany` | `mold_product_compatibilities`| `mold_product_compatibilities.product_id`|
+| `molds`                  | `hasMany` | `mold_product_compatibilities`| `mold_product_compatibilities.mold_id`   |
+| `products`               | `hasMany` | `production_orders`           | `production_orders.product_id`            |
+| `production_orders`      | `hasMany` | `production_runs`             | `production_runs.production_order_id`     |
+| `machines`               | `hasMany` | `production_runs`             | `production_runs.machine_id`              |
+| `machines`               | `hasOne`  | `machine_current_states`      | `machine_current_states.machine_id`       |
+| `machines`               | `hasMany` | `machine_event_logs`          | `machine_event_logs.machine_id`           |
+| `machines`               | `hasMany` | `machine_time_segments`       | `machine_time_segments.machine_id`        |
+| `machines`               | `hasMany` | `oee_results`                 | `oee_results.machine_id`                  |
+| `machines`               | `hasMany` | `andon_tickets`               | `andon_tickets.machine_id`                |
+| `materials`              | `hasMany` | `material_lots`               | `material_lots.material_id`               |
+| `production_runs`        | `hasMany` | `run_material_consumptions`   | `run_material_consumptions.run_id`        |
+| `material_lots`          | `hasMany` | `run_material_consumptions`   | `run_material_consumptions.material_lot_id`|
+| `products`               | `hasMany` | `inspection_plans`            | `inspection_plans.product_id`             |
+| `inspection_plans`       | `hasMany` | `inspection_plan_items`       | `inspection_plan_items.plan_id`           |
+| `production_runs`        | `hasMany` | `quality_checks`              | `quality_checks.run_id`                   |
+| `quality_checks`         | `hasMany` | `quality_check_samples`       | `quality_check_samples.quality_check_id`  |
+| `molds`                  | `hasMany` | `mold_pm_schedules`           | `mold_pm_schedules.mold_id`               |
+| `molds`                  | `hasMany` | `maintenance_work_orders`     | `maintenance_work_orders.mold_id`         |
+| `production_runs`        | `hasMany` | `packaging_units`             | `packaging_units.run_id`                  |
+| `molds`                  | `hasMany` | `mold_changeovers`            | `mold_changeovers.from_mold_id`           |
+| `users`                  | `hasMany` | `user_role_assignments`       | `user_role_assignments.user_id`          |
+| `roles`                  | `hasMany` | `user_role_assignments`       | `user_role_assignments.role_id`          |
 
 ---
 
@@ -259,20 +422,29 @@
 | `machine_time_segments` | `idx_mts_machine_window` | `(machine_id, start_time, end_time)`        | `BTREE`  | Eliminates table scans when aggregating operating vs. downtime intervals across shift periods. |
 | `production_runs`       | `idx_pr_active_lookup`   | `(machine_id, status)`                      | `BTREE`  | Provides $O(1)$ lookups for the active run running on an individual machine.                   |
 | `andon_tickets`         | `idx_andon_active`       | `(machine_id, status)`                      | `BTREE`  | Prevents duplicate ticket spam when a machine fault alarm is continuously asserted.            |
+| `material_lots`         | `uq_lot_number`          | `(lot_number)`                              | `UNIQUE` | Guarantees non-overlapping raw lot codes across all suppliers.                                 |
+| `run_material_consumptions` | `idx_rmc_run_lot`    | `(run_id, material_lot_id)`                 | `BTREE`  | Sub-second bidirectional traversal between production runs and consumed lots.                  |
+| `quality_checks`        | `idx_qc_run_disp`        | `(run_id, disposition)`                     | `BTREE`  | Instant lookup for First-Piece approval status and quarantine gating.                          |
+| `packaging_units`       | `uq_pkg_barcode`         | `(barcode)`                                 | `UNIQUE` | Prevents double-scanning and duplicate counts at packaging stations.                           |
 | `audit_logs`            | `idx_audit_query`        | `(entity_type, entity_id, created_at DESC)` | `BTREE`  | Enables rapid historical audit inspections for any specific domain entity.                     |
 
 ---
 
 ## 5. Migration Plan
 
-| #   | Migration Name                          | Impacted Tables                                                                               | Domain      | Scope                                                |
-| --- | --------------------------------------- | --------------------------------------------------------------------------------------------- | ----------- | ---------------------------------------------------- |
-| 1   | `001_create_identity_and_roles`         | `users`, `roles`, `user_role_assignments`                                                     | Security    | User authentication and RBAC authorization baseline  |
-| 2   | `002_create_plant_and_master_data`      | `plants`, `production_areas`, `machines`, `products`, `molds`, `mold_product_compatibilities` | Master Data | Factory physical topology and product/tooling matrix |
-| 3   | `003_create_production_tables`          | `production_orders`, `production_runs`                                                        | Production  | Work order lifecycle tracking and shot counters      |
-| 4   | `004_create_machine_integration_tables` | `machine_current_states`, `machine_event_logs`                                                | Telemetry   | Ingestion event log and real-time state projection   |
-| 5   | `005_create_oee_and_andon_tables`       | `machine_time_segments`, `downtime_reasons`, `oee_results`, `andon_tickets`                   | OEE & Andon | Downtime loss accounting and Digital Andon workflows |
-| 6   | `006_create_audit_log_table`            | `audit_logs`                                                                                  | Governance  | Immutable change tracking across all domain models   |
+| #   | Migration Name                          | Impacted Tables                                                                               | Domain      | Scope                                                    |
+| --- | --------------------------------------- | --------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------- |
+| 1   | `001_create_identity_and_roles`         | `users`, `roles`, `user_role_assignments`                                                     | Security    | User authentication and RBAC authorization baseline      |
+| 2   | `002_create_plant_and_master_data`      | `plants`, `production_areas`, `machines`, `products`, `molds`, `mold_product_compatibilities` | Master Data | Factory physical topology and product/tooling matrix     |
+| 3   | `003_create_production_tables`          | `production_orders`, `production_runs`                                                        | Production  | Work order lifecycle tracking and shot counters          |
+| 4   | `004_create_machine_integration_tables` | `machine_current_states`, `machine_event_logs`                                                | Telemetry   | Ingestion event log and real-time state projection       |
+| 5   | `005_create_oee_and_andon_tables`       | `machine_time_segments`, `downtime_reasons`, `oee_results`, `andon_tickets`                   | OEE & Andon | Downtime loss accounting and Digital Andon workflows     |
+| 6   | `006_create_audit_log_table`            | `audit_logs`                                                                                  | Governance  | Immutable change tracking across all domain models       |
+| 7   | `007_create_materials_and_genealogy`    | `materials`, `material_lots`, `run_material_consumptions`                                     | Material    | Raw resin tracking and bidirectional genealogy DAG       |
+| 8   | `008_create_quality_inspection_tables`  | `inspection_plans`, `inspection_plan_items`, `quality_checks`, `quality_check_samples`        | Quality     | First-piece release gates, sampling tolerances, and hold |
+| 9   | `009_create_mold_maintenance_tables`    | `mold_pm_schedules`, `maintenance_work_orders`                                                | Tooling     | Stroke-based PM interval triggers and maintenance orders |
+| 10  | `010_create_packaging_tables`           | `packaging_units`                                                                             | Packaging   | Barcode scan tracking and shot-to-pack reconciliation    |
+| 11  | `011_create_scheduling_matrix_tables`   | `mold_changeovers`                                                                            | Planning    | Mold transition time matrix for Gantt scheduling engine  |
 
 ---
 

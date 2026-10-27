@@ -20,3 +20,9 @@
 | **Linter & Code Quality**     | Oxlint                    | Oxlint ^1.89                | Unified ultra-fast Rust-based static analysis across backend and frontend workspaces |
 | **Code Formatter**            | Prettier                  | ^3.4.2                      | Unified code style enforcement configured at the monorepo root                                      |
 | **Process Concurrency**       | Concurrently              | ^9.0.0                      | Orchestrates parallel execution of backend and frontend dev servers under a single command          |
+| **Design System**             | Atlassian Design System   | Reference `DESIGN.md`       | Production tokens, accessible lozenges, surface colors, dialog blanket, and type scale floor        |
+| **Barcode & QR Generation**   | bwip-js                   | ^3.4.0                      | High-performance barcode (Code 128, EAN-13, QR) generation for packaging labels and travelers       |
+| **Barcode Scanning (Client)** | @zxing/browser            | ^0.1.5                      | Web-based camera and handheld laser barcode / QR decoding for packaging and material lot intake    |
+| **Industrial IoT (MQTT)**     | mqtt                      | ^5.10.0                     | NestJS background client subscribing to plant edge MQTT brokers for machine cycle events             |
+| **Industrial IoT (Modbus)**   | modbus-serial             | ^8.0.16                     | Background poller for Ethernet Modbus TCP holding registers across plant PLCs                       |
+| **Industrial IoT (OPC UA)**   | node-opcua                | ^2.138.0                    | Industrial client connecting to physical injection molding machines conforming to Euromap 77       |
