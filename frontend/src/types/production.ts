@@ -13,6 +13,21 @@ export interface Mold {
   code: string;
   name: string;
   cavityCount: number;
+  totalShots?: number | bigint;
+}
+
+export interface OrderOperationStep {
+  id: string;
+  productionOrderId: string;
+  sequence: number;
+  operationName: 'MOLDING' | 'SECONDARY_FINISHING' | 'PACKAGING' | string;
+  stationType: 'INJECTION_MACHINE' | 'MANUAL_WORKBENCH' | 'PACKAGING_STATION' | string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED';
+  quantityIn: number;
+  quantityPassed: number;
+  quantityScrapped: number;
+  startedAt?: string | null;
+  completedAt?: string | null;
 }
 
 export interface ProductionOrder {
@@ -20,11 +35,13 @@ export interface ProductionOrder {
   orderNumber: string;
   productId: string;
   targetQuantity: number;
+  packedQuantity?: number;
   status: OrderStatus;
   plannedStartTime: string;
   actualStartTime?: string | null;
   actualEndTime?: string | null;
   product?: Product;
+  operationSteps?: OrderOperationStep[];
 }
 
 export interface ProductionRun {

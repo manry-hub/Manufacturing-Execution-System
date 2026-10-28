@@ -258,7 +258,8 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                 <tr>
                   <th className="py-3 px-4">Order #</th>
                   <th className="py-3 px-4">Product part</th>
-                  <th className="py-3 px-4">Target qty</th>
+                  <th className="py-3 px-4">Target / Packed</th>
+                  <th className="py-3 px-4">Hybrid operation steps</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Planned schedule</th>
                   <th className="py-3 px-4 text-right">Actions</th>
@@ -276,8 +277,34 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                       </span>
                       <span className="text-xs text-[#505258]">{ord.product?.name}</span>
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-[#292A2E] font-semibold">
-                      {ord.targetQuantity.toLocaleString()} pcs
+                    <td className="py-3.5 px-4 font-mono text-[#292A2E]">
+                      <div className="font-semibold">{ord.targetQuantity.toLocaleString()} pcs</div>
+                      {ord.packedQuantity !== undefined && ord.packedQuantity > 0 && (
+                        <div className="text-xs text-[#216E4E] font-medium">{ord.packedQuantity.toLocaleString()} packed</div>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      {ord.operationSteps && ord.operationSteps.length > 0 ? (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {ord.operationSteps.map((step) => (
+                            <span
+                              key={step.id}
+                              className={`text-xs px-2 py-0.5 rounded-[3px] font-medium border flex items-center gap-1 ${
+                                step.status === 'COMPLETED'
+                                  ? 'bg-[#EFFFD6] text-[#37471F] border-[#6A9A23]'
+                                  : step.status === 'IN_PROGRESS'
+                                  ? 'bg-[#E9F2FE] text-[#123263] border-[#357DE8]'
+                                  : 'bg-[#F1F2F4] text-[#505258] border-[#DCDFE4]'
+                              }`}
+                              title={`${step.operationName} (${step.stationType}): ${step.status} — ${step.quantityPassed} passed`}
+                            >
+                              <span>{step.sequence}. {step.operationName.replace('_', ' ')}</span>
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[#6B6E76]">1-Step Molding</span>
+                      )}
                     </td>
                     <td className="py-3.5 px-4">
                       <StatusBadge status={ord.status} size="sm" />

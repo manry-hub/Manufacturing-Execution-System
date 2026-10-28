@@ -13,6 +13,10 @@ import { ProductionOrdersView } from './components/production/ProductionOrdersVi
 import { OeeAnalyticsView } from './components/oee/OeeAnalyticsView.js';
 import { AndonBoardView } from './components/andon/AndonBoardView.js';
 import { CreateAndonModal } from './components/andon/CreateAndonModal.js';
+import { QualityView } from './components/quality/QualityView.js';
+import { MaterialsView } from './components/materials/MaterialsView.js';
+import { MaintenanceView } from './components/maintenance/MaintenanceView.js';
+import { PackagingView } from './components/packaging/PackagingView.js';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const DashboardContent: React.FC = () => {
@@ -327,10 +331,22 @@ const DashboardContent: React.FC = () => {
               />
             )}
 
-            {/* View 4: ISO 22400-2 OEE Executive Analytics */}
+            {/* View 4: Quality Control & First-Piece Gate */}
+            {activeTab === 'quality' && <QualityView runs={runs} />}
+
+            {/* View 5: Raw Materials & Genealogy */}
+            {activeTab === 'materials' && <MaterialsView runs={runs} />}
+
+            {/* View 6: Tooling Health & Mold PM */}
+            {activeTab === 'maintenance' && <MaintenanceView />}
+
+            {/* View 7: Finished Goods Packaging & Reconciliation */}
+            {activeTab === 'packaging' && <PackagingView runs={runs} />}
+
+            {/* View 8: ISO 22400-2 OEE Executive Analytics */}
             {activeTab === 'oee' && <OeeAnalyticsView machines={machines} />}
 
-            {/* View 5: Digital Andon Response Center */}
+            {/* View 9: Digital Andon Response Center */}
             {activeTab === 'andon' && (
               <AndonBoardView
                 tickets={tickets}

@@ -9,11 +9,24 @@ import {
   Wifi,
   WifiOff,
   UserCheck,
+  ShieldCheck,
+  Package,
+  Wrench,
+  PackageCheck,
 } from 'lucide-react';
 import { useAuth, DEMO_ROLES } from '../../context/AuthContext.js';
 import type { UserRole } from '../../types/auth.js';
 
-export type ActiveTab = 'shopfloor' | 'machines' | 'orders' | 'oee' | 'andon';
+export type ActiveTab =
+  | 'shopfloor'
+  | 'machines'
+  | 'orders'
+  | 'quality'
+  | 'materials'
+  | 'maintenance'
+  | 'packaging'
+  | 'oee'
+  | 'andon';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -33,13 +46,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { role, switchRole, isLoading } = useAuth();
 
   const navItems: Array<{ id: ActiveTab; label: string; icon: React.ReactNode; badge?: number }> = [
-    { id: 'shopfloor', label: 'Shop floor matrix', icon: <Layers className="h-4 w-4" /> },
-    { id: 'machines', label: 'Machine details', icon: <Cpu className="h-4 w-4" /> },
-    { id: 'orders', label: 'Production runs', icon: <PlaySquare className="h-4 w-4" /> },
-    { id: 'oee', label: 'OEE analytics', icon: <BarChart3 className="h-4 w-4" /> },
+    { id: 'shopfloor', label: 'Shop floor', icon: <Layers className="h-4 w-4" /> },
+    { id: 'machines', label: 'Machines', icon: <Cpu className="h-4 w-4" /> },
+    { id: 'orders', label: 'Orders & runs', icon: <PlaySquare className="h-4 w-4" /> },
+    { id: 'quality', label: 'Quality', icon: <ShieldCheck className="h-4 w-4" /> },
+    { id: 'materials', label: 'Materials', icon: <Package className="h-4 w-4" /> },
+    { id: 'maintenance', label: 'Tooling PM', icon: <Wrench className="h-4 w-4" /> },
+    { id: 'packaging', label: 'Packaging', icon: <PackageCheck className="h-4 w-4" /> },
+    { id: 'oee', label: 'OEE', icon: <BarChart3 className="h-4 w-4" /> },
     {
       id: 'andon',
-      label: 'Digital andon',
+      label: 'Andon',
       icon: <AlertTriangle className="h-4 w-4" />,
       badge: openTicketsCount > 0 ? openTicketsCount : undefined,
     },
@@ -68,7 +85,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Navigation Links: Atlassian Tabs pattern with border-b-2 */}
-          <nav className="hidden md:flex items-center h-full space-x-1" aria-label="Main navigation">
+          <nav className="hidden md:flex items-center h-full space-x-1 overflow-x-auto" aria-label="Main navigation">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
               return (

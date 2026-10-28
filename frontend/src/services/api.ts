@@ -1,8 +1,12 @@
 import type { LoginResponse } from '../types/auth.js';
 import type { Machine } from '../types/machine.js';
 import type { AndonTicket } from '../types/andon.js';
-import type { ProductionOrder, ProductionRun, Product, Mold } from '../types/production.js';
+import type { ProductionOrder, ProductionRun, Product, Mold, OrderOperationStep } from '../types/production.js';
 import type { OeeCalculationResult } from '../types/oee.js';
+import type { Material, MaterialLot, RunGenealogy, LotGenealogy } from '../types/materials.js';
+import type { InspectionPlan, QualityCheck, FirstPieceReleaseStatus } from '../types/quality.js';
+import type { MoldPmSchedule, MaintenanceWorkOrder } from '../types/maintenance.js';
+import type { PackagingUnit, RunReconciliation } from '../types/packaging.js';
 
 const API_BASE_URL = '/api/v1';
 
@@ -297,6 +301,140 @@ class ApiService {
     totalIncidents: number;
   }> {
     return this.request('/andon/analytics/mttr');
+  }
+
+  // --- Materials Endpoints ---
+  public async getMaterials(): Promise<Material[]> {
+    return this.request<Material[]>('/materials');
+  }
+
+  public async getMaterialLots(materialId?: string, status?: string): Promise<MaterialLot[]> {
+    const params = new URLSearchParams();
+    if (materialId) params.append('materialId', materialId);
+    if (status) params.append('status', status);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<MaterialLot[]>(`/materials/lots/list${query}`);
+  }
+
+  public async loadHopper(dto: { runId: string; materialLotId: string; quantityKg: number }): Promise<unknown> {
+    return this.request('/materials/hopper-load', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  public async getRunGenealogy(runId: string): Promise<RunGenealogy> {
+    return this.request<RunGenealogy>(`/materials/genealogy/run/${encodeURIComponent(runId)}`);
+  }
+
+  public async getLotGenealogy(lotNumber: string): Promise<LotGenealogy> {
+    return this.request<LotGenealogy>(`/materials/genealogy/lot/${encodeURIComponent(lotNumber)}`);
+  }
+
+  // --- Quality Endpoints ---
+  public async getInspectionPlans(productId?: string): Promise<InspectionPlan[]> {
+    const query = productId ? `?productId=${encodeURIComponent(productId)}` : '';
+    return this.request<InspectionPlan[]>(`/quality/plans${query}`);
+  }
+
+  public async getRunQualityChecks(runId: string): Promise<QualityCheck[]> {
+    return this.request<QualityCheck[]>(`/quality/checks/run/${encodeURIComponent(runId)}`);
+  }
+
+  public async recordQualityCheck(dto: {
+    runId: string;
+    checkType: string;
+    disposition?: string;
+    notes?: string;
+    samples: Array<{ planItemId: string; measuredValue?: number; isPassed?: boolean }>;
+  }): Promise<QualityCheck> {
+    return this.request<QualityCheck>('/quality/checks', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  public async getFirstPieceStatus(runId: string): Promise<FirstPieceReleaseStatus> {
+    return this.request<FirstPieceReleaseStatus>(`/quality/runs/${encodeURIComponent(runId)}/first-piece-status`);
+  }
+
+  // --- Maintenance Endpoints ---
+  public async getMoldPmSchedules(moldId: string): Promise<MoldPmSchedule[]> {
+    return this.request<MoldPmSchedule[]>(`/maintenance/schedules/mold/${encodeURIComponent(moldId)}`);
+  }
+
+  public async getMaintenanceWorkOrders(filter?: {
+    moldId?: string;
+    machineId?: string;
+    status?: string;
+    workType?: string;
+  }): Promise<MaintenanceWorkOrder[]> {
+    const params = new URLSearchParams();
+    if (filter?.moldId) params.append('moldId', filter.moldId);
+    if (filter?.machineId) params.append('machineId', filter.machineId);
+    if (filter?.status) params.append('status', filter.status);
+    if (filter?.workType) params.append('workType', filter.workType);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<MaintenanceWorkOrder[]>(`/maintenance/work-orders${query}`);
+  }
+
+  public async updateWorkOrderStatus(
+    id: string,
+    dto: { status?: string; assignedTechId?: string; checklistPayload?: string },
+  ): Promise<MaintenanceWorkOrder> {
+    return this.request<MaintenanceWorkOrder>(`/maintenance/work-orders/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  // --- Packaging Endpoints ---
+  public async createPackagingUnit(dto: {
+    runId: string;
+    partCount: number;
+    palletId?: string;
+    barcode?: string;
+  }): Promise<PackagingUnit> {
+    return this.request<PackagingUnit>('/packaging/units', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  public async getPackagingUnits(runId?: string, palletId?: string): Promise<PackagingUnit[]> {
+    const params = new URLSearchParams();
+    if (runId) params.append('runId', runId);
+    if (palletId) params.append('palletId', palletId);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<PackagingUnit[]>(`/packaging/units${query}`);
+  }
+
+  public async reconcileRunPackaging(runId: string): Promise<RunReconciliation> {
+    return this.request<RunReconciliation>(`/packaging/reconcile/run/${encodeURIComponent(runId)}`);
+  }
+
+  // --- Hybrid Operation Steps Endpoints ---
+  public async getOrderOperationSteps(orderId: string): Promise<OrderOperationStep[]> {
+    return this.request<OrderOperationStep[]>(`/production/orders/${encodeURIComponent(orderId)}/steps`);
+  }
+
+  public async updateOrderOperationStep(
+    orderId: string,
+    stepId: string,
+    data: {
+      status?: string;
+      quantityIn?: number;
+      quantityPassed?: number;
+      quantityScrapped?: number;
+    },
+  ): Promise<OrderOperationStep> {
+    return this.request<OrderOperationStep>(
+      `/production/orders/${encodeURIComponent(orderId)}/steps/${encodeURIComponent(stepId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      },
+    );
   }
 }
 
