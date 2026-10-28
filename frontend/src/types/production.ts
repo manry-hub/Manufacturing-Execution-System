@@ -14,6 +14,11 @@ export interface Mold {
   name: string;
   cavityCount: number;
   totalShots?: number | bigint;
+  compatibilities?: Array<{
+    id?: string;
+    productId: string;
+    idealCycleTime?: number;
+  }>;
 }
 
 export interface OrderOperationStep {

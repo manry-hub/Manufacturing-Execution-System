@@ -10,6 +10,8 @@ import {
   Sliders,
   X,
   ShieldAlert,
+  GripVertical,
+  Move,
 } from 'lucide-react';
 import { api } from '../../services/api.js';
 import type { Machine } from '../../types/machine.js';
@@ -21,6 +23,22 @@ import type {
 } from '../../types/scheduling.js';
 
 type HorizonType = 'SHIFT' | 'DAY' | 'WEEK';
+
+interface DragOverSlotState {
+  machineId: string;
+  snappedTime: Date;
+  percent: number;
+  timeString: string;
+  durationMinutes: number;
+}
+
+interface ActiveDragItem {
+  source: 'BACKLOG' | 'TIMELINE';
+  orderId: string;
+  orderNumber: string;
+  durationMinutes: number;
+  productName?: string;
+}
 
 export const SchedulingView: React.FC = () => {
   const [timelineData, setTimelineData] = useState<SchedulingTimelineResponse | null>(null);
@@ -39,6 +57,22 @@ export const SchedulingView: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Drag and Drop States
+  const [dragOverSlot, setDragOverSlot] = useState<DragOverSlotState | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [activeDragItem, setActiveDragItem] = useState<ActiveDragItem | null>(null);
+  const [feedbackToast, setFeedbackToast] = useState<{ message: string; type: 'success' | 'warning' | 'error' } | null>(null);
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (feedbackToast) {
+      const timer = setTimeout(() => {
+        setFeedbackToast(null);
+      }, 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [feedbackToast]);
 
   // Form states for scheduling an order
   const [scheduleMachineId, setScheduleMachineId] = useState<string>('');
@@ -225,6 +259,144 @@ export const SchedulingView: React.FC = () => {
     }
   };
 
+  // Drag and Drop Helper & Handlers
+  const getCompatibleMoldForProduct = useCallback(
+    (productId: string) => {
+      const matchingMold = molds.find((m) =>
+        m.compatibilities?.some((c) => c.productId === productId),
+      );
+      return matchingMold ?? molds[0];
+    },
+    [molds],
+  );
+
+  const handleTrackDragOver = useCallback(
+    (e: React.DragEvent<HTMLDivElement>, machineId: string) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (!timelineData) return;
+
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+      const ratio = x / rect.width;
+
+      const startMs = new Date(timelineData.horizonStart).getTime();
+      const endMs = new Date(timelineData.horizonEnd).getTime();
+      const totalMs = endMs - startMs;
+      const rawTimeMs = startMs + ratio * totalMs;
+
+      // Snap to 15-minute grid intervals
+      const snapIntervalMs = 15 * 60 * 1000;
+      const snappedMs = Math.round(rawTimeMs / snapIntervalMs) * snapIntervalMs;
+      const clampedMs = Math.max(startMs, Math.min(snappedMs, endMs - 15 * 60 * 1000));
+      const snappedTime = new Date(clampedMs);
+
+      const snappedPercent = ((clampedMs - startMs) / totalMs) * 100;
+      const duration = activeDragItem?.durationMinutes ?? 120;
+
+      setDragOverSlot({
+        machineId,
+        snappedTime,
+        percent: snappedPercent,
+        timeString: snappedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        durationMinutes: duration,
+      });
+    },
+    [timelineData, activeDragItem],
+  );
+
+  const handleTrackDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (
+      e.clientX <= rect.left ||
+      e.clientX >= rect.right ||
+      e.clientY <= rect.top ||
+      e.clientY >= rect.bottom
+    ) {
+      setDragOverSlot(null);
+    }
+  }, []);
+
+  const handleTrackDrop = useCallback(
+    async (e: React.DragEvent<HTMLDivElement>, targetMachineId: string) => {
+      e.preventDefault();
+      setDragOverSlot(null);
+      setIsDragging(false);
+
+      try {
+        const dataStr = e.dataTransfer.getData('application/json');
+        if (!dataStr) return;
+        const data = JSON.parse(dataStr) as {
+          source: 'BACKLOG' | 'TIMELINE';
+          orderId: string;
+          orderNumber: string;
+          productId?: string;
+          targetQuantity?: number;
+        };
+
+        if (!timelineData) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+        const ratio = x / rect.width;
+
+        const startMs = new Date(timelineData.horizonStart).getTime();
+        const endMs = new Date(timelineData.horizonEnd).getTime();
+        const totalMs = endMs - startMs;
+        const rawTimeMs = startMs + ratio * totalMs;
+
+        // Snap to 15-minute grid intervals
+        const snapIntervalMs = 15 * 60 * 1000;
+        const snappedMs = Math.round(rawTimeMs / snapIntervalMs) * snapIntervalMs;
+        const clampedMs = Math.max(startMs, Math.min(snappedMs, endMs - 15 * 60 * 1000));
+        const snappedTime = new Date(clampedMs);
+
+        setIsSaving(true);
+        const targetMachine = machines.find((m) => m.id === targetMachineId);
+        const machineCode = targetMachine?.code ?? 'Machine';
+        const timeDisplay = snappedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        if (data.source === 'BACKLOG') {
+          const order = backlogOrders.find((o) => o.id === data.orderId);
+          const mold = order ? getCompatibleMoldForProduct(order.productId) : molds[0];
+
+          await api.scheduleOrder(data.orderId, {
+            machineId: targetMachineId,
+            moldId: mold?.id ?? molds[0]?.id ?? '',
+            plannedStartTime: snappedTime.toISOString(),
+            priority: order?.priority ?? 3,
+          });
+
+          setFeedbackToast({
+            type: 'success',
+            message: `Order ${data.orderNumber} successfully scheduled on ${machineCode} starting at ${timeDisplay}.`,
+          });
+        } else if (data.source === 'TIMELINE') {
+          await api.rescheduleOrder(data.orderId, {
+            machineId: targetMachineId,
+            plannedStartTime: snappedTime.toISOString(),
+          });
+
+          setFeedbackToast({
+            type: 'success',
+            message: `Order ${data.orderNumber} successfully relocated to ${machineCode} at ${timeDisplay}.`,
+          });
+        }
+
+        await loadData();
+      } catch (err) {
+        console.error('Drag and drop scheduling failed:', err);
+        setFeedbackToast({
+          type: 'error',
+          message: err instanceof Error ? err.message : 'Failed to reschedule order via drag & drop',
+        });
+      } finally {
+        setIsSaving(false);
+        setActiveDragItem(null);
+      }
+    },
+    [timelineData, machines, backlogOrders, molds, getCompatibleMoldForProduct, loadData],
+  );
+
   const handleSaveChangeover = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!coFromMoldId || !coToMoldId) {
@@ -296,6 +468,12 @@ export const SchedulingView: React.FC = () => {
             <Sliders className="h-3.5 w-3.5 text-[#505258]" />
             <span>Changeover matrix</span>
           </button>
+
+          {/* Drag & Drop Hint Badge */}
+          <div className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[32px] rounded-md text-xs font-medium bg-[#E9F2FE] border border-[#0B120E24] text-[#123263]">
+            <Move className="h-3.5 w-3.5 text-[#1868DB]" />
+            <span>Drag & drop: snap 15m</span>
+          </div>
 
           {/* Unscheduled Backlog Toggle */}
           <button
@@ -452,8 +630,19 @@ export const SchedulingView: React.FC = () => {
                   />
                 </div>
 
-                {/* Track Canvas */}
-                <div className="flex-1 relative h-16 bg-[#FFFFFF]">
+                {/* Track Canvas & Dropzone */}
+                <div
+                  onDragOver={(e) => handleTrackDragOver(e, machine.machineId)}
+                  onDragLeave={handleTrackDragLeave}
+                  onDrop={(e) => void handleTrackDrop(e, machine.machineId)}
+                  className={`flex-1 relative h-16 transition-colors ${
+                    dragOverSlot?.machineId === machine.machineId
+                      ? 'bg-[#1868DB]/10 ring-2 ring-inset ring-[#1868DB]'
+                      : isDragging
+                        ? 'bg-[#F4F7FC]/60'
+                        : 'bg-[#FFFFFF]'
+                  }`}
+                >
                   {/* Background grid lines matching timeHeaderSlots */}
                   {timeHeaderSlots.map((slot, idx) => (
                     <div
@@ -463,20 +652,92 @@ export const SchedulingView: React.FC = () => {
                     />
                   ))}
 
+                  {/* Drag & Drop Ghost Slot Preview */}
+                  {dragOverSlot && dragOverSlot.machineId === machine.machineId && (
+                    <div
+                      style={{
+                        left: `${dragOverSlot.percent}%`,
+                        width: `${Math.max(
+                          6,
+                          ((dragOverSlot.durationMinutes * 60 * 1000) /
+                            (new Date(timelineData!.horizonEnd).getTime() - new Date(timelineData!.horizonStart).getTime())) *
+                            100
+                        )}%`,
+                      }}
+                      className="absolute top-1.5 bottom-1.5 z-30 pointer-events-none rounded-md border-2 border-dashed border-[#1868DB] bg-[#1868DB]/20 backdrop-blur-2xs flex items-center justify-between px-2 text-xs font-bold text-[#1868DB] shadow-sm animate-pulse"
+                    >
+                      <div className="flex items-center gap-1 truncate">
+                        <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">
+                          {activeDragItem?.orderNumber ?? 'Slot'}: {dragOverSlot.timeString}
+                        </span>
+                      </div>
+                      <span className="text-xs font-mono px-1 rounded bg-[#FFFFFF]/90 border border-[#1868DB]/30 flex-shrink-0">
+                        {dragOverSlot.durationMinutes}m
+                      </span>
+                    </div>
+                  )}
+
                   {/* Render Order Blocks & Changeover Slots */}
                   {machine.blocks.map((block) => {
                     const style = getBlockStyle(block);
                     const isChangeover = block.blockType === 'MOLD_CHANGEOVER';
                     const hasConflict = block.conflicts && block.conflicts.length > 0;
                     const isSelected = selectedBlock?.id === block.id;
+                    const isDraggable = !isChangeover && block.status === 'SCHEDULED';
+                    const isCurrentlyDragged = activeDragItem?.orderId === block.orderId;
 
                     return (
                       <button
                         type="button"
                         key={block.id}
                         style={style}
+                        draggable={isDraggable}
+                        onDragStart={
+                          isDraggable
+                            ? (e) => {
+                                e.stopPropagation();
+                                setIsDragging(true);
+                                setActiveDragItem({
+                                  source: 'TIMELINE',
+                                  orderId: block.orderId!,
+                                  orderNumber: block.orderNumber!,
+                                  durationMinutes: block.durationMinutes,
+                                  productName: block.productName,
+                                });
+                                e.dataTransfer.setData(
+                                  'application/json',
+                                  JSON.stringify({
+                                    source: 'TIMELINE',
+                                    orderId: block.orderId,
+                                    orderNumber: block.orderNumber,
+                                    fromMachineId: machine.machineId,
+                                    durationMinutes: block.durationMinutes,
+                                  }),
+                                );
+                                e.dataTransfer.effectAllowed = 'move';
+                              }
+                            : undefined
+                        }
+                        onDragEnd={
+                          isDraggable
+                            ? () => {
+                                setIsDragging(false);
+                                setDragOverSlot(null);
+                                setActiveDragItem(null);
+                              }
+                            : undefined
+                        }
                         onClick={() => setSelectedBlock(block)}
-                        className={`absolute top-1.5 bottom-1.5 rounded-md px-2 py-1 flex flex-col justify-between cursor-pointer transition-all shadow-2xs overflow-hidden border text-left ${
+                        className={`absolute top-1.5 bottom-1.5 rounded-md px-2 py-1 flex flex-col justify-between transition-all shadow-2xs overflow-hidden border text-left ${
+                          isCurrentlyDragged
+                            ? 'opacity-40 ring-2 ring-[#1868DB]'
+                            : ''
+                        } ${
+                          isDraggable
+                            ? 'cursor-grab active:cursor-grabbing hover:shadow-md'
+                            : 'cursor-pointer'
+                        } ${
                           isChangeover
                             ? 'bg-[#FFF5DB] border-dashed border-[#E06C00] text-[#693200]'
                             : block.status === 'IN_PROGRESS'
@@ -485,12 +746,19 @@ export const SchedulingView: React.FC = () => {
                                 ? 'bg-[#E9F2FE] border-[#1868DB] ring-2 ring-[#1868DB]/30'
                                 : 'bg-[#E9F2FE] border-[#8FB8F6] text-[#123263] hover:border-[#1868DB]'
                         }`}
-                        title={`${block.productName ?? block.orderNumber} (${block.durationMinutes}m)`}
+                        title={`${block.productName ?? block.orderNumber} (${block.durationMinutes}m)${
+                          isDraggable ? ' — Drag to shift time or machine' : ''
+                        }`}
                       >
                         <div className="flex items-center justify-between gap-1 overflow-hidden">
-                          <span className="text-xs font-bold truncate">
-                            {isChangeover ? block.productName : block.orderNumber}
-                          </span>
+                          <div className="flex items-center gap-1 min-w-0">
+                            {isDraggable && (
+                              <GripVertical className="h-3 w-3 text-[#1868DB] opacity-60 hover:opacity-100 flex-shrink-0" />
+                            )}
+                            <span className="text-xs font-bold truncate">
+                              {isChangeover ? block.productName : block.orderNumber}
+                            </span>
+                          </div>
 
                           <div className="flex items-center gap-1 flex-shrink-0">
                             {hasConflict && (
@@ -525,7 +793,7 @@ export const SchedulingView: React.FC = () => {
         {isBacklogOpen && (
           <aside
             aria-label="Unscheduled backlog orders"
-            className="w-80 bg-[#FFFFFF] border border-[#0B120E24] rounded-lg shadow-md p-4 space-y-4 flex-shrink-0"
+            className="w-80 bg-[#FFFFFF] border border-[#0B120E24] rounded-lg shadow-md p-4 space-y-3 flex-shrink-0"
           >
             <div className="flex items-center justify-between pb-2 border-b border-[#0B120E24]">
               <div className="flex items-center gap-2">
@@ -542,6 +810,10 @@ export const SchedulingView: React.FC = () => {
               </button>
             </div>
 
+            <p className="text-[11px] text-[#505258] leading-tight">
+              Drag orders onto any machine timeline slot to schedule, or click Options to customize.
+            </p>
+
             {backlogOrders.length === 0 ? (
               <div className="text-center py-8 text-xs text-[#6B6E76]">
                 <CheckCircle2 className="h-8 w-8 text-[#22A06B] mx-auto mb-2" />
@@ -552,12 +824,46 @@ export const SchedulingView: React.FC = () => {
                 {backlogOrders.map((order) => (
                   <div
                     key={order.id}
-                    className="p-3 rounded-lg border border-[#0B120E24] bg-[#F8F8F8] hover:border-[#1868DB] transition-all space-y-2"
+                    draggable={true}
+                    onDragStart={(e) => {
+                      setIsDragging(true);
+                      setActiveDragItem({
+                        source: 'BACKLOG',
+                        orderId: order.id,
+                        orderNumber: order.orderNumber,
+                        durationMinutes: 120,
+                        productName: order.product?.name,
+                      });
+                      e.dataTransfer.setData(
+                        'application/json',
+                        JSON.stringify({
+                          source: 'BACKLOG',
+                          orderId: order.id,
+                          orderNumber: order.orderNumber,
+                          productId: order.productId,
+                          targetQuantity: order.targetQuantity,
+                        }),
+                      );
+                      e.dataTransfer.effectAllowed = 'copyMove';
+                    }}
+                    onDragEnd={() => {
+                      setIsDragging(false);
+                      setDragOverSlot(null);
+                      setActiveDragItem(null);
+                    }}
+                    className={`p-3 rounded-lg border transition-all space-y-2 cursor-grab active:cursor-grabbing group shadow-2xs select-none ${
+                      activeDragItem?.orderId === order.id
+                        ? 'opacity-40 border-[#1868DB] ring-2 ring-[#1868DB]/20 bg-[#FFFFFF]'
+                        : 'border-[#0B120E24] bg-[#F8F8F8] hover:border-[#1868DB] hover:bg-[#FFFFFF]'
+                    }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-[#292A2E]">{order.orderNumber}</span>
+                    <div className="flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <GripVertical className="h-4 w-4 text-[#6B6E76] group-hover:text-[#1868DB] flex-shrink-0" />
+                        <span className="text-xs font-bold text-[#292A2E] truncate">{order.orderNumber}</span>
+                      </div>
                       <span
-                        className={`text-xs font-bold px-1.5 py-0.2 rounded ${
+                        className={`text-xs font-bold px-1.5 py-0.2 rounded flex-shrink-0 ${
                           order.priority === 1
                             ? 'bg-[#FFECEB] text-[#AE2E24]'
                             : order.priority === 2
@@ -570,18 +876,25 @@ export const SchedulingView: React.FC = () => {
                     </div>
 
                     <div className="text-xs text-[#505258]">
-                      <p className="font-medium text-[#292A2E]">{order.product?.name}</p>
+                      <p className="font-medium text-[#292A2E] truncate">{order.product?.name}</p>
                       <p className="font-mono">Target: {order.targetQuantity} parts</p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleOpenScheduleModal(order)}
-                      className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-semibold bg-[#1868DB] hover:bg-[#1558BC] text-white transition-colors"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>Schedule onto machine</span>
-                    </button>
+                    <div className="flex items-center justify-between pt-1 gap-2">
+                      <span className="text-[11px] text-[#505258] italic flex items-center gap-1 truncate">
+                        <Move className="h-3 w-3 text-[#1868DB] flex-shrink-0" />
+                        <span>Drag to timeline</span>
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenScheduleModal(order)}
+                        className="inline-flex items-center gap-1 py-1 px-2 rounded-md text-xs font-semibold bg-[#FFFFFF] hover:bg-[#F0F0F0] text-[#1868DB] border border-[#0B120E24] transition-colors flex-shrink-0"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span>Options</span>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -931,6 +1244,39 @@ export const SchedulingView: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Floating Feedback Toast */}
+      {feedbackToast && (
+        <output
+          aria-live="polite"
+          className={`fixed bottom-6 right-6 z-50 max-w-md p-3.5 rounded-lg border shadow-lg flex items-start gap-2.5 transition-all ${
+            feedbackToast.type === 'success'
+              ? 'bg-[#E3FCEF] border-[#22A06B] text-[#164B35]'
+              : feedbackToast.type === 'warning'
+                ? 'bg-[#FFF5DB] border-[#E06C00] text-[#693200]'
+                : 'bg-[#FFECEB] border-[#E2483D] text-[#AE2E24]'
+          }`}
+        >
+          {feedbackToast.type === 'success' ? (
+            <CheckCircle2 className="h-4 w-4 text-[#22A06B] flex-shrink-0 mt-0.5" />
+          ) : feedbackToast.type === 'warning' ? (
+            <AlertTriangle className="h-4 w-4 text-[#E06C00] flex-shrink-0 mt-0.5" />
+          ) : (
+            <AlertTriangle className="h-4 w-4 text-[#C9372C] flex-shrink-0 mt-0.5" />
+          )}
+          <div className="flex-1 text-xs font-medium leading-relaxed">
+            {feedbackToast.message}
+          </div>
+          <button
+            type="button"
+            onClick={() => setFeedbackToast(null)}
+            className="p-0.5 text-current opacity-70 hover:opacity-100 rounded"
+            aria-label="Dismiss notification"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </output>
       )}
     </div>
   );
