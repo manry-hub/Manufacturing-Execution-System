@@ -14,6 +14,7 @@ import {
   Wrench,
   PackageCheck,
   Calendar,
+  FileCheck,
   ChevronDown,
   ChevronRight,
   PanelLeftClose,
@@ -33,7 +34,8 @@ export type ActiveTab =
   | 'materials'
   | 'maintenance'
   | 'andon'
-  | 'oee';
+  | 'oee'
+  | 'traveler';
 
 export interface NavItemConfig {
   id: ActiveTab;
@@ -100,6 +102,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         label: 'Quality gates & first-piece',
         shortLabel: 'Quality',
         icon: ShieldCheck,
+      },
+      {
+        id: 'traveler',
+        label: 'Digital traveler & CoC',
+        shortLabel: 'Traveler & CoC',
+        icon: FileCheck,
       },
       {
         id: 'materials',

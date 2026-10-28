@@ -8,6 +8,12 @@ import type { InspectionPlan, QualityCheck, FirstPieceReleaseStatus } from '../t
 import type { MoldPmSchedule, MaintenanceWorkOrder } from '../types/maintenance.js';
 import type { PackagingUnit, RunReconciliation } from '../types/packaging.js';
 import type { SchedulingTimelineResponse, MoldChangeoverRule } from '../types/scheduling.js';
+import type {
+  DigitalTravelerRecord,
+  CertificateOfConformanceDto,
+  TravelerRunSummaryDto,
+  SignoffTravelerPayload,
+} from '../types/traveler.js';
 
 const API_BASE_URL = '/api/v1';
 
@@ -510,6 +516,35 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify(dto),
     });
+  }
+
+  // --- Digital Traveler & CoC Endpoints ---
+  public async getTravelerRuns(): Promise<TravelerRunSummaryDto[]> {
+    return this.request<TravelerRunSummaryDto[]>('/traveler/runs');
+  }
+
+  public async getDigitalTraveler(runId: string): Promise<DigitalTravelerRecord> {
+    return this.request<DigitalTravelerRecord>(`/traveler/${encodeURIComponent(runId)}`);
+  }
+
+  public async signoffTraveler(
+    runId: string,
+    dto: SignoffTravelerPayload,
+  ): Promise<{
+    success: boolean;
+    status: string;
+    signedBy: string;
+    tamperProofHash: string;
+    signedAt: string;
+  }> {
+    return this.request(`/traveler/${encodeURIComponent(runId)}/signoff`, {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  public async getCertificateOfConformance(runId: string): Promise<CertificateOfConformanceDto> {
+    return this.request<CertificateOfConformanceDto>(`/traveler/${encodeURIComponent(runId)}/coc`);
   }
 }
 

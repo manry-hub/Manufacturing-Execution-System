@@ -89,4 +89,38 @@
       display: none !important;
     }
   }
+
+  /* Print Optimization for Digital Traveler, CoC and Barcode Labels */
+  @media print {
+    header,
+    aside,
+    nav,
+    .print\:hidden {
+      display: none !important;
+    }
+
+    body {
+      background-color: #ffffff !important;
+      color: #000000 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    main {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+      width: 100% !important;
+    }
+
+    .page-break-avoid {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    @page {
+      margin: 1cm;
+      size: auto;
+    }
+  }
 }

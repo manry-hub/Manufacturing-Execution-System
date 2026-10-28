@@ -16,6 +16,7 @@ import { QualityModule } from './modules/quality/quality.module.js';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module.js';
 import { PackagingModule } from './modules/packaging/packaging.module.js';
 import { SchedulingModule } from './modules/scheduling/scheduling.module.js';
+import { TravelerModule } from './modules/traveler/traveler.module.js';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { SchedulingModule } from './modules/scheduling/scheduling.module.js';
     MaintenanceModule,
     PackagingModule,
     SchedulingModule,
+    TravelerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
