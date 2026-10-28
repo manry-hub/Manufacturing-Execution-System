@@ -465,13 +465,10 @@ async function main() {
 
   // 10. Demo Hybrid Production Order & Routing Steps (ISA-95 Hybrid Demonstration)
   const now = new Date();
-  const shiftEnd = new Date(now.getTime() + 8 * 3600 * 1000);
   const demoOrder = await prisma.productionOrder.upsert({
     where: { orderNumber: 'WO-DEMO-2026-001' },
     update: {
       targetQuantity: 2000,
-      actualQuantity: 450,
-      scrapQuantity: 12,
       packedQuantity: 400,
       status: 'IN_PROGRESS',
     },
@@ -479,13 +476,10 @@ async function main() {
       orderNumber: 'WO-DEMO-2026-001',
       productId: bumperProductId,
       targetQuantity: 2000,
-      actualQuantity: 450,
-      scrapQuantity: 12,
       packedQuantity: 400,
       status: 'IN_PROGRESS',
-      plannedStart: now,
-      plannedEnd: shiftEnd,
-      actualStart: now,
+      plannedStartTime: now,
+      actualStartTime: now,
     },
   });
 
