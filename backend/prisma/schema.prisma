@@ -25,6 +25,11 @@ model User {
   reportedTickets AndonTicket[]        @relation("ReportedTickets")
   assignedTickets AndonTicket[]        @relation("AssignedTickets")
 
+  loadedConsumptions        RunMaterialConsumption[]
+  conductedQualityChecks    QualityCheck[]
+  assignedMaintenanceOrders MaintenanceWorkOrder[]
+  packedUnits               PackagingUnit[]
+
   @@map("users")
 }
 
@@ -106,13 +111,14 @@ model Machine {
   isVirtual       Boolean  @default(true) @map("is_virtual")
   createdAt       DateTime @default(now()) @map("created_at")
 
-  area           ProductionArea       @relation(fields: [areaId], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  currentState   MachineCurrentState?
-  eventLogs      MachineEventLog[]
-  timeSegments   MachineTimeSegment[]
-  oeeResults     OeeResult[]
-  andonTickets   AndonTicket[]
-  productionRuns ProductionRun[]
+  area                  ProductionArea         @relation(fields: [areaId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  currentState          MachineCurrentState?
+  eventLogs             MachineEventLog[]
+  timeSegments          MachineTimeSegment[]
+  oeeResults            OeeResult[]
+  andonTickets          AndonTicket[]
+  productionRuns        ProductionRun[]
+  maintenanceWorkOrders MaintenanceWorkOrder[]
 
   @@index([areaId], name: "idx_machine_area")
   @@map("machines")
@@ -131,6 +137,7 @@ model Product {
 
   compatibilities  MoldProductCompatibility[]
   productionOrders ProductionOrder[]
+  inspectionPlans  InspectionPlan[]
 
   @@map("products")
 }
@@ -143,8 +150,12 @@ model Mold {
   totalShots  BigInt   @default(0) @map("total_shots")
   status      String   @default("AVAILABLE") @db.VarChar(30)
 
-  compatibilities MoldProductCompatibility[]
-  productionRuns  ProductionRun[]
+  compatibilities       MoldProductCompatibility[]
+  productionRuns        ProductionRun[]
+  pmSchedules           MoldPmSchedule[]
+  maintenanceWorkOrders MaintenanceWorkOrder[]
+  fromChangeovers       MoldChangeover[]           @relation("FromMoldChangeovers")
+  toChangeovers         MoldChangeover[]           @relation("ToMoldChangeovers")
 
   @@map("molds")
 }
@@ -173,14 +184,16 @@ model ProductionOrder {
   orderNumber      String    @unique @map("order_number") @db.VarChar(50)
   productId        String    @map("product_id")
   targetQuantity   Int       @map("target_quantity")
+  packedQuantity   Int       @default(0) @map("packed_quantity")
   status           String    @default("DRAFT") @db.VarChar(30)
   plannedStartTime DateTime  @map("planned_start_time")
   actualStartTime  DateTime? @map("actual_start_time")
   actualEndTime    DateTime? @map("actual_end_time")
   createdAt        DateTime  @default(now()) @map("created_at")
 
-  product Product         @relation(fields: [productId], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  runs    ProductionRun[]
+  product        Product              @relation(fields: [productId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  runs           ProductionRun[]
+  operationSteps OrderOperationStep[]
 
   @@index([productId], name: "idx_po_product")
   @@index([status], name: "idx_po_status")
@@ -199,11 +212,14 @@ model ProductionRun {
   startTime         DateTime  @default(now()) @map("start_time")
   endTime           DateTime? @map("end_time")
 
-  productionOrder     ProductionOrder       @relation(fields: [productionOrderId], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  machine             Machine               @relation(fields: [machineId], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  mold                Mold                  @relation(fields: [moldId], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  currentStates       MachineCurrentState[]
-  oeeResults          OeeResult[]
+  productionOrder ProductionOrder          @relation(fields: [productionOrderId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  machine         Machine                  @relation(fields: [machineId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  mold            Mold                     @relation(fields: [moldId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  currentStates   MachineCurrentState[]
+  oeeResults      OeeResult[]
+  consumptions    RunMaterialConsumption[]
+  qualityChecks   QualityCheck[]
+  packagingUnits  PackagingUnit[]
 
   @@index([productionOrderId], name: "idx_pr_order")
   @@index([machineId], name: "idx_pr_machine")
@@ -325,4 +341,225 @@ model AndonTicket {
 
   @@index([machineId, status], name: "idx_andon_active")
   @@map("andon_tickets")
+}
+
+// -----------------------------------------------------------------------------
+// Materials & Bidirectional Genealogy
+// -----------------------------------------------------------------------------
+
+model Material {
+  id          String   @id @default(uuid())
+  code        String   @unique @db.VarChar(50)
+  name        String   @db.VarChar(150)
+  category    String   @db.VarChar(50) // BASE_RESIN, MASTERBATCH, ADDITIVE, REGRIND
+  densityGcm3 Decimal? @map("density_gcm3") @db.Decimal(6, 4)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  lots MaterialLot[]
+
+  @@map("materials")
+}
+
+model MaterialLot {
+  id             String    @id @default(uuid())
+  materialId     String    @map("material_id")
+  lotNumber      String    @unique @map("lot_number") @db.VarChar(100)
+  supplierLot    String?   @map("supplier_lot") @db.VarChar(100)
+  initialQtyKg   Decimal   @map("initial_qty_kg") @db.Decimal(10, 2)
+  remainingQtyKg Decimal   @map("remaining_qty_kg") @db.Decimal(10, 2)
+  status         String    @default("AVAILABLE") @db.VarChar(30) // AVAILABLE, CONSUMED, EXPIRED, QUARANTINE
+  expirationDate DateTime? @map("expiration_date")
+  receivedAt     DateTime  @default(now()) @map("received_at")
+
+  material     Material                 @relation(fields: [materialId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  consumptions RunMaterialConsumption[]
+
+  @@index([materialId], name: "idx_lot_material")
+  @@index([status], name: "idx_lot_status")
+  @@map("material_lots")
+}
+
+model RunMaterialConsumption {
+  id            String   @id @default(uuid())
+  runId         String   @map("run_id")
+  materialLotId String   @map("material_lot_id")
+  loadedById    String   @map("loaded_by_id")
+  quantityKg    Decimal  @map("quantity_kg") @db.Decimal(10, 2)
+  loadedAt      DateTime @default(now()) @map("loaded_at")
+
+  run         ProductionRun @relation(fields: [runId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  materialLot MaterialLot   @relation(fields: [materialLotId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  loadedBy    User          @relation(fields: [loadedById], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@index([runId], name: "idx_rmc_run")
+  @@index([materialLotId], name: "idx_rmc_lot")
+  @@map("run_material_consumptions")
+}
+
+// -----------------------------------------------------------------------------
+// Quality Gates & Inspection Plans
+// -----------------------------------------------------------------------------
+
+model InspectionPlan {
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  name      String   @db.VarChar(150)
+  version   Int      @default(1)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  product Product              @relation(fields: [productId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  items   InspectionPlanItem[]
+
+  @@index([productId], name: "idx_ip_product")
+  @@map("inspection_plans")
+}
+
+model InspectionPlanItem {
+  id              String   @id @default(uuid())
+  planId          String   @map("plan_id")
+  sequence        Int
+  parameterName   String   @map("parameter_name") @db.VarChar(100)
+  measurementType String   @map("measurement_type") @db.VarChar(30) // VARIABLE, ATTRIBUTE
+  targetValue     Decimal? @map("target_value") @db.Decimal(10, 3)
+  upperTolerance  Decimal? @map("upper_tolerance") @db.Decimal(10, 3)
+  lowerTolerance  Decimal? @map("lower_tolerance") @db.Decimal(10, 3)
+  inspectionStage String   @default("PATROL") @map("inspection_stage") @db.VarChar(30) // FIRST_PIECE, PATROL, FINAL_AUDIT
+
+  plan    InspectionPlan       @relation(fields: [planId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  samples QualityCheckSample[]
+
+  @@index([planId], name: "idx_ipi_plan")
+  @@map("inspection_plan_items")
+}
+
+model QualityCheck {
+  id          String   @id @default(uuid())
+  runId       String   @map("run_id")
+  inspectorId String   @map("inspector_id")
+  checkType   String   @map("check_type") @db.VarChar(30) // FIRST_PIECE, HOURLY_PATROL, CONTAINMENT
+  disposition String   @default("PENDING") @db.VarChar(30) // PENDING, RELEASED, QUARANTINE, REWORK, SCRAP
+  notes       String?  @db.NVarChar(500)
+  checkedAt   DateTime @default(now()) @map("checked_at")
+
+  run       ProductionRun        @relation(fields: [runId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  inspector User                 @relation(fields: [inspectorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  samples   QualityCheckSample[]
+
+  @@index([runId], name: "idx_qc_run")
+  @@index([disposition], name: "idx_qc_disposition")
+  @@map("quality_checks")
+}
+
+model QualityCheckSample {
+  id             BigInt   @id @default(autoincrement())
+  qualityCheckId String   @map("quality_check_id")
+  planItemId     String   @map("plan_item_id")
+  measuredValue  Decimal? @map("measured_value") @db.Decimal(10, 3)
+  isPassed       Boolean  @map("is_passed")
+
+  qualityCheck QualityCheck       @relation(fields: [qualityCheckId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  planItem     InspectionPlanItem @relation(fields: [planItemId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@index([qualityCheckId], name: "idx_qcs_check")
+  @@map("quality_check_samples")
+}
+
+// -----------------------------------------------------------------------------
+// Tooling & Mold Preventive Maintenance
+// -----------------------------------------------------------------------------
+
+model MoldPmSchedule {
+  id               String  @id @default(uuid())
+  moldId           String  @map("mold_id")
+  pmLevel          String  @map("pm_level") @db.VarChar(50) // LEVEL_1_CLEAN, LEVEL_2_INSPECT, LEVEL_3_OVERHAUL
+  intervalShots    BigInt  @map("interval_shots")
+  lastServicedShot BigInt  @default(0) @map("last_serviced_shot")
+  isActive         Boolean @default(true) @map("is_active")
+
+  mold Mold @relation(fields: [moldId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+
+  @@index([moldId], name: "idx_pm_mold")
+  @@map("mold_pm_schedules")
+}
+
+model MaintenanceWorkOrder {
+  id               String    @id @default(uuid())
+  orderNumber      String    @unique @map("order_number") @db.VarChar(50)
+  moldId           String?   @map("mold_id")
+  machineId        String?   @map("machine_id")
+  workType         String    @map("work_type") @db.VarChar(30) // PREVENTIVE_SHOT, CORRECTIVE_BREAKDOWN, CHANGEOVER
+  status           String    @default("OPEN") @db.VarChar(30) // OPEN, IN_PROGRESS, COMPLETED, CANCELLED
+  assignedTechId   String?   @map("assigned_tech_id")
+  triggerShots     BigInt?   @map("trigger_shots")
+  checklistPayload String?   @map("checklist_payload") @db.NVarChar(Max)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  completedAt      DateTime? @map("completed_at")
+
+  mold         Mold?    @relation(fields: [moldId], references: [id], onUpdate: NoAction, onDelete: SetNull)
+  machine      Machine? @relation(fields: [machineId], references: [id], onUpdate: NoAction, onDelete: SetNull)
+  assignedTech User?    @relation(fields: [assignedTechId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@index([moldId], name: "idx_mwo_mold")
+  @@index([machineId], name: "idx_mwo_machine")
+  @@index([status], name: "idx_mwo_status")
+  @@map("maintenance_work_orders")
+}
+
+// -----------------------------------------------------------------------------
+// Finished Goods Packaging & Traceability
+// -----------------------------------------------------------------------------
+
+model PackagingUnit {
+  id         String   @id @default(uuid())
+  runId      String   @map("run_id")
+  barcode    String   @unique @db.VarChar(100)
+  partCount  Int      @map("part_count")
+  packagerId String   @map("packager_id")
+  palletId   String?  @map("pallet_id") @db.VarChar(50)
+  packedAt   DateTime @default(now()) @map("packed_at")
+
+  run      ProductionRun @relation(fields: [runId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  packager User          @relation(fields: [packagerId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@index([runId], name: "idx_pkg_run")
+  @@index([palletId], name: "idx_pkg_pallet")
+  @@map("packaging_units")
+}
+
+// -----------------------------------------------------------------------------
+// Multi-Stage Hybrid Operation Routings
+// -----------------------------------------------------------------------------
+
+model OrderOperationStep {
+  id                String    @id @default(uuid())
+  productionOrderId String    @map("production_order_id")
+  sequence          Int
+  operationName     String    @map("operation_name") @db.VarChar(50) // MOLDING, SECONDARY_FINISHING, PACKAGING
+  stationType       String    @map("station_type") @db.VarChar(50) // INJECTION_MACHINE, MANUAL_WORKBENCH, PACKAGING_STATION
+  status            String    @default("PENDING") @db.VarChar(30) // PENDING, IN_PROGRESS, COMPLETED, SKIPPED
+  quantityIn        Int       @default(0) @map("quantity_in")
+  quantityPassed    Int       @default(0) @map("quantity_passed")
+  quantityScrapped  Int       @default(0) @map("quantity_scrapped")
+  startedAt         DateTime? @map("started_at")
+  completedAt       DateTime? @map("completed_at")
+
+  productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+
+  @@index([productionOrderId], name: "idx_oos_order")
+  @@map("order_operation_steps")
+}
+
+model MoldChangeover {
+  id           String @id @default(uuid())
+  fromMoldId   String @map("from_mold_id")
+  toMoldId     String @map("to_mold_id")
+  setupMinutes Int    @map("setup_minutes")
+  purgeMinutes Int    @default(15) @map("purge_minutes")
+
+  fromMold Mold @relation("FromMoldChangeovers", fields: [fromMoldId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  toMold   Mold @relation("ToMoldChangeovers", fields: [toMoldId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@unique([fromMoldId, toMoldId], name: "uq_mold_changeover")
+  @@map("mold_changeovers")
 }

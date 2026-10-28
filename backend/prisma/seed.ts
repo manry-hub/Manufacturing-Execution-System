@@ -239,6 +239,284 @@ async function main() {
   }
   console.log(`✓ Seeded ${downtimeReasons.length} standard downtime reasons.`);
 
+  // 6. Materials & Raw Material Lots (Genealogy)
+  const materials = [
+    { code: 'RES-PP-HOMO', name: 'Polypropylene Homopolymer (MFI 12)', category: 'BASE_RESIN', densityGcm3: 0.905 },
+    { code: 'RES-ABS-HI', name: 'High-Impact Acrylonitrile Butadiene Styrene', category: 'BASE_RESIN', densityGcm3: 1.050 },
+    { code: 'MB-BLK-01', name: 'Black Masterbatch (40% Carbon Black)', category: 'MASTERBATCH', densityGcm3: 1.120 },
+    { code: 'RES-PP-REGRIND', name: 'In-House Reground Clean PP Flake', category: 'REGRIND', densityGcm3: 0.900 },
+  ];
+
+  const createdMaterials = new Map<string, string>();
+  for (const mat of materials) {
+    const record = await prisma.material.upsert({
+      where: { code: mat.code },
+      update: { name: mat.name, category: mat.category, densityGcm3: mat.densityGcm3 },
+      create: mat,
+    });
+    createdMaterials.set(record.code, record.id);
+  }
+
+  const materialLots = [
+    {
+      materialCode: 'RES-PP-HOMO',
+      lotNumber: 'LOT-PP-202610-01',
+      supplierLot: 'LB-2026-X89',
+      initialQtyKg: 5000.0,
+      remainingQtyKg: 4850.0,
+      status: 'AVAILABLE',
+      expirationDate: new Date('2027-10-31'),
+    },
+    {
+      materialCode: 'RES-ABS-HI',
+      lotNumber: 'LOT-ABS-202610-02',
+      supplierLot: 'INEOS-5541A',
+      initialQtyKg: 3000.0,
+      remainingQtyKg: 2900.0,
+      status: 'AVAILABLE',
+      expirationDate: new Date('2027-12-31'),
+    },
+    {
+      materialCode: 'MB-BLK-01',
+      lotNumber: 'LOT-MB-202610-03',
+      supplierLot: 'CAB-9921',
+      initialQtyKg: 500.0,
+      remainingQtyKg: 475.0,
+      status: 'AVAILABLE',
+      expirationDate: new Date('2028-06-30'),
+    },
+    {
+      materialCode: 'RES-PP-REGRIND',
+      lotNumber: 'LOT-REG-202610-04',
+      supplierLot: 'INTERNAL-GRIND-1',
+      initialQtyKg: 800.0,
+      remainingQtyKg: 750.0,
+      status: 'AVAILABLE',
+      expirationDate: null,
+    },
+  ];
+
+  for (const lot of materialLots) {
+    const materialId = createdMaterials.get(lot.materialCode)!;
+    await prisma.materialLot.upsert({
+      where: { lotNumber: lot.lotNumber },
+      update: {
+        supplierLot: lot.supplierLot,
+        initialQtyKg: lot.initialQtyKg,
+        remainingQtyKg: lot.remainingQtyKg,
+        status: lot.status,
+        expirationDate: lot.expirationDate,
+      },
+      create: {
+        materialId,
+        lotNumber: lot.lotNumber,
+        supplierLot: lot.supplierLot,
+        initialQtyKg: lot.initialQtyKg,
+        remainingQtyKg: lot.remainingQtyKg,
+        status: lot.status,
+        expirationDate: lot.expirationDate,
+      },
+    });
+  }
+  console.log(`✓ Seeded ${materials.length} raw materials and ${materialLots.length} material lots.`);
+
+  // 7. Quality Inspection Plans & Items
+  const bumperProductId = createdProducts.get('PRD-AUTO-BUMPER')!;
+  let bumperPlan = await prisma.inspectionPlan.findFirst({
+    where: { productId: bumperProductId, name: 'Automotive Bumper First-Piece & Patrol Plan' },
+  });
+  if (!bumperPlan) {
+    bumperPlan = await prisma.inspectionPlan.create({
+      data: {
+        productId: bumperProductId,
+        name: 'Automotive Bumper First-Piece & Patrol Plan',
+        version: 1,
+        isActive: true,
+      },
+    });
+  }
+
+  const bumperPlanItems = [
+    { sequence: 1, parameterName: 'Critical Width Dimension (mm)', measurementType: 'VARIABLE', targetValue: 1450.0, upperTolerance: 1452.0, lowerTolerance: 1448.0, inspectionStage: 'FIRST_PIECE' },
+    { sequence: 2, parameterName: 'Wall Thickness Section A (mm)', measurementType: 'VARIABLE', targetValue: 3.2, upperTolerance: 3.4, lowerTolerance: 3.0, inspectionStage: 'FIRST_PIECE' },
+    { sequence: 3, parameterName: 'Surface Sink Marks / Flash Presence', measurementType: 'ATTRIBUTE', targetValue: null, upperTolerance: null, lowerTolerance: null, inspectionStage: 'FIRST_PIECE' },
+    { sequence: 4, parameterName: 'Gate Vestige Height (mm)', measurementType: 'VARIABLE', targetValue: 0.5, upperTolerance: 0.8, lowerTolerance: 0.0, inspectionStage: 'PATROL' },
+  ];
+
+  for (const item of bumperPlanItems) {
+    const existing = await prisma.inspectionPlanItem.findFirst({
+      where: { planId: bumperPlan.id, sequence: item.sequence },
+    });
+    if (!existing) {
+      await prisma.inspectionPlanItem.create({
+        data: {
+          planId: bumperPlan.id,
+          sequence: item.sequence,
+          parameterName: item.parameterName,
+          measurementType: item.measurementType,
+          targetValue: item.targetValue,
+          upperTolerance: item.upperTolerance,
+          lowerTolerance: item.lowerTolerance,
+          inspectionStage: item.inspectionStage,
+        },
+      });
+    }
+  }
+
+  const trimProductId = createdProducts.get('PRD-DOOR-TRIM')!;
+  let trimPlan = await prisma.inspectionPlan.findFirst({
+    where: { productId: trimProductId, name: 'Door Trim Panel Quality Plan' },
+  });
+  if (!trimPlan) {
+    trimPlan = await prisma.inspectionPlan.create({
+      data: {
+        productId: trimProductId,
+        name: 'Door Trim Panel Quality Plan',
+        version: 1,
+        isActive: true,
+      },
+    });
+  }
+
+  const trimPlanItems = [
+    { sequence: 1, parameterName: 'Mounting Clip Hole Diameter (mm)', measurementType: 'VARIABLE', targetValue: 8.5, upperTolerance: 8.65, lowerTolerance: 8.35, inspectionStage: 'FIRST_PIECE' },
+    { sequence: 2, parameterName: 'Surface Texture Uniformity & Gloss', measurementType: 'ATTRIBUTE', targetValue: null, upperTolerance: null, lowerTolerance: null, inspectionStage: 'PATROL' },
+  ];
+
+  for (const item of trimPlanItems) {
+    const existing = await prisma.inspectionPlanItem.findFirst({
+      where: { planId: trimPlan.id, sequence: item.sequence },
+    });
+    if (!existing) {
+      await prisma.inspectionPlanItem.create({
+        data: {
+          planId: trimPlan.id,
+          sequence: item.sequence,
+          parameterName: item.parameterName,
+          measurementType: item.measurementType,
+          targetValue: item.targetValue,
+          upperTolerance: item.upperTolerance,
+          lowerTolerance: item.lowerTolerance,
+          inspectionStage: item.inspectionStage,
+        },
+      });
+    }
+  }
+  console.log('✓ Seeded inspection plans and tolerance items for bumper and door trim.');
+
+  // 8. Mold Preventive Maintenance Schedules
+  const pmSchedules = [
+    { moldCode: 'MOLD-BUMP-2C', pmLevel: 'LEVEL_1_CLEAN', intervalShots: BigInt(25000), lastServicedShot: BigInt(10000) },
+    { moldCode: 'MOLD-BUMP-2C', pmLevel: 'LEVEL_2_INSPECT', intervalShots: BigInt(50000), lastServicedShot: BigInt(0) },
+    { moldCode: 'MOLD-BUMP-2C', pmLevel: 'LEVEL_3_OVERHAUL', intervalShots: BigInt(100000), lastServicedShot: BigInt(0) },
+    { moldCode: 'MOLD-TRIM-4C', pmLevel: 'LEVEL_1_CLEAN', intervalShots: BigInt(20000), lastServicedShot: BigInt(20000) },
+    { moldCode: 'MOLD-TRIM-4C', pmLevel: 'LEVEL_2_INSPECT', intervalShots: BigInt(40000), lastServicedShot: BigInt(0) },
+    { moldCode: 'MOLD-TRIM-4C', pmLevel: 'LEVEL_3_OVERHAUL', intervalShots: BigInt(80000), lastServicedShot: BigInt(0) },
+    { moldCode: 'MOLD-DUCT-2C', pmLevel: 'LEVEL_1_CLEAN', intervalShots: BigInt(30000), lastServicedShot: BigInt(0) },
+  ];
+
+  for (const pm of pmSchedules) {
+    const moldId = createdMolds.get(pm.moldCode)!;
+    const existing = await prisma.moldPmSchedule.findFirst({
+      where: { moldId, pmLevel: pm.pmLevel },
+    });
+    if (!existing) {
+      await prisma.moldPmSchedule.create({
+        data: {
+          moldId,
+          pmLevel: pm.pmLevel,
+          intervalShots: pm.intervalShots,
+          lastServicedShot: pm.lastServicedShot,
+          isActive: true,
+        },
+      });
+    }
+  }
+  console.log(`✓ Seeded ${pmSchedules.length} mold PM schedules.`);
+
+  // 9. Mold Changeovers Matrix
+  const changeovers = [
+    { fromMold: 'MOLD-BUMP-2C', toMold: 'MOLD-TRIM-4C', setupMinutes: 45, purgeMinutes: 15 },
+    { fromMold: 'MOLD-TRIM-4C', toMold: 'MOLD-BUMP-2C', setupMinutes: 45, purgeMinutes: 15 },
+    { fromMold: 'MOLD-BUMP-2C', toMold: 'MOLD-DUCT-2C', setupMinutes: 30, purgeMinutes: 10 },
+    { fromMold: 'MOLD-DUCT-2C', toMold: 'MOLD-BUMP-2C', setupMinutes: 30, purgeMinutes: 10 },
+  ];
+
+  for (const co of changeovers) {
+    const fromMoldId = createdMolds.get(co.fromMold)!;
+    const toMoldId = createdMolds.get(co.toMold)!;
+    await prisma.moldChangeover.upsert({
+      where: {
+        uq_mold_changeover: {
+          fromMoldId,
+          toMoldId,
+        },
+      },
+      update: { setupMinutes: co.setupMinutes, purgeMinutes: co.purgeMinutes },
+      create: {
+        fromMoldId,
+        toMoldId,
+        setupMinutes: co.setupMinutes,
+        purgeMinutes: co.purgeMinutes,
+      },
+    });
+  }
+  console.log(`✓ Seeded ${changeovers.length} mold changeover standard transition rules.`);
+
+  // 10. Demo Hybrid Production Order & Routing Steps (ISA-95 Hybrid Demonstration)
+  const now = new Date();
+  const shiftEnd = new Date(now.getTime() + 8 * 3600 * 1000);
+  const demoOrder = await prisma.productionOrder.upsert({
+    where: { orderNumber: 'WO-DEMO-2026-001' },
+    update: {
+      targetQuantity: 2000,
+      actualQuantity: 450,
+      scrapQuantity: 12,
+      packedQuantity: 400,
+      status: 'IN_PROGRESS',
+    },
+    create: {
+      orderNumber: 'WO-DEMO-2026-001',
+      productId: bumperProductId,
+      targetQuantity: 2000,
+      actualQuantity: 450,
+      scrapQuantity: 12,
+      packedQuantity: 400,
+      status: 'IN_PROGRESS',
+      plannedStart: now,
+      plannedEnd: shiftEnd,
+      actualStart: now,
+    },
+  });
+
+  const routingSteps = [
+    { sequence: 1, operationName: 'MOLDING', stationType: 'INJECTION_MACHINE', status: 'IN_PROGRESS', quantityIn: 2000, quantityPassed: 450, quantityScrapped: 12 },
+    { sequence: 2, operationName: 'SECONDARY_FINISHING', stationType: 'MANUAL_WORKBENCH', status: 'IN_PROGRESS', quantityIn: 450, quantityPassed: 430, quantityScrapped: 5 },
+    { sequence: 3, operationName: 'PACKAGING', stationType: 'PACKAGING_STATION', status: 'PENDING', quantityIn: 430, quantityPassed: 400, quantityScrapped: 0 },
+  ];
+
+  for (const step of routingSteps) {
+    const existing = await prisma.orderOperationStep.findFirst({
+      where: { productionOrderId: demoOrder.id, sequence: step.sequence },
+    });
+    if (!existing) {
+      await prisma.orderOperationStep.create({
+        data: {
+          productionOrderId: demoOrder.id,
+          sequence: step.sequence,
+          operationName: step.operationName,
+          stationType: step.stationType,
+          status: step.status,
+          quantityIn: step.quantityIn,
+          quantityPassed: step.quantityPassed,
+          quantityScrapped: step.quantityScrapped,
+          startedAt: now,
+        },
+      });
+    }
+  }
+  console.log('✓ Seeded demo hybrid production order with multi-stage routing steps.');
+
   console.log('✅ Seeding completed successfully!');
 }
 
