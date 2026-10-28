@@ -9,12 +9,16 @@ describe('RunsService', () => {
   let service: RunsService;
   let mockPrisma: any;
   let mockTelemetryService: any;
+  let mockMaintenanceService: any;
   let telemetryStream$: Subject<any>;
 
   beforeEach(() => {
     telemetryStream$ = new Subject();
     mockTelemetryService = {
       telemetryStream$,
+    };
+    mockMaintenanceService = {
+      checkMoldPmThreshold: vi.fn().mockResolvedValue(undefined),
     };
 
     mockPrisma = {
@@ -27,7 +31,7 @@ describe('RunsService', () => {
       },
       mold: {
         findFirst: vi.fn(),
-        update: vi.fn(),
+        update: vi.fn().mockResolvedValue({ id: 'mold-1', code: 'MOLD-1', totalShots: BigInt(100) }),
       },
       moldProductCompatibility: {
         findFirst: vi.fn(),
@@ -51,6 +55,7 @@ describe('RunsService', () => {
     service = new RunsService(
       mockPrisma as unknown as PrismaService,
       mockTelemetryService as unknown as TelemetryIngestionService,
+      mockMaintenanceService as any,
     );
   });
 

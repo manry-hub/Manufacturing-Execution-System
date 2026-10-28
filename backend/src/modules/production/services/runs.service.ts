@@ -10,6 +10,7 @@ import { StartProductionRunDto } from '../dto/start-production-run.dto.js';
 import { RecordScrapDto } from '../dto/record-scrap.dto.js';
 import { TelemetryIngestionService } from '../../telemetry/telemetry.service.js';
 import { EventTypeEnum } from '../../telemetry/dto/normalized-machine-event.dto.js';
+import { MaintenanceService } from '../../maintenance/maintenance.service.js';
 
 @Injectable()
 export class RunsService implements OnModuleInit {
@@ -18,6 +19,7 @@ export class RunsService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly telemetryService: TelemetryIngestionService,
+    private readonly maintenanceService: MaintenanceService,
   ) {}
 
   onModuleInit() {
@@ -249,12 +251,15 @@ export class RunsService implements OnModuleInit {
       });
 
       // Update mold cumulative shots
-      await this.prisma.mold.update({
+      const updatedMold = await this.prisma.mold.update({
         where: { id: activeRun.moldId },
         data: {
           totalShots: { increment: 1 },
         },
       });
+
+      // Hook PM schedule threshold evaluation
+      await this.maintenanceService.checkMoldPmThreshold(activeRun.moldId, updatedMold.totalShots);
     } catch (error) {
       this.logger.error(`Error handling cycle completion for active run on ${machineId}: ${(error as Error).message}`);
     }

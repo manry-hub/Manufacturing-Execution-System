@@ -57,6 +57,26 @@ export class ProductionController {
     return this.ordersService.cancel(id);
   }
 
+  @Get('orders/:id/steps')
+  async findOrderSteps(@Param('id') id: string) {
+    return this.ordersService.findOrderSteps(id);
+  }
+
+  @Patch('orders/:id/steps/:stepId')
+  async updateStepProgress(
+    @Param('id') id: string,
+    @Param('stepId') stepId: string,
+    @Body()
+    body: {
+      status?: string;
+      quantityIn?: number;
+      quantityPassed?: number;
+      quantityScrapped?: number;
+    },
+  ) {
+    return this.ordersService.updateStepProgress(id, stepId, body);
+  }
+
   // ---------------------------------------------------------------------------
   // Production Runs Endpoints
   // ---------------------------------------------------------------------------

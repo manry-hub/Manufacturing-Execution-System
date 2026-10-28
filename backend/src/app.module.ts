@@ -11,6 +11,10 @@ import { SimulatorModule } from './modules/simulator/simulator.module.js';
 import { ProductionModule } from './modules/production/production.module.js';
 import { OeeModule } from './modules/oee/oee.module.js';
 import { AndonModule } from './modules/andon/andon.module.js';
+import { MaterialsModule } from './modules/materials/materials.module.js';
+import { QualityModule } from './modules/quality/quality.module.js';
+import { MaintenanceModule } from './modules/maintenance/maintenance.module.js';
+import { PackagingModule } from './modules/packaging/packaging.module.js';
 
 @Module({
   imports: [
@@ -27,6 +31,10 @@ import { AndonModule } from './modules/andon/andon.module.js';
     ProductionModule,
     OeeModule,
     AndonModule,
+    MaterialsModule,
+    QualityModule,
+    MaintenanceModule,
+    PackagingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -32,9 +32,37 @@ export class OrdersService {
         targetQuantity: dto.targetQuantity,
         status: 'DRAFT',
         plannedStartTime: new Date(dto.plannedStartTime),
+        operationSteps: {
+          create: [
+            {
+              sequence: 1,
+              operationName: 'MOLDING',
+              stationType: 'INJECTION_MACHINE',
+              status: 'PENDING',
+              quantityIn: dto.targetQuantity,
+            },
+            {
+              sequence: 2,
+              operationName: 'SECONDARY_FINISHING',
+              stationType: 'MANUAL_WORKBENCH',
+              status: 'PENDING',
+              quantityIn: 0,
+            },
+            {
+              sequence: 3,
+              operationName: 'PACKAGING',
+              stationType: 'PACKAGING_STATION',
+              status: 'PENDING',
+              quantityIn: 0,
+            },
+          ],
+        },
       },
       include: {
         product: true,
+        operationSteps: {
+          orderBy: { sequence: 'asc' },
+        },
       },
     });
   }
@@ -47,6 +75,9 @@ export class OrdersService {
       },
       include: {
         product: true,
+        operationSteps: {
+          orderBy: { sequence: 'asc' },
+        },
         runs: {
           include: {
             machine: { select: { id: true, code: true, name: true } },
@@ -75,6 +106,9 @@ export class OrdersService {
             mold: true,
           },
         },
+        operationSteps: {
+          orderBy: { sequence: 'asc' },
+        },
       },
     });
 
@@ -83,6 +117,60 @@ export class OrdersService {
     }
 
     return order;
+  }
+
+  async findOrderSteps(orderId: string) {
+    const order = await this.prisma.productionOrder.findUnique({
+      where: { id: orderId },
+      include: {
+        operationSteps: {
+          orderBy: { sequence: 'asc' },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Production order with ID "${orderId}" not found`);
+    }
+
+    return order.operationSteps;
+  }
+
+  async updateStepProgress(
+    orderId: string,
+    stepId: string,
+    data: {
+      status?: string;
+      quantityIn?: number;
+      quantityPassed?: number;
+      quantityScrapped?: number;
+    },
+  ) {
+    const step = await this.prisma.orderOperationStep.findFirst({
+      where: {
+        id: stepId,
+        productionOrderId: orderId,
+      },
+    });
+
+    if (!step) {
+      throw new NotFoundException(`Operation step "${stepId}" not found for order "${orderId}"`);
+    }
+
+    const isStarting = data.status === 'IN_PROGRESS' && step.status === 'PENDING';
+    const isCompleting = data.status === 'COMPLETED' && step.status !== 'COMPLETED';
+
+    return this.prisma.orderOperationStep.update({
+      where: { id: stepId },
+      data: {
+        status: data.status ?? step.status,
+        quantityIn: data.quantityIn !== undefined ? data.quantityIn : step.quantityIn,
+        quantityPassed: data.quantityPassed !== undefined ? data.quantityPassed : step.quantityPassed,
+        quantityScrapped: data.quantityScrapped !== undefined ? data.quantityScrapped : step.quantityScrapped,
+        startedAt: isStarting ? new Date() : step.startedAt,
+        completedAt: isCompleting ? new Date() : step.completedAt,
+      },
+    });
   }
 
   async release(id: string) {
