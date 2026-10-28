@@ -5,7 +5,8 @@ import { api } from './services/api.js';
 import type { Machine, TelemetryEventPayload } from './types/machine.js';
 import type { ProductionOrder, ProductionRun } from './types/production.js';
 import type { AndonTicket, AndonCategory } from './types/andon.js';
-import { Navbar, type ActiveTab } from './components/layout/Navbar.js';
+import { Sidebar, type ActiveTab } from './components/layout/Sidebar.js';
+import { Header } from './components/layout/Header.js';
 import { AndonTopBanner } from './components/layout/AndonTopBanner.js';
 import { ShopFloorGrid } from './components/machines/ShopFloorGrid.js';
 import { MachineDetailView } from './components/machines/detail/MachineDetailView.js';
@@ -22,6 +23,8 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 const DashboardContent: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('shopfloor');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
   const [machines, setMachines] = useState<Machine[]>([]);
   const [orders, setOrders] = useState<ProductionOrder[]>([]);
   const [runs, setRuns] = useState<ProductionRun[]>([]);
@@ -230,25 +233,43 @@ const DashboardContent: React.FC = () => {
   const openTickets = tickets.filter((t) => t.status === 'OPEN');
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] text-[#292A2E] flex flex-col font-sans">
-      {/* Top Navbar */}
-      <Navbar
+    <div className="min-h-screen bg-[#F8F8F8] text-[#292A2E] flex font-sans">
+      {/* Atlassian Sidebar */}
+      <Sidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+        isOpenMobile={isMobileNavOpen}
+        onCloseMobile={() => setIsMobileNavOpen(false)}
+        openTicketsCount={openTickets.length}
         connected={connected}
         latencyMs={latencyMs}
-        openTicketsCount={openTickets.length}
       />
 
-      {/* Active Andon Alert Top Banner */}
-      <AndonTopBanner
-        tickets={tickets}
-        onAcknowledge={handleAcknowledgeAndon}
-        onNavigateToAndon={() => setActiveTab('andon')}
-      />
+      {/* Main App Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+        {/* Top Header */}
+        <Header
+          activeTab={activeTab}
+          onToggleMobile={() => setIsMobileNavOpen((prev) => !prev)}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
+          connected={connected}
+          latencyMs={latencyMs}
+          openTicketsCount={openTickets.length}
+          onNavigateToAndon={() => setActiveTab('andon')}
+        />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Active Andon Alert Top Banner */}
+        <AndonTopBanner
+          tickets={tickets}
+          onAcknowledge={handleAcknowledgeAndon}
+          onNavigateToAndon={() => setActiveTab('andon')}
+        />
+
+        {/* Main Container */}
+        <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {fetchError && (
           <div className="mb-6 p-4 rounded-lg bg-[#FFECEB] border border-[#E2483D] text-[#292A2E] flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -359,6 +380,7 @@ const DashboardContent: React.FC = () => {
           </>
         )}
       </main>
+      </div>
 
       {/* Operator Call-for-Help Modal */}
       <CreateAndonModal
