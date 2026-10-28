@@ -18,6 +18,7 @@ import { QualityView } from './components/quality/QualityView.js';
 import { MaterialsView } from './components/materials/MaterialsView.js';
 import { MaintenanceView } from './components/maintenance/MaintenanceView.js';
 import { PackagingView } from './components/packaging/PackagingView.js';
+import { SchedulingView } from './components/scheduling/SchedulingView.js';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const DashboardContent: React.FC = () => {
@@ -351,6 +352,9 @@ const DashboardContent: React.FC = () => {
                 onRefresh={refreshData}
               />
             )}
+
+            {/* View 3b: Production Scheduling & Gantt Timeline */}
+            {activeTab === 'scheduling' && <SchedulingView />}
 
             {/* View 4: Quality Control & First-Piece Gate */}
             {activeTab === 'quality' && <QualityView runs={runs} />}

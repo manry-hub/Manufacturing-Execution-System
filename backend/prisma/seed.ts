@@ -126,6 +126,7 @@ async function main() {
     { code: 'IMM-10', name: 'Demag Ergotech 250T', tonnage: 250 }, // Fault & Andon candidate
   ];
 
+  const createdMachines = new Map<string, string>();
   for (const machineData of machines) {
     const machine = await prisma.machine.upsert({
       where: { code: machineData.code },
@@ -143,6 +144,7 @@ async function main() {
         isVirtual: true,
       },
     });
+    createdMachines.set(machine.code, machine.id);
 
     // Seed default idle/stopped projection state
     await prisma.machineCurrentState.upsert({
@@ -510,6 +512,126 @@ async function main() {
     }
   }
   console.log('✓ Seeded demo hybrid production order with multi-stage routing steps.');
+
+  // 11. Demo Scheduled Orders & Unscheduled Backlog for Visual Gantt Scheduling
+  const todayMorning = new Date();
+  todayMorning.setHours(7, 0, 0, 0);
+
+  const schedOrders = [
+    {
+      orderNumber: 'WO-SCHED-IMM01-1',
+      productId: createdProducts.get('PRD-DOOR-TRIM')!,
+      targetQuantity: 1600,
+      assignedMachineId: createdMachines.get('IMM-01')!,
+      assignedMoldId: createdMolds.get('MOLD-TRIM-4C')!,
+      plannedStartTime: new Date(todayMorning.getTime()),
+      plannedEndTime: new Date(todayMorning.getTime() + 4 * 3600 * 1000), // 4 hours
+      priority: 2,
+      status: 'SCHEDULED',
+      schedulingNotes: 'High priority customer batch for automotive door panels',
+    },
+    {
+      orderNumber: 'WO-SCHED-IMM01-2',
+      productId: createdProducts.get('PRD-HVAC-DUCT')!,
+      targetQuantity: 2000,
+      assignedMachineId: createdMachines.get('IMM-01')!,
+      assignedMoldId: createdMolds.get('MOLD-DUCT-2C')!,
+      plannedStartTime: new Date(todayMorning.getTime() + 5 * 3600 * 1000), // 5th hour (1h changeover after order 1)
+      plannedEndTime: new Date(todayMorning.getTime() + 9.5 * 3600 * 1000),
+      priority: 3,
+      status: 'SCHEDULED',
+      schedulingNotes: 'Standard HVAC air duct lot',
+    },
+    {
+      orderNumber: 'WO-SCHED-IMM03-1',
+      productId: createdProducts.get('PRD-HVAC-DUCT')!,
+      targetQuantity: 3200,
+      assignedMachineId: createdMachines.get('IMM-03')!,
+      assignedMoldId: createdMolds.get('MOLD-DUCT-2C')!,
+      plannedStartTime: new Date(todayMorning.getTime() + 1 * 3600 * 1000),
+      plannedEndTime: new Date(todayMorning.getTime() + 8 * 3600 * 1000),
+      priority: 1, // Urgent
+      status: 'IN_PROGRESS',
+      schedulingNotes: 'Expedited rush order for cooling system components',
+    },
+    {
+      orderNumber: 'WO-SCHED-IMM07-1',
+      productId: createdProducts.get('PRD-AUTO-BUMPER')!,
+      targetQuantity: 800,
+      assignedMachineId: createdMachines.get('IMM-07')!,
+      assignedMoldId: createdMolds.get('MOLD-BUMP-2C')!,
+      plannedStartTime: new Date(todayMorning.getTime() + 2 * 3600 * 1000),
+      plannedEndTime: new Date(todayMorning.getTime() + 9 * 3600 * 1000),
+      priority: 2,
+      status: 'SCHEDULED',
+      schedulingNotes: '500T bumper run with dual cavity tool',
+    },
+  ];
+
+  for (const so of schedOrders) {
+    await prisma.productionOrder.upsert({
+      where: { orderNumber: so.orderNumber },
+      update: {
+        productId: so.productId,
+        targetQuantity: so.targetQuantity,
+        assignedMachineId: so.assignedMachineId,
+        assignedMoldId: so.assignedMoldId,
+        plannedStartTime: so.plannedStartTime,
+        plannedEndTime: so.plannedEndTime,
+        priority: so.priority,
+        status: so.status,
+        schedulingNotes: so.schedulingNotes,
+      },
+      create: so,
+    });
+  }
+
+  // Unscheduled backlog orders (DRAFT)
+  const backlogOrders = [
+    {
+      orderNumber: 'WO-BACKLOG-001',
+      productId: createdProducts.get('PRD-DOOR-TRIM')!,
+      targetQuantity: 4000,
+      plannedStartTime: new Date(todayMorning.getTime() + 24 * 3600 * 1000),
+      priority: 3,
+      status: 'DRAFT',
+      schedulingNotes: 'Pending machine slot assignment',
+    },
+    {
+      orderNumber: 'WO-BACKLOG-002',
+      productId: createdProducts.get('PRD-HVAC-DUCT')!,
+      targetQuantity: 2500,
+      plannedStartTime: new Date(todayMorning.getTime() + 24 * 3600 * 1000),
+      priority: 1, // Rush
+      status: 'DRAFT',
+      schedulingNotes: 'Customer requested delivery within 48 hours',
+    },
+    {
+      orderNumber: 'WO-BACKLOG-003',
+      productId: createdProducts.get('PRD-AUTO-BUMPER')!,
+      targetQuantity: 600,
+      plannedStartTime: new Date(todayMorning.getTime() + 30 * 3600 * 1000),
+      priority: 2,
+      status: 'DRAFT',
+      schedulingNotes: 'Requires 500T machine (IMM-07 or IMM-08)',
+    },
+  ];
+
+  for (const bo of backlogOrders) {
+    await prisma.productionOrder.upsert({
+      where: { orderNumber: bo.orderNumber },
+      update: {
+        productId: bo.productId,
+        targetQuantity: bo.targetQuantity,
+        plannedStartTime: bo.plannedStartTime,
+        priority: bo.priority,
+        status: bo.status,
+        schedulingNotes: bo.schedulingNotes,
+      },
+      create: bo,
+    });
+  }
+  console.log('✓ Seeded scheduled timeline orders and unscheduled backlog orders for Gantt board.');
 
   console.log('✅ Seeding completed successfully!');
 }

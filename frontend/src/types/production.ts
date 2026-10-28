@@ -38,9 +38,17 @@ export interface ProductionOrder {
   packedQuantity?: number;
   status: OrderStatus;
   plannedStartTime: string;
+  plannedEndTime?: string | null;
   actualStartTime?: string | null;
   actualEndTime?: string | null;
+  assignedMachineId?: string | null;
+  assignedMoldId?: string | null;
+  priority?: number;
+  sequenceOrder?: number;
+  schedulingNotes?: string | null;
   product?: Product;
+  assignedMachine?: { id: string; code: string; name: string };
+  assignedMold?: Mold;
   operationSteps?: OrderOperationStep[];
 }
 

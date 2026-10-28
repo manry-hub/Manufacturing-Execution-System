@@ -15,6 +15,7 @@ import { MaterialsModule } from './modules/materials/materials.module.js';
 import { QualityModule } from './modules/quality/quality.module.js';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module.js';
 import { PackagingModule } from './modules/packaging/packaging.module.js';
+import { SchedulingModule } from './modules/scheduling/scheduling.module.js';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { PackagingModule } from './modules/packaging/packaging.module.js';
     QualityModule,
     MaintenanceModule,
     PackagingModule,
+    SchedulingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

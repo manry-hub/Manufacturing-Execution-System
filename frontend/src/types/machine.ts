@@ -64,6 +64,7 @@ export interface Machine {
   name: string;
   areaId: string;
   tonnage: number;
+  clampingTonnage?: number;
   shotCapacityGrams?: number;
   status: string;
   area?: MachineArea;

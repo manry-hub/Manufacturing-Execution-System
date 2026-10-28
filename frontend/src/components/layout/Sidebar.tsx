@@ -13,6 +13,7 @@ import {
   Package,
   Wrench,
   PackageCheck,
+  Calendar,
   ChevronDown,
   ChevronRight,
   PanelLeftClose,
@@ -26,6 +27,7 @@ export type ActiveTab =
   | 'shopfloor'
   | 'machines'
   | 'orders'
+  | 'scheduling'
   | 'packaging'
   | 'quality'
   | 'materials'
@@ -74,6 +76,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         label: 'Orders & runs',
         shortLabel: 'Orders',
         icon: PlaySquare,
+      },
+      {
+        id: 'scheduling',
+        label: 'Production scheduling',
+        shortLabel: 'Scheduling',
+        icon: Calendar,
       },
       {
         id: 'packaging',

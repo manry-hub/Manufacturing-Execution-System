@@ -119,6 +119,7 @@ model Machine {
   andonTickets          AndonTicket[]
   productionRuns        ProductionRun[]
   maintenanceWorkOrders MaintenanceWorkOrder[]
+  scheduledOrders       ProductionOrder[]      @relation("MachineScheduledOrders")
 
   @@index([areaId], name: "idx_machine_area")
   @@map("machines")
@@ -156,6 +157,7 @@ model Mold {
   maintenanceWorkOrders MaintenanceWorkOrder[]
   fromChangeovers       MoldChangeover[]           @relation("FromMoldChangeovers")
   toChangeovers         MoldChangeover[]           @relation("ToMoldChangeovers")
+  scheduledOrders       ProductionOrder[]          @relation("MoldScheduledOrders")
 
   @@map("molds")
 }
@@ -191,12 +193,24 @@ model ProductionOrder {
   actualEndTime    DateTime? @map("actual_end_time")
   createdAt        DateTime  @default(now()) @map("created_at")
 
-  product        Product              @relation(fields: [productId], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  runs           ProductionRun[]
-  operationSteps OrderOperationStep[]
+  // Scheduling extensions
+  plannedEndTime    DateTime? @map("planned_end_time")
+  assignedMachineId String?   @map("assigned_machine_id")
+  assignedMoldId    String?   @map("assigned_mold_id")
+  priority          Int       @default(3) @map("priority") // 1: Urgent, 2: High, 3: Normal, 4: Low
+  sequenceOrder     Int       @default(0) @map("sequence_order")
+  schedulingNotes   String?   @map("scheduling_notes") @db.VarChar(255)
+
+  product         Product              @relation(fields: [productId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  assignedMachine Machine?             @relation("MachineScheduledOrders", fields: [assignedMachineId], references: [id], onUpdate: NoAction, onDelete: SetNull)
+  assignedMold    Mold?                @relation("MoldScheduledOrders", fields: [assignedMoldId], references: [id], onUpdate: NoAction, onDelete: SetNull)
+  runs            ProductionRun[]
+  operationSteps  OrderOperationStep[]
 
   @@index([productId], name: "idx_po_product")
   @@index([status], name: "idx_po_status")
+  @@index([assignedMachineId, plannedStartTime], name: "idx_po_machine_schedule")
+  @@index([assignedMoldId], name: "idx_po_assigned_mold")
   @@map("production_orders")
 }
 

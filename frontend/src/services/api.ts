@@ -7,6 +7,7 @@ import type { Material, MaterialLot, RunGenealogy, LotGenealogy } from '../types
 import type { InspectionPlan, QualityCheck, FirstPieceReleaseStatus } from '../types/quality.js';
 import type { MoldPmSchedule, MaintenanceWorkOrder } from '../types/maintenance.js';
 import type { PackagingUnit, RunReconciliation } from '../types/packaging.js';
+import type { SchedulingTimelineResponse, MoldChangeoverRule } from '../types/scheduling.js';
 
 const API_BASE_URL = '/api/v1';
 
@@ -435,6 +436,80 @@ class ApiService {
         body: JSON.stringify(data),
       },
     );
+  }
+
+  // --- Production Scheduling & Gantt Endpoints ---
+  public async getSchedulingTimeline(startDate?: string, endDate?: string, areaId?: string): Promise<SchedulingTimelineResponse> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (areaId) params.append('areaId', areaId);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<SchedulingTimelineResponse>(`/scheduling/timeline${query}`);
+  }
+
+  public async getSchedulingBacklog(): Promise<ProductionOrder[]> {
+    return this.request<ProductionOrder[]>('/scheduling/backlog');
+  }
+
+  public async scheduleOrder(
+    orderId: string,
+    dto: {
+      machineId: string;
+      moldId: string;
+      plannedStartTime: string;
+      plannedEndTime?: string;
+      priority?: number;
+      schedulingNotes?: string;
+    },
+  ): Promise<ProductionOrder> {
+    return this.request<ProductionOrder>(`/scheduling/orders/${encodeURIComponent(orderId)}/schedule`, {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  public async rescheduleOrder(
+    orderId: string,
+    dto: {
+      machineId?: string;
+      moldId?: string;
+      plannedStartTime: string;
+      plannedEndTime?: string;
+    },
+  ): Promise<ProductionOrder> {
+    return this.request<ProductionOrder>(`/scheduling/orders/${encodeURIComponent(orderId)}/reschedule`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  public async unscheduleOrder(orderId: string): Promise<ProductionOrder> {
+    return this.request<ProductionOrder>(`/scheduling/orders/${encodeURIComponent(orderId)}/unschedule`, {
+      method: 'POST',
+    });
+  }
+
+  public async releaseScheduledOrder(orderId: string): Promise<ProductionOrder> {
+    return this.request<ProductionOrder>(`/scheduling/orders/${encodeURIComponent(orderId)}/release`, {
+      method: 'POST',
+    });
+  }
+
+  public async getMoldChangeovers(): Promise<MoldChangeoverRule[]> {
+    return this.request<MoldChangeoverRule[]>('/scheduling/changeovers');
+  }
+
+  public async upsertMoldChangeover(dto: {
+    fromMoldId: string;
+    toMoldId: string;
+    setupMinutes: number;
+    purgeMinutes: number;
+  }): Promise<MoldChangeoverRule> {
+    return this.request<MoldChangeoverRule>('/scheduling/changeovers', {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    });
   }
 }
 
