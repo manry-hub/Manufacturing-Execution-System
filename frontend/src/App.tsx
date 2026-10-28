@@ -269,7 +269,7 @@ const DashboardContent: React.FC = () => {
         />
 
         {/* Main Container */}
-        <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <main id="main-content" className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6">
         {fetchError && (
           <div className="mb-6 p-4 rounded-lg bg-[#FFECEB] border border-[#E2483D] text-[#292A2E] flex items-center justify-between">
             <div className="flex items-center gap-3">

@@ -31,7 +31,7 @@ export const AndonTopBanner: React.FC<AndonTopBannerProps> = ({
       role="alert"
       className="bg-[#FFECEB] border-b border-[#E2483D] px-4 py-2.5 shadow-sm"
     >
-      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div className="w-full px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#FFE0DD] text-[#C9372C] border border-[#FD9891]">
             <AlertTriangle className="h-4 w-4" />
