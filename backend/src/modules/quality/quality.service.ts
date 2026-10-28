@@ -1,12 +1,16 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
 import { CreateInspectionPlanDto } from './dto/create-inspection-plan.dto.js';
 import { RecordQualityCheckDto } from './dto/record-quality-check.dto.js';
 import { Prisma } from '@prisma/client';
+import { TelemetryGateway } from '../telemetry/telemetry.gateway.js';
 
 @Injectable()
 export class QualityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly gateway?: TelemetryGateway,
+  ) {}
 
   async createPlan(dto: CreateInspectionPlanDto) {
     const product = await this.prisma.product.findUnique({
@@ -150,7 +154,7 @@ export class QualityService {
     // Auto disposition if not provided
     const disposition = dto.disposition ?? (allPassed ? 'RELEASED' : 'QUARANTINE');
 
-    return this.prisma.qualityCheck.create({
+    const qualityCheck = await this.prisma.qualityCheck.create({
       data: {
         runId: dto.runId,
         inspectorId,
@@ -170,6 +174,36 @@ export class QualityService {
         inspector: { select: { id: true, username: true, email: true } },
       },
     });
+
+    if (this.gateway) {
+      // 1. Broadcast check recorded
+      this.gateway.broadcastQualityEvent('quality:check_recorded', {
+        runId: dto.runId,
+        check: qualityCheck,
+        disposition,
+      });
+
+      // 2. If first piece check, broadcast status and interlock state
+      if (dto.checkType === 'FIRST_PIECE') {
+        const fpStatus = await this.checkFirstPieceReleaseStatus(dto.runId);
+        this.gateway.broadcastQualityEvent('quality:first_piece_status_changed', fpStatus);
+
+        if (disposition === 'QUARANTINE') {
+          this.gateway.broadcastQualityEvent('machine:interlock_state', {
+            machineId: run.machineId,
+            isInterlocked: true,
+            reason: 'First-Piece Inspection Out-of-Tolerance: QUARANTINE',
+          });
+        } else if (disposition === 'RELEASED') {
+          this.gateway.broadcastQualityEvent('machine:interlock_state', {
+            machineId: run.machineId,
+            isInterlocked: false,
+          });
+        }
+      }
+    }
+
+    return qualityCheck;
   }
 
   async getRunChecks(runId: string) {

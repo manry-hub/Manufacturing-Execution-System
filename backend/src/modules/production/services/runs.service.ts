@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Logger,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service.js';
 import { StartProductionRunDto } from '../dto/start-production-run.dto.js';
@@ -11,6 +12,7 @@ import { RecordScrapDto } from '../dto/record-scrap.dto.js';
 import { TelemetryIngestionService } from '../../telemetry/telemetry.service.js';
 import { EventTypeEnum } from '../../telemetry/dto/normalized-machine-event.dto.js';
 import { MaintenanceService } from '../../maintenance/maintenance.service.js';
+import { TelemetryGateway } from '../../telemetry/telemetry.gateway.js';
 
 @Injectable()
 export class RunsService implements OnModuleInit {
@@ -20,6 +22,7 @@ export class RunsService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly telemetryService: TelemetryIngestionService,
     private readonly maintenanceService: MaintenanceService,
+    @Optional() private readonly gateway?: TelemetryGateway,
   ) {}
 
   onModuleInit() {
@@ -257,6 +260,22 @@ export class RunsService implements OnModuleInit {
           totalShots: { increment: 1 },
         },
       });
+
+      // Broadcast mold stroke accumulation and hopper resin depletion
+      if (this.gateway) {
+        this.gateway.broadcastMaintenanceEvent('mold:stroke_accumulated', {
+          moldId: activeRun.moldId,
+          machineId,
+          totalShots: Number(updatedMold.totalShots),
+        });
+
+        const consumedKg = Math.round(activeRun.mold.cavityCount * 0.025 * 1000) / 1000;
+        this.gateway.broadcastMaterialsEvent('materials:hopper_depleted', {
+          runId: activeRun.id,
+          machineId,
+          consumedKg,
+        });
+      }
 
       // Hook PM schedule threshold evaluation
       await this.maintenanceService.checkMoldPmThreshold(activeRun.moldId, updatedMold.totalShots);

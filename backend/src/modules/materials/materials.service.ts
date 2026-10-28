@@ -1,13 +1,17 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
 import { CreateMaterialDto } from './dto/create-material.dto.js';
 import { CreateMaterialLotDto } from './dto/create-material-lot.dto.js';
 import { LoadHopperDto } from './dto/load-hopper.dto.js';
 import { Prisma } from '@prisma/client';
+import { TelemetryGateway } from '../telemetry/telemetry.gateway.js';
 
 @Injectable()
 export class MaterialsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly gateway?: TelemetryGateway,
+  ) {}
 
   async createMaterial(dto: CreateMaterialDto) {
     const existing = await this.prisma.material.findUnique({
@@ -171,6 +175,24 @@ export class MaterialsService {
           status: newStatus,
         },
       });
+
+      if (this.gateway) {
+        this.gateway.broadcastMaterialsEvent('materials:hopper_loaded', {
+          runId: dto.runId,
+          machineId: run.machineId,
+          materialLotId: dto.materialLotId,
+          lotNumber: lot.lotNumber,
+          quantityKg: Number(dto.quantityKg),
+          remainingLotQtyKg: newRemaining.toNumber(),
+        });
+
+        this.gateway.broadcastMaterialsEvent('materials:lot_stock_updated', {
+          lotId: dto.materialLotId,
+          lotNumber: lot.lotNumber,
+          remainingQtyKg: newRemaining.toNumber(),
+          status: newStatus,
+        });
+      }
 
       return consumption;
     });

@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
 import type { ScheduleOrderDto } from './dto/schedule-order.dto.js';
 import type { RescheduleSlotDto } from './dto/reschedule-slot.dto.js';
 import type { UpsertChangeoverDto } from './dto/upsert-changeover.dto.js';
 import type { ScheduleQueryDto } from './dto/schedule-query.dto.js';
+import { TelemetryGateway } from '../telemetry/telemetry.gateway.js';
 
 export interface TimelineBlockConflict {
   type: 'TONNAGE_MISMATCH' | 'TOOLING_COLLISION' | 'MACHINE_OVERLAP';
@@ -45,7 +46,10 @@ export interface TimelineMachineRow {
 export class SchedulingService {
   private readonly logger = new Logger(SchedulingService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly gateway?: TelemetryGateway,
+  ) {}
 
   /**
    * Retrieves full Gantt timeline tracks across all injection molding machines.
@@ -334,6 +338,23 @@ export class SchedulingService {
     });
 
     this.logger.log(`Scheduled order ${order.orderNumber} on ${machine.code} (${startTime.toISOString()} - ${endTime.toISOString()})`);
+
+    if (this.gateway) {
+      this.gateway.broadcastSchedulingEvent('scheduling:order_scheduled', {
+        orderId,
+        orderNumber: order.orderNumber,
+        machineId: dto.machineId,
+        machineCode: machine.code,
+        moldId: dto.moldId,
+        plannedStartTime: startTime.toISOString(),
+        plannedEndTime: endTime.toISOString(),
+      });
+      this.gateway.broadcastSchedulingEvent('scheduling:timeline_updated', {
+        action: 'SCHEDULE',
+        orderId,
+      });
+    }
+
     return updated;
   }
 
@@ -355,7 +376,7 @@ export class SchedulingService {
 
     const newEnd = dto.plannedEndTime ? new Date(dto.plannedEndTime) : new Date(newStart.getTime() + durationMs);
 
-    return this.prisma.productionOrder.update({
+    const updated = await this.prisma.productionOrder.update({
       where: { id: orderId },
       data: {
         assignedMachineId: dto.machineId ?? order.assignedMachineId,
@@ -369,13 +390,30 @@ export class SchedulingService {
         assignedMold: true,
       },
     });
+
+    if (this.gateway) {
+      this.gateway.broadcastSchedulingEvent('scheduling:order_rescheduled', {
+        orderId,
+        orderNumber: order.orderNumber,
+        machineId: updated.assignedMachineId,
+        machineCode: updated.assignedMachine?.code,
+        plannedStartTime: newStart.toISOString(),
+        plannedEndTime: newEnd.toISOString(),
+      });
+      this.gateway.broadcastSchedulingEvent('scheduling:timeline_updated', {
+        action: 'RESCHEDULE',
+        orderId,
+      });
+    }
+
+    return updated;
   }
 
   /**
    * Reverts order back to unscheduled backlog DRAFT state.
    */
   async unscheduleOrder(orderId: string) {
-    return this.prisma.productionOrder.update({
+    const reverted = await this.prisma.productionOrder.update({
       where: { id: orderId },
       data: {
         assignedMachineId: null,
@@ -383,16 +421,38 @@ export class SchedulingService {
         status: 'DRAFT',
       },
     });
+
+    if (this.gateway) {
+      this.gateway.broadcastSchedulingEvent('scheduling:order_unscheduled', {
+        orderId,
+        orderNumber: reverted.orderNumber,
+      });
+      this.gateway.broadcastSchedulingEvent('scheduling:timeline_updated', {
+        action: 'UNSCHEDULE',
+        orderId,
+      });
+    }
+
+    return reverted;
   }
 
   /**
    * Releases scheduled order directly to shop floor.
    */
   async releaseOrder(orderId: string) {
-    return this.prisma.productionOrder.update({
+    const released = await this.prisma.productionOrder.update({
       where: { id: orderId },
       data: { status: 'RELEASED' },
     });
+
+    if (this.gateway) {
+      this.gateway.broadcastSchedulingEvent('scheduling:timeline_updated', {
+        action: 'RELEASE',
+        orderId,
+      });
+    }
+
+    return released;
   }
 
   /**
@@ -412,7 +472,7 @@ export class SchedulingService {
    * Upserts a pairwise changeover rule in the transition matrix.
    */
   async upsertMoldChangeover(dto: UpsertChangeoverDto) {
-    return this.prisma.moldChangeover.upsert({
+    const upserted = await this.prisma.moldChangeover.upsert({
       where: {
         uq_mold_changeover: {
           fromMoldId: dto.fromMoldId,
@@ -429,6 +489,17 @@ export class SchedulingService {
         toMold: true,
       },
     });
+
+    if (this.gateway) {
+      this.gateway.broadcastSchedulingEvent('scheduling:changeover_updated', {
+        changeover: upserted,
+      });
+      this.gateway.broadcastSchedulingEvent('scheduling:timeline_updated', {
+        action: 'CHANGEOVER',
+      });
+    }
+
+    return upserted;
   }
 
   /**

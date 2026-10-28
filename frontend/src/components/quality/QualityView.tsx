@@ -9,6 +9,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { api } from '../../services/api.js';
+import { useTelemetrySocket } from '../../hooks/useTelemetrySocket.js';
 import type { ProductionRun } from '../../types/production.js';
 import type {
   InspectionPlan,
@@ -70,6 +71,37 @@ export const QualityView: React.FC<QualityViewProps> = ({ runs }) => {
       setSelectedRunId(runs[0].id);
     }
   }, [runs, selectedRunId]);
+
+  const handleQualityCheckRecorded = useCallback(
+    ({ runId, check }: { runId: string; check: QualityCheck }) => {
+      if (runId === selectedRunId) {
+        setChecks((prev) => [check, ...prev.filter((c) => c.id !== check.id)]);
+        void api.getFirstPieceStatus(runId).then(setFirstPieceStatus).catch(console.error);
+      }
+    },
+    [selectedRunId],
+  );
+
+  const handleFirstPieceStatusChanged = useCallback(
+    (statusData: FirstPieceReleaseStatus & { runId?: string }) => {
+      if (statusData.runId === selectedRunId || !statusData.runId) {
+        setFirstPieceStatus(statusData);
+      }
+    },
+    [selectedRunId],
+  );
+
+  const { connected, subscribeModule, unsubscribeModule } = useTelemetrySocket({
+    onQualityCheckRecorded: handleQualityCheckRecorded,
+    onFirstPieceStatusChanged: handleFirstPieceStatusChanged,
+  });
+
+  useEffect(() => {
+    subscribeModule('quality');
+    return () => {
+      unsubscribeModule('quality');
+    };
+  }, [subscribeModule, unsubscribeModule]);
 
   const activePlan = plans[0];
 
@@ -140,6 +172,20 @@ export const QualityView: React.FC<QualityViewProps> = ({ runs }) => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+              connected
+                ? 'bg-[#E3FCEF] text-[#006644] border border-[#ABF5D1]'
+                : 'bg-[#F1F2F4] text-[#505258] border border-[#DCDFE4]'
+            }`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                connected ? 'bg-[#00875A] animate-pulse' : 'bg-[#8C8F97]'
+              }`}
+            />
+            {connected ? 'Live Sync' : 'Connecting'}
+          </span>
           <button
             type="button"
             onClick={() => void loadQualityData()}

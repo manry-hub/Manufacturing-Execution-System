@@ -8,6 +8,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { api } from '../../services/api.js';
+import { useTelemetrySocket } from '../../hooks/useTelemetrySocket.js';
 import type { MoldPmSchedule, MaintenanceWorkOrder } from '../../types/maintenance.js';
 import type { Mold } from '../../types/production.js';
 
@@ -61,6 +62,44 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = () => {
     void loadData();
   }, [loadData]);
 
+  const handleWoCreated = useCallback(
+    ({ workOrder }: { workOrder: MaintenanceWorkOrder }) => {
+      setWorkOrders((prev) => [workOrder, ...prev.filter((w) => w.id !== workOrder.id)]);
+    },
+    [],
+  );
+
+  const handleWoUpdated = useCallback(
+    ({ workOrder }: { workOrder: MaintenanceWorkOrder }) => {
+      setWorkOrders((prev) =>
+        prev.map((w) => (w.id === workOrder.id ? { ...w, ...workOrder } : w)),
+      );
+    },
+    [],
+  );
+
+  const handleStrokeAccumulated = useCallback(
+    ({ moldId, totalShots }: { moldId: string; totalShots: number }) => {
+      setMolds((prev) =>
+        prev.map((m) => (m.id === moldId ? { ...m, totalShots } : m)),
+      );
+    },
+    [],
+  );
+
+  const { connected, subscribeModule, unsubscribeModule } = useTelemetrySocket({
+    onMaintenanceWoCreated: handleWoCreated,
+    onMaintenanceWoUpdated: handleWoUpdated,
+    onMoldStrokeAccumulated: handleStrokeAccumulated,
+  });
+
+  useEffect(() => {
+    subscribeModule('maintenance');
+    return () => {
+      unsubscribeModule('maintenance');
+    };
+  }, [subscribeModule, unsubscribeModule]);
+
   const handleCompleteOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!completingWo) return;
@@ -108,6 +147,20 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+              connected
+                ? 'bg-[#E3FCEF] text-[#006644] border border-[#ABF5D1]'
+                : 'bg-[#F1F2F4] text-[#505258] border border-[#DCDFE4]'
+            }`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                connected ? 'bg-[#00875A] animate-pulse' : 'bg-[#8C8F97]'
+              }`}
+            />
+            {connected ? 'Live Sync' : 'Connecting'}
+          </span>
           <button
             type="button"
             onClick={() => void loadData()}

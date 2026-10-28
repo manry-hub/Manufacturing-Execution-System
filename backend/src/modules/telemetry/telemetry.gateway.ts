@@ -86,6 +86,109 @@ export class TelemetryGateway implements OnGatewayInit, OnGatewayConnection, OnG
     return { status: 'SUBSCRIBED', room: 'plant:all' };
   }
 
+  @SubscribeMessage('subscribe:module')
+  async handleSubscribeModule(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { module: string },
+  ) {
+    if (data?.module) {
+      const room = `module:${data.module}`;
+      await client.join(room);
+      this.logger.debug(`Client ${client.id} joined module room ${room}`);
+      return { status: 'SUBSCRIBED', room };
+    }
+  }
+
+  @SubscribeMessage('unsubscribe:module')
+  async handleUnsubscribeModule(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { module: string },
+  ) {
+    if (data?.module) {
+      const room = `module:${data.module}`;
+      await client.leave(room);
+      this.logger.debug(`Client ${client.id} left module room ${room}`);
+      return { status: 'UNSUBSCRIBED', room };
+    }
+  }
+
+  /**
+   * Broadcasts packaging unit and reconciliation events.
+   */
+  public broadcastPackagingEvent(
+    event: 'packaging:unit_created' | 'packaging:reconciled',
+    payload: any,
+  ) {
+    if (!this.server) return;
+    this.server.to('module:packaging').emit(event, payload);
+    this.server.to('plant:all').emit(event, payload);
+  }
+
+  /**
+   * Broadcasts tooling PM and maintenance work order events.
+   */
+  public broadcastMaintenanceEvent(
+    event:
+      | 'maintenance:work_order_created'
+      | 'maintenance:work_order_updated'
+      | 'mold:stroke_accumulated',
+    payload: any,
+  ) {
+    if (!this.server) return;
+    this.server.to('module:maintenance').emit(event, payload);
+    this.server.to('plant:all').emit(event, payload);
+  }
+
+  /**
+   * Broadcasts quality check, first-piece gating, and machine interlock events.
+   */
+  public broadcastQualityEvent(
+    event:
+      | 'quality:check_recorded'
+      | 'quality:first_piece_status_changed'
+      | 'machine:interlock_state',
+    payload: any,
+  ) {
+    if (!this.server) return;
+    this.server.to('module:quality').emit(event, payload);
+    this.server.to('plant:all').emit(event, payload);
+    if (payload?.machineId) {
+      this.server.to(`machine:${payload.machineId}`).emit(event, payload);
+    }
+  }
+
+  /**
+   * Broadcasts raw material hopper loading, stock deductions, and depletion alerts.
+   */
+  public broadcastMaterialsEvent(
+    event:
+      | 'materials:hopper_loaded'
+      | 'materials:hopper_depleted'
+      | 'materials:lot_stock_updated',
+    payload: any,
+  ) {
+    if (!this.server) return;
+    this.server.to('module:materials').emit(event, payload);
+    this.server.to('plant:all').emit(event, payload);
+  }
+
+  /**
+   * Broadcasts scheduling dispatches, rescheduling moves, and changeover updates.
+   */
+  public broadcastSchedulingEvent(
+    event:
+      | 'scheduling:order_scheduled'
+      | 'scheduling:order_rescheduled'
+      | 'scheduling:order_unscheduled'
+      | 'scheduling:changeover_updated'
+      | 'scheduling:timeline_updated',
+    payload: any,
+  ) {
+    if (!this.server) return;
+    this.server.to('module:scheduling').emit(event, payload);
+    this.server.to('plant:all').emit(event, payload);
+  }
+
   /**
    * Broadcasts telemetry event to subscribed WebSocket rooms.
    */

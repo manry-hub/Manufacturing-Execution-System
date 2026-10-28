@@ -1,10 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
 import { CreatePackagingUnitDto } from './dto/create-packaging-unit.dto.js';
+import { TelemetryGateway } from '../telemetry/telemetry.gateway.js';
 
 @Injectable()
 export class PackagingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly gateway?: TelemetryGateway,
+  ) {}
 
   async createPackagingUnit(dto: CreatePackagingUnitDto, packagerId: string) {
     const run = await this.prisma.productionRun.findUnique({
@@ -27,9 +31,9 @@ export class PackagingService {
       throw new BadRequestException(`Packaging barcode "${barcode}" already exists`);
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const unit = await this.prisma.$transaction(async (tx) => {
       // 1. Create packaging unit
-      const unit = await tx.packagingUnit.create({
+      const created = await tx.packagingUnit.create({
         data: {
           runId: dto.runId,
           barcode,
@@ -74,8 +78,26 @@ export class PackagingService {
         });
       }
 
-      return unit;
+      return created;
     });
+
+    // Broadcast live packaging events to subscribers
+    if (this.gateway) {
+      this.gateway.broadcastPackagingEvent('packaging:unit_created', {
+        runId: dto.runId,
+        unit,
+        orderNumber: run.productionOrder.orderNumber,
+      });
+
+      try {
+        const reconciliation = await this.reconcileRun(dto.runId);
+        this.gateway.broadcastPackagingEvent('packaging:reconciled', reconciliation);
+      } catch {
+        // non-fatal reconciliation calculation catch
+      }
+    }
+
+    return unit;
   }
 
   async findAllUnits(runId?: string, palletId?: string) {

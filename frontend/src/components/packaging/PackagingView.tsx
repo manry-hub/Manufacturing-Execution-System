@@ -8,6 +8,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { api } from '../../services/api.js';
+import { useTelemetrySocket } from '../../hooks/useTelemetrySocket.js';
 import type { PackagingUnit, RunReconciliation } from '../../types/packaging.js';
 import type { ProductionRun } from '../../types/production.js';
 
@@ -61,6 +62,37 @@ export const PackagingView: React.FC<PackagingViewProps> = ({ runs }) => {
     }
   }, [runs, selectedRunId]);
 
+  const handlePackagingUnitCreated = useCallback(
+    ({ runId, unit }: { runId: string; unit: PackagingUnit }) => {
+      if (runId === selectedRunId) {
+        setUnits((prev) => [unit, ...prev.filter((u) => u.id !== unit.id)]);
+        void api.reconcileRunPackaging(runId).then(setReconciliation).catch(console.error);
+      }
+    },
+    [selectedRunId],
+  );
+
+  const handlePackagingReconciled = useCallback(
+    (data: RunReconciliation) => {
+      if (data.runId === selectedRunId) {
+        setReconciliation(data);
+      }
+    },
+    [selectedRunId],
+  );
+
+  const { connected, subscribeModule, unsubscribeModule } = useTelemetrySocket({
+    onPackagingUnitCreated: handlePackagingUnitCreated,
+    onPackagingReconciled: handlePackagingReconciled,
+  });
+
+  useEffect(() => {
+    subscribeModule('packaging');
+    return () => {
+      unsubscribeModule('packaging');
+    };
+  }, [subscribeModule, unsubscribeModule]);
+
   const handleCreatePackagingUnit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRunId || partCount <= 0) return;
@@ -104,6 +136,20 @@ export const PackagingView: React.FC<PackagingViewProps> = ({ runs }) => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+              connected
+                ? 'bg-[#E3FCEF] text-[#006644] border border-[#ABF5D1]'
+                : 'bg-[#F1F2F4] text-[#505258] border border-[#DCDFE4]'
+            }`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                connected ? 'bg-[#00875A] animate-pulse' : 'bg-[#8C8F97]'
+              }`}
+            />
+            {connected ? 'Live Sync' : 'Connecting'}
+          </span>
           <button
             type="button"
             onClick={() => void loadPackagingData()}

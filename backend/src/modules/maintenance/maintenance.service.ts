@@ -1,14 +1,18 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
 import { CreatePmScheduleDto } from './dto/create-pm-schedule.dto.js';
 import { CreateMaintenanceWorkOrderDto } from './dto/create-work-order.dto.js';
 import { UpdateMaintenanceWorkOrderDto } from './dto/update-work-order.dto.js';
+import { TelemetryGateway } from '../telemetry/telemetry.gateway.js';
 
 @Injectable()
 export class MaintenanceService {
   private readonly logger = new Logger(MaintenanceService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly gateway?: TelemetryGateway,
+  ) {}
 
   async createSchedule(dto: CreatePmScheduleDto) {
     const mold = await this.prisma.mold.findUnique({
@@ -69,10 +73,20 @@ export class MaintenanceService {
       },
     });
 
-    return {
+    const result = {
       ...order,
       triggerShots: order.triggerShots ? order.triggerShots.toString() : null,
     };
+
+    if (this.gateway) {
+      this.gateway.broadcastMaintenanceEvent('maintenance:work_order_created', {
+        workOrder: result,
+        moldId: order.moldId,
+        moldCode: order.mold?.code,
+      });
+    }
+
+    return result;
   }
 
   async findAllWorkOrders(filter?: {
@@ -116,10 +130,20 @@ export class MaintenanceService {
       throw new NotFoundException(`Maintenance work order with ID "${id}" not found`);
     }
 
-    return {
+    const result = {
       ...order,
       triggerShots: order.triggerShots ? order.triggerShots.toString() : null,
     };
+
+    if (this.gateway) {
+      this.gateway.broadcastMaintenanceEvent('maintenance:work_order_created', {
+        workOrder: result,
+        moldId: order.moldId,
+        moldCode: order.mold?.code,
+      });
+    }
+
+    return result;
   }
 
   async updateWorkOrder(id: string, dto: UpdateMaintenanceWorkOrderDto) {
@@ -187,7 +211,7 @@ export class MaintenanceService {
 
         if (!existingOpenWo) {
           const orderNumber = `WO-PM-${moldId.slice(0, 6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
-          await this.prisma.maintenanceWorkOrder.create({
+          const createdWo = await this.prisma.maintenanceWorkOrder.create({
             data: {
               orderNumber,
               moldId,
@@ -201,10 +225,26 @@ export class MaintenanceService {
                 reason: `Threshold of ${schedule.intervalShots.toString()} shots reached`,
               }),
             },
+            include: {
+              mold: true,
+              machine: true,
+            },
           });
           this.logger.warn(
             `Auto-generated PM Work Order "${orderNumber}" for Mold "${moldId}" at ${currentTotalShots.toString()} shots.`,
           );
+
+          if (this.gateway) {
+            this.gateway.broadcastMaintenanceEvent('maintenance:work_order_created', {
+              workOrder: {
+                ...createdWo,
+                triggerShots: currentTotalShots.toString(),
+              },
+              moldId,
+              moldCode: createdWo.mold?.code,
+              reason: `Threshold of ${schedule.intervalShots.toString()} shots reached`,
+            });
+          }
         }
       }
     }

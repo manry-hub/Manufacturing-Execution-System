@@ -12,6 +12,7 @@ import {
   Box,
 } from 'lucide-react';
 import { api } from '../../services/api.js';
+import { useTelemetrySocket } from '../../hooks/useTelemetrySocket.js';
 import type { Material, MaterialLot, RunGenealogy, LotGenealogy } from '../../types/materials.js';
 import type { ProductionRun } from '../../types/production.js';
 
@@ -95,7 +96,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({ runs }) => {
   };
 
   // Perform Genealogy Search
-  const handleSearchGenealogy = async () => {
+  const handleSearchGenealogy = useCallback(async () => {
     setIsSearchingGenealogy(true);
     setFeedbackMessage(null);
     try {
@@ -118,7 +119,63 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({ runs }) => {
     } finally {
       setIsSearchingGenealogy(false);
     }
-  };
+  }, [genealogyMode, selectedRunId, searchLotQuery]);
+
+  const handleHopperLoaded = useCallback(
+    ({ materialLotId, remainingLotQtyKg }: { materialLotId: string; remainingLotQtyKg: number }) => {
+      setLots((prev) =>
+        prev.map((lot) =>
+          lot.id === materialLotId
+            ? { ...lot, currentQuantityKg: remainingLotQtyKg }
+            : lot,
+        ),
+      );
+    },
+    [],
+  );
+
+  const handleLotStockUpdated = useCallback(
+    ({
+      lotId,
+      remainingQtyKg,
+      status,
+    }: {
+      lotId: string;
+      remainingQtyKg: number;
+      status: string;
+    }) => {
+      setLots((prev) =>
+        prev.map((lot) =>
+          lot.id === lotId
+            ? { ...lot, currentQuantityKg: remainingQtyKg, status: status as MaterialLot['status'] }
+            : lot,
+        ),
+      );
+    },
+    [],
+  );
+
+  const handleHopperDepleted = useCallback(
+    ({ runId }: { runId: string }) => {
+      if (activeSubTab === 'genealogy' && genealogyMode === 'run' && selectedRunId === runId) {
+        void handleSearchGenealogy();
+      }
+    },
+    [activeSubTab, genealogyMode, selectedRunId, handleSearchGenealogy],
+  );
+
+  const { connected, subscribeModule, unsubscribeModule } = useTelemetrySocket({
+    onHopperLoaded: handleHopperLoaded,
+    onLotStockUpdated: handleLotStockUpdated,
+    onHopperDepleted: handleHopperDepleted,
+  });
+
+  useEffect(() => {
+    subscribeModule('materials');
+    return () => {
+      unsubscribeModule('materials');
+    };
+  }, [subscribeModule, unsubscribeModule]);
 
   return (
     <div className="space-y-6">
@@ -131,6 +188,20 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({ runs }) => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+              connected
+                ? 'bg-[#E3FCEF] text-[#006644] border border-[#ABF5D1]'
+                : 'bg-[#F1F2F4] text-[#505258] border border-[#DCDFE4]'
+            }`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                connected ? 'bg-[#00875A] animate-pulse' : 'bg-[#8C8F97]'
+              }`}
+            />
+            {connected ? 'Live Sync' : 'Connecting'}
+          </span>
           <button
             type="button"
             onClick={() => void loadData()}

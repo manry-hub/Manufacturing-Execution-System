@@ -7,6 +7,7 @@ import {
   Sparkles,
   CheckCircle2,
   Trash2,
+  Lock,
 } from 'lucide-react';
 import type { Machine } from '../../../types/machine.js';
 import type { ProductionRun } from '../../../types/production.js';
@@ -54,6 +55,26 @@ export const MachineDetailView: React.FC<MachineDetailViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Quality Interlock Quarantine Banner */}
+      {machine.isInterlocked && (
+        <div className="bg-[#FFECEB] border border-[#FD9891] rounded-lg p-4 flex items-center justify-between gap-3 text-[#AE2E24] shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-[#FFE5E5] text-[#C9372C]">
+              <Lock className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-[#AE2E24]">Quality Quarantine Interlock Engaged</h2>
+              <p className="text-xs text-[#505258] mt-0.5">
+                {machine.interlockReason ?? 'First-piece inspection failed or run placed under quarantine. Machine cycle injection is interlocked.'}
+              </p>
+            </div>
+          </div>
+          <span className="px-2.5 py-1 text-xs font-bold uppercase rounded bg-[#C9372C] text-white tracking-wider">
+            LOCKED OUT
+          </span>
+        </div>
+      )}
+
       {/* Top Navigation & Machine Selector Header */}
       <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-5 flex flex-wrap items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-4">

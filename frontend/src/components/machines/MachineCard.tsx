@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   AlertOctagon,
   Sparkles,
+  Lock,
 } from 'lucide-react';
 import type { Machine } from '../../types/machine.js';
 import type { ProductionRun } from '../../types/production.js';
@@ -199,6 +200,17 @@ export const MachineCard: React.FC<MachineCardProps> = ({
         <div className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-[3px] bg-[#FFF5DB] text-[#693200] border border-[#E06C00] font-bold text-xs tracking-wide flex items-center gap-1 shadow-xs">
           <Sparkles className="h-3 w-3 text-[#E06C00]" />
           <span>Scenario: slow cycle</span>
+        </div>
+      )}
+
+      {/* Quality Interlock badge */}
+      {machine.isInterlocked && (
+        <div
+          title={machine.interlockReason ?? 'Quarantine interlock active'}
+          className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-[3px] bg-[#FFECEB] text-[#AE2E24] border border-[#FD9891] font-bold text-xs tracking-wide flex items-center gap-1 shadow-xs"
+        >
+          <Lock className="h-3 w-3 text-[#C9372C]" />
+          <span>QC Interlock</span>
         </div>
       )}
     </div>

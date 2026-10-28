@@ -77,6 +77,8 @@ export interface Machine {
   isFaultActive?: boolean;
   activeFaultCode?: string | null;
   isDisconnected?: boolean;
+  isInterlocked?: boolean;
+  interlockReason?: string;
   latestMetrics?: TelemetryMetrics;
 }
 

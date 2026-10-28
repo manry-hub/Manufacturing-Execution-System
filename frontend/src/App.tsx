@@ -134,12 +134,41 @@ const DashboardContent: React.FC = () => {
     void api.getAndonTickets().then(setTickets);
   }, [handleTelemetryEvent]);
 
+  const handleMachineInterlockState = useCallback(
+    ({ machineId, isInterlocked, reason }: { machineId: string; isInterlocked: boolean; reason?: string }) => {
+      setMachines((prev) =>
+        prev.map((m) => {
+          if (m.id === machineId || m.code === machineId) {
+            return {
+              ...m,
+              isInterlocked,
+              interlockReason: reason,
+            };
+          }
+          return m;
+        }),
+      );
+      setSelectedMachineForDetail((prev) => {
+        if (prev && (prev.id === machineId || prev.code === machineId)) {
+          return {
+            ...prev,
+            isInterlocked,
+            interlockReason: reason,
+          };
+        }
+        return prev;
+      });
+    },
+    [],
+  );
+
   const { connected, latencyMs } = useTelemetrySocket({
     onEvent: handleTelemetryEvent,
     onCycleCompleted: handleCycleCompleted,
     onStateChanged: handleStateChanged,
     onFaultAsserted: handleFaultAsserted,
     onFaultCleared: handleFaultCleared,
+    onMachineInterlockState: handleMachineInterlockState,
   });
 
   // Simulator actions

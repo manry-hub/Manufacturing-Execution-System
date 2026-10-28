@@ -14,6 +14,7 @@ import {
   Move,
 } from 'lucide-react';
 import { api } from '../../services/api.js';
+import { useTelemetrySocket } from '../../hooks/useTelemetrySocket.js';
 import type { Machine } from '../../types/machine.js';
 import type { ProductionOrder, Mold } from '../../types/production.js';
 import type {
@@ -139,6 +140,19 @@ export const SchedulingView: React.FC = () => {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  const { connected, subscribeModule, unsubscribeModule } = useTelemetrySocket({
+    onSchedulingUpdated: () => {
+      void loadData();
+    },
+  });
+
+  useEffect(() => {
+    subscribeModule('scheduling');
+    return () => {
+      unsubscribeModule('scheduling');
+    };
+  }, [subscribeModule, unsubscribeModule]);
 
   // Compute timeline boundaries and hours for grid headers
   const timeHeaderSlots = useMemo(() => {
@@ -495,6 +509,22 @@ export const SchedulingView: React.FC = () => {
               {backlogOrders.length}
             </span>
           </button>
+
+          {/* Live Sync Badge */}
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[32px] rounded-md text-xs font-semibold ${
+              connected
+                ? 'bg-[#E3FCEF] text-[#006644] border border-[#ABF5D1]'
+                : 'bg-[#F1F2F4] text-[#505258] border border-[#DCDFE4]'
+            }`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                connected ? 'bg-[#00875A] animate-pulse' : 'bg-[#8C8F97]'
+              }`}
+            />
+            {connected ? 'Live Sync' : 'Connecting'}
+          </span>
 
           {/* Refresh Button */}
           <button

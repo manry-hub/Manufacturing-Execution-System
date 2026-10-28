@@ -249,6 +249,33 @@ To balance deep vertical equipment telemetry (plastic injection mechanics) with 
        └──► [Discrepancy (Delta > 1%): Trigger Count Variance Warning for Supervisor Audit]
 ```
 
+### 4.7 Real-Time Module Synchronization & WebSocket Room Topology
+
+```text
+                                 SOCKET.IO GATEWAY (/ws/telemetry)
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                                        │
+│  Global Rooms:                                                                                         │
+│  • plant:all                           ──► All connected clients (Supervisor Control Room)            │
+│  • machine:{machineId}                 ──► Machine-specific cards & detail views                       │
+│                                                                                                        │
+│  Specialized Module Rooms:                                                                             │
+│  • module:packaging   ──► packaging:unit_created, packaging:reconciled                                 │
+│  • module:maintenance ──► maintenance:work_order_created, maintenance:work_order_updated,               │
+│                           mold:stroke_accumulated                                                      │
+│  • module:quality     ──► quality:check_recorded, quality:first_piece_status_changed,                  │
+│                           machine:interlock_state                                                      │
+│  • module:materials   ──► materials:hopper_loaded, materials:hopper_depleted, materials:lot_stock_updated│
+│  • module:scheduling  ──► scheduling:timeline_updated, scheduling:order_scheduled,                     │
+│                           scheduling:order_rescheduled, scheduling:changeover_updated                  │
+│                                                                                                        │
+│  Reactive Interlock Action:                                                                            │
+│  QC REJECT / QUARANTINE ──► machine:interlock_state (isInterlocked: true)                              │
+│                         ──► MachineCard & MachineDetailView lock badge & cycle lockout banner          │
+│                                                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 5. Security Plan
