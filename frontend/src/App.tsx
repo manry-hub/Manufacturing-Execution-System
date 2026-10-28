@@ -233,7 +233,7 @@ const DashboardContent: React.FC = () => {
   const openTickets = tickets.filter((t) => t.status === 'OPEN');
 
   return (
-    <div className="min-h-screen bg-[#F8F8F8] text-[#292A2E] flex font-sans">
+    <div className="h-screen h-[100dvh] bg-[#F8F8F8] text-[#292A2E] flex font-sans overflow-hidden">
       {/* Atlassian Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -248,7 +248,7 @@ const DashboardContent: React.FC = () => {
       />
 
       {/* Main App Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Top Header */}
         <Header
           activeTab={activeTab}
@@ -269,7 +269,7 @@ const DashboardContent: React.FC = () => {
         />
 
         {/* Main Container */}
-        <main id="main-content" className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6">
+        <main id="main-content" className="flex-1 overflow-y-auto overscroll-contain w-full px-4 sm:px-6 lg:px-8 py-6">
         {fetchError && (
           <div className="mb-6 p-4 rounded-lg bg-[#FFECEB] border border-[#E2483D] text-[#292A2E] flex items-center justify-between">
             <div className="flex items-center gap-3">

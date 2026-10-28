@@ -31,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   const currentItem = currentGroup?.items.find((item) => item.id === activeTab);
 
   return (
-    <header className="sticky top-0 z-30 h-14 bg-[#FFFFFF] border-b border-[#0B120E24] px-4 sm:px-6 flex items-center justify-between">
+    <header className="sticky top-0 z-30 h-14 bg-[#FFFFFF] border-b border-[#0B120E24] px-4 sm:px-6 flex items-center justify-between flex-shrink-0">
       {/* Left: Mobile Toggle & Breadcrumbs */}
       <div className="flex items-center gap-3">
         {/* Mobile menu toggle button */}

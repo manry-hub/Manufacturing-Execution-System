@@ -10,6 +10,7 @@ Date: 2026-10-28
 - [x] Provide mobile drawer overlay support with accessible backdrop dismiss and auto-close upon navigation.
 - [x] Remove obsolete horizontal `Navbar.tsx` component and update `App.tsx` shell layout.
 - [x] Widen main container from restrictive `max-w-7xl` to fluid `w-full px-4 sm:px-6 lg:px-8 py-6` to eliminate excessive side margins and provide optimal card grid spacing on widescreen displays.
+- [x] Implement independent scroll containers: anchor sidebar to `md:h-full flex-shrink-0` with scrollable `<nav>`, pin top header/banner with `flex-shrink-0`, and isolate dashboard scrolling to `<main className="flex-1 overflow-y-auto overscroll-contain">`.
 - [x] Verify WCAG AA accessibility, label associations, no micro-fonts (<12px), clean build, and 0 Oxlint warnings/errors.
 - [x] Perform live browser verification with Playwright (desktop, mobile drawer, accordion toggle, view switching).
 

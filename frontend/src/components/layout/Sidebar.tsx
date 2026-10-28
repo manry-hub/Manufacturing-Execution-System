@@ -183,7 +183,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Main Sidebar Element */}
       <aside
         aria-label="Main sidebar navigation"
-        className={`fixed top-0 bottom-0 left-0 z-50 bg-[#FFFFFF] border-r border-[#0B120E24] flex flex-col transition-all duration-200 ease-in-out md:static ${
+        className={`fixed inset-y-0 left-0 z-50 bg-[#FFFFFF] border-r border-[#0B120E24] flex flex-col transition-all duration-200 ease-in-out md:static md:h-full flex-shrink-0 ${
           isOpenMobile ? 'translate-x-0 w-64 shadow-xl' : '-translate-x-full md:translate-x-0'
         } ${isCollapsed ? 'md:w-16' : 'md:w-64'}`}
       >
