@@ -48,6 +48,7 @@ export class MqttIngestionService implements OnModuleInit, OnModuleDestroy {
   private lastConnectedAt: Date | null = null;
   private lastPacketReceivedAt: Date | null = null;
   private readonly startedAt = new Date();
+  private hasLoggedUnreachable = false;
 
   // Metrics
   private totalPacketsReceived = 0;
@@ -107,12 +108,13 @@ export class MqttIngestionService implements OnModuleInit, OnModuleDestroy {
         clientId: `mes-backend-ingestion-${Math.random().toString(16).slice(2, 8)}`,
         clean: true,
         connectTimeout: 5000,
-        reconnectPeriod: 5000,
+        reconnectPeriod: 10000,
       });
 
       this.client.on('connect', () => {
         this.isConnected = true;
         this.connectionStatus = 'CONNECTED';
+        this.hasLoggedUnreachable = false;
         this.lastConnectedAt = new Date();
         this.logger.log(`Successfully connected to MQTT Broker at ${this.brokerUrl}`);
 
@@ -133,18 +135,33 @@ export class MqttIngestionService implements OnModuleInit, OnModuleDestroy {
 
       this.client.on('reconnect', () => {
         this.connectionStatus = 'RECONNECTING';
-        this.logger.debug('Reconnecting to MQTT broker...');
+        if (this.isConnected) {
+          this.logger.debug('Reconnecting to MQTT broker...');
+        }
       });
 
       this.client.on('offline', () => {
-        this.isConnected = false;
-        this.connectionStatus = 'DISCONNECTED';
-        this.logger.warn('MQTT Broker is offline');
+        if (this.isConnected) {
+          this.isConnected = false;
+          this.connectionStatus = 'DISCONNECTED';
+          this.logger.warn('MQTT Broker is offline');
+        }
       });
 
-      this.client.on('error', (err) => {
-        this.connectionStatus = 'ERROR';
-        this.logger.error(`MQTT Client error: ${err.message}`);
+      this.client.on('error', (err: any) => {
+        this.connectionStatus = 'DISCONNECTED';
+        const errDetail = err?.code || err?.message || 'Connection refused';
+
+        if (!this.isConnected) {
+          if (!this.hasLoggedUnreachable) {
+            this.hasLoggedUnreachable = true;
+            this.logger.warn(
+              `MQTT Broker at ${this.brokerUrl} is offline (${errDetail}). Telemetry pipeline running in standalone mode. (Run 'docker compose up -d mosquitto' to start MQTT broker, or set MQTT_ENABLED=false in .env)`,
+            );
+          }
+        } else {
+          this.logger.error(`MQTT Client error: ${errDetail}`);
+        }
       });
     } catch (err: any) {
       this.connectionStatus = 'ERROR';
