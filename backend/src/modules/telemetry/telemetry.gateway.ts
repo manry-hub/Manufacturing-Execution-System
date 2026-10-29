@@ -113,6 +113,23 @@ export class TelemetryGateway implements OnGatewayInit, OnGatewayConnection, OnG
   }
 
   /**
+   * Broadcasts production run lifecycle events (e.g. released to active).
+   */
+  public broadcastProductionEvent(
+    event:
+      | 'production:run_started'
+      | 'production:run_released'
+      | 'production:run_paused'
+      | 'production:run_resumed'
+      | 'production:run_completed',
+    payload: any,
+  ) {
+    if (!this.server) return;
+    this.server.to('module:production').emit(event, payload);
+    this.server.to('plant:all').emit(event, payload);
+  }
+
+  /**
    * Broadcasts packaging unit and reconciliation events.
    */
   public broadcastPackagingEvent(

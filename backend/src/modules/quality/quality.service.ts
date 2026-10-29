@@ -237,4 +237,198 @@ export class QualityService {
       firstPieceCheck: releasedFirstPiece ?? null,
     };
   }
+
+  async calculateCpk(params?: { productId?: string; planItemId?: string; runId?: string }) {
+    // 1. Fetch relevant variable plan items
+    const planItemsWhere: Prisma.InspectionPlanItemWhereInput = {
+      measurementType: 'VARIABLE',
+    };
+
+    if (params?.planItemId) {
+      planItemsWhere.id = params.planItemId;
+    }
+    if (params?.productId) {
+      planItemsWhere.plan = {
+        productId: params.productId,
+      };
+    }
+
+    const planItems = await this.prisma.inspectionPlanItem.findMany({
+      where: planItemsWhere,
+      include: {
+        plan: {
+          include: {
+            product: {
+              select: { id: true, partNumber: true, name: true },
+            },
+          },
+        },
+      },
+      orderBy: { sequence: 'asc' },
+    });
+
+    if (planItems.length === 0) {
+      return {
+        runId: params?.runId,
+        productId: params?.productId,
+        metrics: [],
+        overallStatus: 'INSUFFICIENT_DATA' as const,
+      };
+    }
+
+    // 2. Fetch quality check samples for these plan items
+    const samplesWhere: Prisma.QualityCheckSampleWhereInput = {
+      planItemId: { in: planItems.map((p) => p.id) },
+      measuredValue: { not: null },
+    };
+
+    if (params?.runId) {
+      samplesWhere.qualityCheck = {
+        runId: params.runId,
+      };
+    }
+
+    const samples = await this.prisma.qualityCheckSample.findMany({
+      where: samplesWhere,
+      include: {
+        qualityCheck: {
+          select: { id: true, runId: true, checkedAt: true, checkType: true, disposition: true },
+        },
+      },
+      orderBy: { qualityCheck: { checkedAt: 'asc' } },
+    });
+
+    // 3. Group samples by planItemId
+    const samplesByItem = new Map<string, Array<{ measuredValue: number; timestamp: Date }>>();
+    for (const s of samples) {
+      if (s.measuredValue !== null) {
+        const arr = samplesByItem.get(s.planItemId) ?? [];
+        arr.push({
+          measuredValue: Number(s.measuredValue),
+          timestamp: s.qualityCheck.checkedAt,
+        });
+        samplesByItem.set(s.planItemId, arr);
+      }
+    }
+
+    // 4. Calculate CPK metrics for each item
+    const metrics = planItems.map((item) => {
+      const itemSamples = samplesByItem.get(item.id) ?? [];
+      const values = itemSamples.map((s) => s.measuredValue);
+      const n = values.length;
+
+      const targetVal = item.targetValue !== null ? Number(item.targetValue) : null;
+      const usl = item.upperTolerance !== null ? Number(item.upperTolerance) : null;
+      const lsl = item.lowerTolerance !== null ? Number(item.lowerTolerance) : null;
+
+      if (n < 2) {
+        return {
+          planItemId: item.id,
+          parameterName: item.parameterName,
+          targetValue: targetVal,
+          upperTolerance: usl,
+          lowerTolerance: lsl,
+          sampleCount: n,
+          mean: n === 1 ? values[0] : (targetVal ?? 0),
+          standardDeviation: 0,
+          cp: null,
+          cpu: null,
+          cpl: null,
+          cpk: null,
+          status: 'INSUFFICIENT_DATA' as const,
+          sampleValues: values,
+        };
+      }
+
+      const sum = values.reduce((acc, val) => acc + val, 0);
+      const mean = sum / n;
+
+      const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / (n - 1);
+      const stdDev = Math.sqrt(variance);
+
+      let cp: number | null = null;
+      let cpu: number | null = null;
+      let cpl: number | null = null;
+      let cpk: number | null = null;
+      let status: 'CAPABLE' | 'MARGINAL' | 'INCAPABLE' | 'INSUFFICIENT_DATA' = 'INSUFFICIENT_DATA';
+
+      if (stdDev === 0) {
+        const isWithinLimits =
+          (usl === null || mean <= usl) && (lsl === null || mean >= lsl);
+        if (isWithinLimits) {
+          cp = 99.99;
+          cpk = 99.99;
+          status = 'CAPABLE';
+        } else {
+          cp = 0;
+          cpk = 0;
+          status = 'INCAPABLE';
+        }
+      } else {
+        if (usl !== null && lsl !== null) {
+          cp = (usl - lsl) / (6 * stdDev);
+        }
+        if (usl !== null) {
+          cpu = (usl - mean) / (3 * stdDev);
+        }
+        if (lsl !== null) {
+          cpl = (mean - lsl) / (3 * stdDev);
+        }
+
+        if (cpu !== null && cpl !== null) {
+          cpk = Math.min(cpu, cpl);
+        } else if (cpu !== null) {
+          cpk = cpu;
+        } else if (cpl !== null) {
+          cpk = cpl;
+        }
+
+        if (cpk !== null) {
+          if (cpk >= 1.33) {
+            status = 'CAPABLE';
+          } else if (cpk >= 1.0) {
+            status = 'MARGINAL';
+          } else {
+            status = 'INCAPABLE';
+          }
+        }
+      }
+
+      return {
+        planItemId: item.id,
+        parameterName: item.parameterName,
+        targetValue: targetVal,
+        upperTolerance: usl,
+        lowerTolerance: lsl,
+        sampleCount: n,
+        mean: Math.round(mean * 1000) / 1000,
+        standardDeviation: Math.round(stdDev * 1000) / 1000,
+        cp: cp !== null ? Math.round(cp * 100) / 100 : null,
+        cpu: cpu !== null ? Math.round(cpu * 100) / 100 : null,
+        cpl: cpl !== null ? Math.round(cpl * 100) / 100 : null,
+        cpk: cpk !== null ? Math.round(cpk * 100) / 100 : null,
+        status,
+        sampleValues: values,
+      };
+    });
+
+    let overallStatus: 'CAPABLE' | 'MARGINAL' | 'INCAPABLE' | 'INSUFFICIENT_DATA' = 'INSUFFICIENT_DATA';
+    const validMetrics = metrics.filter((m) => m.status !== 'INSUFFICIENT_DATA');
+    if (validMetrics.length > 0) {
+      if (validMetrics.some((m) => m.status === 'INCAPABLE')) {
+        overallStatus = 'INCAPABLE';
+      } else if (validMetrics.some((m) => m.status === 'MARGINAL')) {
+        overallStatus = 'MARGINAL';
+      } else {
+        overallStatus = 'CAPABLE';
+      }
+    }
+
+    return {
+      runId: params?.runId,
+      productId: params?.productId,
+      metrics,
+      overallStatus,
+    };
+  }
 }

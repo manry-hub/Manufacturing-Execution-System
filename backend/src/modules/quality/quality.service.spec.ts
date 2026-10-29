@@ -30,6 +30,9 @@ describe('QualityService', () => {
         findMany: vi.fn(),
         findFirst: vi.fn(),
       },
+      qualityCheckSample: {
+        findMany: vi.fn(),
+      },
     };
 
     service = new QualityService(mockPrisma as unknown as PrismaService);
@@ -133,6 +136,119 @@ describe('QualityService', () => {
       const res = await service.checkFirstPieceReleaseStatus('run-1');
       expect(res.isReleased).toBe(true);
       expect(res.firstPieceCheck?.id).toBe('qc-1');
+    });
+  });
+
+  describe('calculateCpk', () => {
+    it('should return INSUFFICIENT_DATA if no variable plan items exist', async () => {
+      mockPrisma.inspectionPlanItem.findMany.mockResolvedValue([]);
+
+      const result = await service.calculateCpk({ productId: 'prod-1' });
+      expect(result.metrics).toHaveLength(0);
+      expect(result.overallStatus).toBe('INSUFFICIENT_DATA');
+    });
+
+    it('should return INSUFFICIENT_DATA if plan item has fewer than 2 samples', async () => {
+      mockPrisma.inspectionPlanItem.findMany.mockResolvedValue([
+        {
+          id: 'item-1',
+          parameterName: 'Wall Thickness',
+          measurementType: 'VARIABLE',
+          targetValue: new Prisma.Decimal(2.5),
+          lowerTolerance: new Prisma.Decimal(2.3),
+          upperTolerance: new Prisma.Decimal(2.7),
+        },
+      ]);
+      mockPrisma.qualityCheckSample.findMany.mockResolvedValue([
+        {
+          planItemId: 'item-1',
+          measuredValue: new Prisma.Decimal(2.51),
+          qualityCheck: { checkedAt: new Date() },
+        },
+      ]);
+
+      const result = await service.calculateCpk({ runId: 'run-1' });
+      expect(result.metrics).toHaveLength(1);
+      expect(result.metrics[0].status).toBe('INSUFFICIENT_DATA');
+      expect(result.metrics[0].sampleCount).toBe(1);
+      expect(result.metrics[0].mean).toBe(2.51);
+      expect(result.overallStatus).toBe('INSUFFICIENT_DATA');
+    });
+
+    it('should calculate CAPABLE status when Cpk >= 1.33', async () => {
+      mockPrisma.inspectionPlanItem.findMany.mockResolvedValue([
+        {
+          id: 'item-1',
+          parameterName: 'Wall Thickness',
+          measurementType: 'VARIABLE',
+          targetValue: new Prisma.Decimal(2.5),
+          lowerTolerance: new Prisma.Decimal(2.3),
+          upperTolerance: new Prisma.Decimal(2.7),
+        },
+      ]);
+      // Mean 2.50, highly stable values
+      mockPrisma.qualityCheckSample.findMany.mockResolvedValue([
+        { planItemId: 'item-1', measuredValue: new Prisma.Decimal(2.50), qualityCheck: { checkedAt: new Date() } },
+        { planItemId: 'item-1', measuredValue: new Prisma.Decimal(2.51), qualityCheck: { checkedAt: new Date() } },
+        { planItemId: 'item-1', measuredValue: new Prisma.Decimal(2.49), qualityCheck: { checkedAt: new Date() } },
+        { planItemId: 'item-1', measuredValue: new Prisma.Decimal(2.50), qualityCheck: { checkedAt: new Date() } },
+      ]);
+
+      const result = await service.calculateCpk({ runId: 'run-1' });
+      expect(result.metrics).toHaveLength(1);
+      const metric = result.metrics[0];
+      expect(metric.status).toBe('CAPABLE');
+      expect(metric.cpk).toBeGreaterThanOrEqual(1.33);
+      expect(result.overallStatus).toBe('CAPABLE');
+    });
+
+    it('should calculate INCAPABLE status when Cpk < 1.00', async () => {
+      mockPrisma.inspectionPlanItem.findMany.mockResolvedValue([
+        {
+          id: 'item-1',
+          parameterName: 'Wall Thickness',
+          measurementType: 'VARIABLE',
+          targetValue: new Prisma.Decimal(2.5),
+          lowerTolerance: new Prisma.Decimal(2.4),
+          upperTolerance: new Prisma.Decimal(2.6),
+        },
+      ]);
+      // High variance shifting near upper limit
+      mockPrisma.qualityCheckSample.findMany.mockResolvedValue([
+        { planItemId: 'item-1', measuredValue: new Prisma.Decimal(2.42), qualityCheck: { checkedAt: new Date() } },
+        { planItemId: 'item-1', measuredValue: new Prisma.Decimal(2.59), qualityCheck: { checkedAt: new Date() } },
+        { planItemId: 'item-1', measuredValue: new Prisma.Decimal(2.39), qualityCheck: { checkedAt: new Date() } },
+        { planItemId: 'item-1', measuredValue: new Prisma.Decimal(2.58), qualityCheck: { checkedAt: new Date() } },
+      ]);
+
+      const result = await service.calculateCpk({ runId: 'run-1' });
+      expect(result.metrics).toHaveLength(1);
+      const metric = result.metrics[0];
+      expect(metric.status).toBe('INCAPABLE');
+      expect(metric.cpk).toBeLessThan(1.0);
+      expect(result.overallStatus).toBe('INCAPABLE');
+    });
+
+    it('should handle zero variance correctly when identical samples are in tolerance', async () => {
+      mockPrisma.inspectionPlanItem.findMany.mockResolvedValue([
+        {
+          id: 'item-1',
+          parameterName: 'Wall Thickness',
+          measurementType: 'VARIABLE',
+          targetValue: new Prisma.Decimal(2.5),
+          lowerTolerance: new Prisma.Decimal(2.3),
+          upperTolerance: new Prisma.Decimal(2.7),
+        },
+      ]);
+      mockPrisma.qualityCheckSample.findMany.mockResolvedValue([
+        { planItemId: 'item-1', measuredValue: new Prisma.Decimal(2.5), qualityCheck: { checkedAt: new Date() } },
+        { planItemId: 'item-1', measuredValue: new Prisma.Decimal(2.5), qualityCheck: { checkedAt: new Date() } },
+      ]);
+
+      const result = await service.calculateCpk({ runId: 'run-1' });
+      expect(result.metrics).toHaveLength(1);
+      expect(result.metrics[0].status).toBe('CAPABLE');
+      expect(result.metrics[0].cpk).toBe(99.99);
     });
   });
 });

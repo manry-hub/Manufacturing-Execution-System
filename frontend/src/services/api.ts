@@ -4,7 +4,7 @@ import type { AndonTicket } from '../types/andon.js';
 import type { ProductionOrder, ProductionRun, Product, Mold, OrderOperationStep } from '../types/production.js';
 import type { OeeCalculationResult } from '../types/oee.js';
 import type { Material, MaterialLot, RunGenealogy, LotGenealogy, CartonGenealogy, QuarantineResponse, HopperLevel } from '../types/materials.js';
-import type { InspectionPlan, QualityCheck, FirstPieceReleaseStatus } from '../types/quality.js';
+import type { InspectionPlan, QualityCheck, FirstPieceReleaseStatus, CpkAnalyticsResponse } from '../types/quality.js';
 import type { MoldPmSchedule, MaintenanceWorkOrder } from '../types/maintenance.js';
 import type { PackagingUnit, RunReconciliation } from '../types/packaging.js';
 import type { SchedulingTimelineResponse, MoldChangeoverRule } from '../types/scheduling.js';
@@ -241,6 +241,12 @@ class ApiService {
     });
   }
 
+  public async releaseRunToActive(id: string): Promise<ProductionRun> {
+    return this.request<ProductionRun>(`/production/runs/${encodeURIComponent(id)}/release-to-active`, {
+      method: 'POST',
+    });
+  }
+
   public async recordScrap(runId: string, dto: {
     quantity: number;
     defectCode: string;
@@ -379,6 +385,19 @@ class ApiService {
 
   public async getFirstPieceStatus(runId: string): Promise<FirstPieceReleaseStatus> {
     return this.request<FirstPieceReleaseStatus>(`/quality/runs/${encodeURIComponent(runId)}/first-piece-status`);
+  }
+
+  public async getCpkAnalytics(params?: {
+    productId?: string;
+    planItemId?: string;
+    runId?: string;
+  }): Promise<CpkAnalyticsResponse> {
+    const queryParams = new URLSearchParams();
+    if (params?.productId) queryParams.append('productId', params.productId);
+    if (params?.planItemId) queryParams.append('planItemId', params.planItemId);
+    if (params?.runId) queryParams.append('runId', params.runId);
+    const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    return this.request<CpkAnalyticsResponse>(`/quality/cpk${query}`);
   }
 
   // --- Maintenance Endpoints ---

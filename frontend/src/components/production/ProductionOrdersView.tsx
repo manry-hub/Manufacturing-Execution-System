@@ -8,12 +8,14 @@ import {
   Layers,
   ArrowRight,
   Clock,
+  Play,
 } from 'lucide-react';
 import type { ProductionOrder, ProductionRun } from '../../types/production.js';
 import { StatusBadge } from '../common/StatusBadge.js';
 import { RecordScrapModal } from './RecordScrapModal.js';
 import { CreateOrderModal } from './CreateOrderModal.js';
 import { useAuth } from '../../context/AuthContext.js';
+import { api } from '../../services/api.js';
 
 interface ProductionOrdersViewProps {
   orders: ProductionOrder[];
@@ -39,6 +41,7 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
   onPauseRun,
   onCompleteRun,
   onRecordScrap,
+  onRefresh,
 }) => {
   const { role } = useAuth();
   const [activeSubTab, setActiveSubTab] = useState<'runs' | 'orders'>('runs');
@@ -200,6 +203,31 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
                               <Trash2 className="h-3 w-3" />
                               <span>Scrap</span>
                             </button>
+
+                            {/* Release Gated Setup Run */}
+                            {run.status === 'SETUP' && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    await api.releaseRunToActive(run.id);
+                                    void onRefresh();
+                                  } catch (err) {
+                                    alert(
+                                      err instanceof Error
+                                        ? err.message
+                                        : 'Cannot release run: First-Piece Quality Approval is required.',
+                                    );
+                                  }
+                                }}
+                                aria-label="Release run from SETUP to ACTIVE"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-[#5B7F24] hover:bg-[#4C6B1F] text-white transition-colors"
+                                title="Release run to ACTIVE serial production (requires First-Piece QC sign-off)"
+                              >
+                                <Play className="h-3 w-3 fill-current" />
+                                <span>Release</span>
+                              </button>
+                            )}
 
                             {/* Pause / Resume */}
                             {run.status === 'ACTIVE' && (

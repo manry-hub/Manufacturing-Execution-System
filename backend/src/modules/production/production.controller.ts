@@ -117,6 +117,12 @@ export class ProductionController {
     return this.runsService.resumeRun(id);
   }
 
+  @Post('runs/:id/release-to-active')
+  @HttpCode(HttpStatus.OK)
+  async releaseRunToActive(@Param('id') id: string) {
+    return this.runsService.releaseRunToActive(id);
+  }
+
   @Post('runs/:id/complete')
   @HttpCode(HttpStatus.OK)
   async completeRun(@Param('id') id: string) {

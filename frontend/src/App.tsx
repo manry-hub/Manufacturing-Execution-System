@@ -163,6 +163,15 @@ const DashboardContent: React.FC = () => {
     [],
   );
 
+  const handleProductionRunReleased = useCallback(
+    ({ runId }: { runId: string }) => {
+      setRuns((prev) =>
+        prev.map((r) => (r.id === runId ? { ...r, status: 'ACTIVE' } : r)),
+      );
+    },
+    [],
+  );
+
   const { connected, latencyMs } = useTelemetrySocket({
     onEvent: handleTelemetryEvent,
     onCycleCompleted: handleCycleCompleted,
@@ -170,6 +179,7 @@ const DashboardContent: React.FC = () => {
     onFaultAsserted: handleFaultAsserted,
     onFaultCleared: handleFaultCleared,
     onMachineInterlockState: handleMachineInterlockState,
+    onProductionRunReleased: handleProductionRunReleased,
   });
 
   // Simulator actions
@@ -387,7 +397,7 @@ const DashboardContent: React.FC = () => {
             {activeTab === 'scheduling' && <SchedulingView />}
 
             {/* View 4: Quality Control & First-Piece Gate */}
-            {activeTab === 'quality' && <QualityView runs={runs} />}
+            {activeTab === 'quality' && <QualityView runs={runs} onRefreshRuns={refreshData} />}
 
             {/* View 5: Raw Materials & Genealogy */}
             {activeTab === 'materials' && <MaterialsView runs={runs} />}

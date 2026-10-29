@@ -5,6 +5,7 @@ import type { PackagingUnit, RunReconciliation } from '../types/packaging.js';
 import type { MaintenanceWorkOrder } from '../types/maintenance.js';
 import type { QualityCheck, FirstPieceReleaseStatus } from '../types/quality.js';
 import type { MoldChangeoverRule } from '../types/scheduling.js';
+import type { ProductionRun } from '../types/production.js';
 
 export interface UseTelemetrySocketOptions {
   onEvent?: (event: TelemetryEventPayload) => void;
@@ -26,6 +27,9 @@ export interface UseTelemetrySocketOptions {
   onQualityCheckRecorded?: (data: { runId: string; check: QualityCheck; disposition: string }) => void;
   onFirstPieceStatusChanged?: (data: FirstPieceReleaseStatus & { runId?: string }) => void;
   onMachineInterlockState?: (data: { machineId: string; isInterlocked: boolean; reason?: string }) => void;
+
+  // Production Run Events
+  onProductionRunReleased?: (data: { runId: string; run: ProductionRun }) => void;
 
   // Material Events
   onHopperLoaded?: (data: {
@@ -142,6 +146,9 @@ export function useTelemetrySocket(options: UseTelemetrySocketOptions = {}) {
     });
     socket.on('machine:interlock_state', (payload) => {
       callbacksRef.current.onMachineInterlockState?.(payload);
+    });
+    socket.on('production:run_released', (payload) => {
+      callbacksRef.current.onProductionRunReleased?.(payload);
     });
 
     socket.on('materials:hopper_loaded', (payload) => {

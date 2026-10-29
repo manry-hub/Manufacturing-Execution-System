@@ -10,6 +10,8 @@ describe('RunsService', () => {
   let mockPrisma: any;
   let mockTelemetryService: any;
   let mockMaintenanceService: any;
+  let mockQualityService: any;
+  let mockGateway: any;
   let telemetryStream$: Subject<any>;
 
   beforeEach(() => {
@@ -19,6 +21,15 @@ describe('RunsService', () => {
     };
     mockMaintenanceService = {
       checkMoldPmThreshold: vi.fn().mockResolvedValue(undefined),
+    };
+    mockQualityService = {
+      checkFirstPieceReleaseStatus: vi.fn(),
+    };
+    mockGateway = {
+      broadcastMaintenanceEvent: vi.fn(),
+      broadcastMaterialsEvent: vi.fn(),
+      broadcastQualityEvent: vi.fn(),
+      broadcastProductionEvent: vi.fn(),
     };
 
     mockPrisma = {
@@ -56,6 +67,8 @@ describe('RunsService', () => {
       mockPrisma as unknown as PrismaService,
       mockTelemetryService as unknown as TelemetryIngestionService,
       mockMaintenanceService as any,
+      mockQualityService as any,
+      mockGateway as any,
     );
   });
 
@@ -228,6 +241,85 @@ describe('RunsService', () => {
         }),
       );
       expect(mockPrisma.mold.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('releaseRunToActive', () => {
+    it('should return run directly if already in ACTIVE status', async () => {
+      mockPrisma.productionRun.findUnique.mockResolvedValue({
+        id: 'run-1',
+        status: 'ACTIVE',
+      });
+
+      const res = await service.releaseRunToActive('run-1');
+      expect(res.id).toBe('run-1');
+      expect(res.status).toBe('ACTIVE');
+      expect(mockPrisma.productionRun.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if run is not in SETUP status', async () => {
+      mockPrisma.productionRun.findUnique.mockResolvedValue({
+        id: 'run-1',
+        status: 'PAUSED',
+      });
+
+      await expect(service.releaseRunToActive('run-1')).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException if first-piece quality check is not approved', async () => {
+      mockPrisma.productionRun.findUnique.mockResolvedValue({
+        id: 'run-1',
+        status: 'SETUP',
+        machineId: 'm-1',
+      });
+      mockQualityService.checkFirstPieceReleaseStatus.mockResolvedValue({
+        isReleased: false,
+        firstPieceCheck: null,
+      });
+
+      await expect(service.releaseRunToActive('run-1')).rejects.toThrow(
+        /First-Piece Quality Approval is required/,
+      );
+    });
+
+    it('should successfully transition run from SETUP to ACTIVE and broadcast event when approved', async () => {
+      mockPrisma.productionRun.findUnique.mockResolvedValue({
+        id: 'run-1',
+        status: 'SETUP',
+        machineId: 'm-1',
+      });
+      mockQualityService.checkFirstPieceReleaseStatus.mockResolvedValue({
+        isReleased: true,
+        firstPieceCheck: { id: 'qc-1', disposition: 'RELEASED' },
+      });
+      mockPrisma.productionRun.update.mockResolvedValue({
+        id: 'run-1',
+        status: 'ACTIVE',
+        machineId: 'm-1',
+      });
+
+      const result = await service.releaseRunToActive('run-1');
+
+      expect(result.status).toBe('ACTIVE');
+      expect(mockPrisma.productionRun.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'run-1' },
+          data: { status: 'ACTIVE' },
+        }),
+      );
+      expect(mockGateway.broadcastQualityEvent).toHaveBeenCalledWith(
+        'machine:interlock_state',
+        expect.objectContaining({
+          machineId: 'm-1',
+          isInterlocked: false,
+        }),
+      );
+      expect(mockGateway.broadcastProductionEvent).toHaveBeenCalledWith(
+        'production:run_released',
+        expect.objectContaining({
+          runId: 'run-1',
+        }),
+      );
     });
   });
 });

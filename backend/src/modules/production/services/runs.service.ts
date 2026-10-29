@@ -12,6 +12,7 @@ import { RecordScrapDto } from '../dto/record-scrap.dto.js';
 import { TelemetryIngestionService } from '../../telemetry/telemetry.service.js';
 import { EventTypeEnum } from '../../telemetry/dto/normalized-machine-event.dto.js';
 import { MaintenanceService } from '../../maintenance/maintenance.service.js';
+import { QualityService } from '../../quality/quality.service.js';
 import { TelemetryGateway } from '../../telemetry/telemetry.gateway.js';
 
 @Injectable()
@@ -22,6 +23,7 @@ export class RunsService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly telemetryService: TelemetryIngestionService,
     private readonly maintenanceService: MaintenanceService,
+    private readonly qualityService: QualityService,
     @Optional() private readonly gateway?: TelemetryGateway,
   ) {}
 
@@ -103,7 +105,7 @@ export class RunsService implements OnModuleInit {
           productionOrderId: order.id,
           machineId: machine.id,
           moldId: mold.id,
-          status: 'ACTIVE',
+          status: dto.status ?? 'SETUP',
           startTime: new Date(),
           totalShots: 0,
           goodQuantity: 0,
@@ -162,6 +164,50 @@ export class RunsService implements OnModuleInit {
       where: { id: runId },
       data: { status: 'ACTIVE' },
     });
+  }
+
+  async releaseRunToActive(runId: string) {
+    const run = await this.findOne(runId);
+    if (run.status === 'ACTIVE') {
+      return run;
+    }
+
+    if (run.status !== 'SETUP') {
+      throw new BadRequestException(
+        `Cannot release run in status "${run.status}" to ACTIVE. Only runs in SETUP can be released.`,
+      );
+    }
+
+    const fpStatus = await this.qualityService.checkFirstPieceReleaseStatus(runId);
+    if (!fpStatus.isReleased) {
+      throw new BadRequestException(
+        'Cannot release run to ACTIVE: First-Piece Quality Approval is required before serial production.',
+      );
+    }
+
+    const updatedRun = await this.prisma.productionRun.update({
+      where: { id: runId },
+      data: { status: 'ACTIVE' },
+      include: {
+        productionOrder: { include: { product: true } },
+        machine: true,
+        mold: true,
+      },
+    });
+
+    if (this.gateway) {
+      this.gateway.broadcastQualityEvent('machine:interlock_state', {
+        machineId: run.machineId,
+        isInterlocked: false,
+      });
+      this.gateway.broadcastProductionEvent('production:run_released', {
+        runId: updatedRun.id,
+        run: updatedRun,
+      });
+    }
+
+    this.logger.log(`Released production run ${runId} to ACTIVE on machine ${run.machine?.code ?? run.machineId}`);
+    return updatedRun;
   }
 
   async completeRun(runId: string) {

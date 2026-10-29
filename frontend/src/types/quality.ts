@@ -54,3 +54,27 @@ export interface FirstPieceReleaseStatus {
   isReleased: boolean;
   firstPieceCheck: QualityCheck | null;
 }
+
+export interface CpkMetric {
+  planItemId: string;
+  parameterName: string;
+  targetValue: number | null;
+  upperTolerance: number | null;
+  lowerTolerance: number | null;
+  sampleCount: number;
+  mean: number;
+  standardDeviation: number;
+  cp: number | null;
+  cpu: number | null;
+  cpl: number | null;
+  cpk: number | null;
+  status: 'CAPABLE' | 'MARGINAL' | 'INCAPABLE' | 'INSUFFICIENT_DATA';
+  sampleValues: number[];
+}
+
+export interface CpkAnalyticsResponse {
+  runId?: string;
+  productId?: string;
+  metrics: CpkMetric[];
+  overallStatus: 'CAPABLE' | 'MARGINAL' | 'INCAPABLE' | 'INSUFFICIENT_DATA';
+}

@@ -55,4 +55,13 @@ export class QualityController {
   async checkFirstPieceReleaseStatus(@Param('runId') runId: string) {
     return this.qualityService.checkFirstPieceReleaseStatus(runId);
   }
+
+  @Get('cpk')
+  async calculateCpk(
+    @Query('productId') productId?: string,
+    @Query('planItemId') planItemId?: string,
+    @Query('runId') runId?: string,
+  ) {
+    return this.qualityService.calculateCpk({ productId, planItemId, runId });
+  }
 }

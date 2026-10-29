@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class StartProductionRunDto {
   @IsString()
@@ -12,4 +12,8 @@ export class StartProductionRunDto {
   @IsString()
   @IsNotEmpty()
   moldId!: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
 }
