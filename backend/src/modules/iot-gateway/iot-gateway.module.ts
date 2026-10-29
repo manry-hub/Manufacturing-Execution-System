@@ -1,11 +1,25 @@
 import { Module } from '@nestjs/common';
 import { Euromap77MapperService } from './services/euromap77-mapper.service.js';
 import { MqttIngestionService } from './services/mqtt-ingestion.service.js';
+import { ModbusTcpGatewayService } from './services/modbus-tcp-gateway.service.js';
+import { IngestSourceSelectorService } from './services/ingest-source-selector.service.js';
 import { IotGatewayController } from './iot-gateway.controller.js';
+import { TelemetryModule } from '../telemetry/telemetry.module.js';
 
 @Module({
+  imports: [TelemetryModule],
   controllers: [IotGatewayController],
-  providers: [Euromap77MapperService, MqttIngestionService],
-  exports: [Euromap77MapperService, MqttIngestionService],
+  providers: [
+    Euromap77MapperService,
+    MqttIngestionService,
+    ModbusTcpGatewayService,
+    IngestSourceSelectorService,
+  ],
+  exports: [
+    Euromap77MapperService,
+    MqttIngestionService,
+    ModbusTcpGatewayService,
+    IngestSourceSelectorService,
+  ],
 })
 export class IotGatewayModule {}

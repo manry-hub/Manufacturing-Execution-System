@@ -3,11 +3,13 @@ import {
   Logger,
   OnModuleInit,
   OnModuleDestroy,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import mqtt, { type MqttClient } from 'mqtt';
 import { TelemetryIngestionService } from '../../telemetry/telemetry.service.js';
 import { Euromap77MapperService } from './euromap77-mapper.service.js';
+import { IngestSourceSelectorService } from './ingest-source-selector.service.js';
 
 export interface RawPacketRecord {
   id: string;
@@ -66,6 +68,7 @@ export class MqttIngestionService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly euromap77Mapper: Euromap77MapperService,
     private readonly telemetryIngestion: TelemetryIngestionService,
+    @Optional() private readonly ingestSelector?: IngestSourceSelectorService,
   ) {
     this.brokerUrl =
       this.configService.get<string>('MQTT_BROKER_URL') || 'mqtt://localhost:1883';
@@ -208,6 +211,9 @@ export class MqttIngestionService implements OnModuleInit, OnModuleDestroy {
 
       await this.telemetryIngestion.ingestEvent(normalizedEvent);
       this.totalPacketsProcessed++;
+      if (this.ingestSelector) {
+        this.ingestSelector.recordPacket(machineCode);
+      }
 
       this.recordPacket({
         id: normalizedEvent.eventId,

@@ -15,6 +15,7 @@
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "mock:edge": "pnpm --filter backend mock:edge",
+    "mock:modbus": "pnpm --filter backend mock:modbus",
     "format": "prettier --write \"{backend,frontend}/**/*.{ts,tsx,js,json,css,md}\"",
     "clean": "pnpm -r exec rm -rf dist node_modules && rm -rf node_modules"
   },

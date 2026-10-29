@@ -15,6 +15,7 @@ export enum SourceTypeEnum {
   SIMULATOR = 'SIMULATOR',
   OPC_UA = 'OPC_UA',
   MQTT_SPB = 'MQTT_SPB',
+  MODBUS_TCP = 'MODBUS_TCP',
 }
 
 export enum EventTypeEnum {

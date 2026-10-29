@@ -14,7 +14,14 @@ import type {
   TravelerRunSummaryDto,
   SignoffTravelerPayload,
 } from '../types/traveler.js';
-import type { IotGatewayStatus, RawPacketRecord } from '../types/iot-gateway.js';
+import type {
+  IotGatewayStatus,
+  RawPacketRecord,
+  MachineIngestSource,
+  ModbusGatewayStatus,
+  IngestSourceMode,
+  ModbusClientConfig,
+} from '../types/iot-gateway.js';
 
 const API_BASE_URL = '/api/v1';
 
@@ -613,6 +620,41 @@ class ApiService {
     return this.request<{ success: boolean; message: string }>('/iot-gateway/simulate-euromap77', {
       method: 'POST',
       body: JSON.stringify({ machineCode, ...overrides }),
+    });
+  }
+
+  public async getIngestSources(): Promise<MachineIngestSource[]> {
+    return this.request<MachineIngestSource[]>('/iot-gateway/ingest-sources');
+  }
+
+  public async updateIngestSource(
+    machineCode: string,
+    data: { source: IngestSourceMode; modbusConfig?: ModbusClientConfig; mqttTopic?: string },
+  ): Promise<MachineIngestSource> {
+    return this.request<MachineIngestSource>(`/iot-gateway/ingest-sources/${encodeURIComponent(machineCode)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  public async getModbusStatus(): Promise<ModbusGatewayStatus> {
+    return this.request<ModbusGatewayStatus>('/iot-gateway/modbus/status');
+  }
+
+  public async writeModbusRegister(dto: {
+    machineCode: string;
+    registerAddress: number;
+    value: number;
+  }): Promise<{ success: boolean; machineCode: string; register: number; value: number }> {
+    return this.request('/iot-gateway/modbus/write-register', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  public async pollModbusMachine(machineCode: string): Promise<{ success: boolean; machineCode: string; polled?: string }> {
+    return this.request(`/iot-gateway/modbus/poll/${encodeURIComponent(machineCode)}`, {
+      method: 'POST',
     });
   }
 }

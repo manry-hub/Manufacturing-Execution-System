@@ -26,3 +26,41 @@ export interface RawPacketRecord {
   status: 'PROCESSED' | 'ERROR';
   errorMessage?: string;
 }
+
+export type IngestSourceMode = 'SIMULATOR' | 'MQTT' | 'MODBUS_TCP';
+
+export interface ModbusClientConfig {
+  host: string;
+  port: number;
+  unitId: number;
+  pollIntervalMs: number;
+  startRegister: number;
+  registerCount: number;
+}
+
+export interface MachineIngestSource {
+  machineCode: string;
+  source: IngestSourceMode;
+  modbusConfig?: ModbusClientConfig;
+  mqttTopic?: string;
+  lastPacketAt?: string;
+  packetsReceived: number;
+}
+
+export interface ModbusRegisterSnapshot {
+  unitId: number;
+  machineCode: string;
+  registers: number[];
+  lastUpdatedAt: string;
+}
+
+export interface ModbusGatewayStatus {
+  enabled: boolean;
+  serverListening: boolean;
+  port: number;
+  activeClientCount: number;
+  totalRequestsServed: number;
+  totalRegistersWritten: number;
+  pollingActive: boolean;
+  trackedMachines: ModbusRegisterSnapshot[];
+}

@@ -2,20 +2,86 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Param,
   Body,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { MqttIngestionService } from './services/mqtt-ingestion.service.js';
+import { ModbusTcpGatewayService } from './services/modbus-tcp-gateway.service.js';
+import { IngestSourceSelectorService } from './services/ingest-source-selector.service.js';
+import {
+  UpdateIngestSourceDto,
+  ModbusWriteRegisterDto,
+  ModbusWriteMultipleRegistersDto,
+} from './dto/modbus-config.dto.js';
 
 @Controller('iot-gateway')
 export class IotGatewayController {
-  constructor(private readonly mqttIngestion: MqttIngestionService) {}
+  constructor(
+    private readonly mqttIngestion: MqttIngestionService,
+    private readonly modbusGateway: ModbusTcpGatewayService,
+    private readonly ingestSelector: IngestSourceSelectorService,
+  ) {}
 
   @Get('status')
   getStatus() {
     return this.mqttIngestion.getStatus();
+  }
+
+  @Get('ingest-sources')
+  getIngestSources() {
+    return this.ingestSelector.getAllSources();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('ingest-sources/:machineCode')
+  updateIngestSource(
+    @Param('machineCode') machineCode: string,
+    @Body() dto: UpdateIngestSourceDto,
+  ) {
+    return this.ingestSelector.setMachineSource(machineCode, dto);
+  }
+
+  @Get('modbus/status')
+  getModbusStatus() {
+    return this.modbusGateway.getStatus();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('modbus/write-register')
+  writeModbusRegister(@Body() dto: ModbusWriteRegisterDto) {
+    this.modbusGateway.writeRegisterByMachine(
+      dto.machineCode,
+      dto.registerAddress,
+      dto.value,
+    );
+    return { success: true, machineCode: dto.machineCode, register: dto.registerAddress, value: dto.value };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('modbus/write-multiple-registers')
+  writeModbusMultipleRegisters(@Body() dto: ModbusWriteMultipleRegistersDto) {
+    this.modbusGateway.writeMultipleRegistersByMachine(
+      dto.machineCode,
+      dto.startAddress,
+      dto.values,
+    );
+    return { success: true, machineCode: dto.machineCode, startAddress: dto.startAddress, count: dto.values.length };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('modbus/poll/:machineCode')
+  async pollModbusMachine(@Param('machineCode') machineCode: string) {
+    const source = this.ingestSelector.getMachineSource(machineCode);
+    if (!source || !source.modbusConfig) {
+      return { success: false, message: `Machine ${machineCode} has no Modbus configuration` };
+    }
+    const { host, port, unitId } = source.modbusConfig;
+    await this.modbusGateway.pollRemoteModbusDevice(machineCode, host, port, unitId);
+    return { success: true, machineCode, polled: `${host}:${port}` };
   }
 
   @Get('packets')

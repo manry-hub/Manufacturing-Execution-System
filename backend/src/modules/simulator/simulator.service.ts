@@ -1,7 +1,8 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Optional } from '@nestjs/common';
 import { VirtualMachineNode } from './virtual-machine-node.js';
 import { TelemetryIngestionService } from '../telemetry/telemetry.service.js';
 import { NormalizedStatusEnum } from '../telemetry/dto/normalized-machine-event.dto.js';
+import { IngestSourceSelectorService } from '../iot-gateway/services/ingest-source-selector.service.js';
 
 export interface SimulatorStatus {
   isRunning: boolean;
@@ -35,7 +36,10 @@ export class SimulatorService implements OnModuleInit, OnModuleDestroy {
   private readonly baseTickIntervalMs = 1000;
   private currentSeed = 42;
 
-  constructor(private readonly telemetryService: TelemetryIngestionService) {}
+  constructor(
+    private readonly telemetryService: TelemetryIngestionService,
+    @Optional() private readonly ingestSelector?: IngestSourceSelectorService,
+  ) {}
 
   onModuleInit() {
     this.initializeBaselineNodes();
@@ -136,6 +140,9 @@ export class SimulatorService implements OnModuleInit, OnModuleDestroy {
     const deltaSeconds = (this.baseTickIntervalMs / 1000) * this.speedMultiplier;
 
     for (const node of this.nodes.values()) {
+      if (this.ingestSelector && !this.ingestSelector.isSimulatorActiveFor(node.machineCode)) {
+        continue;
+      }
       const events = node.tick(deltaSeconds);
       for (const ev of events) {
         try {

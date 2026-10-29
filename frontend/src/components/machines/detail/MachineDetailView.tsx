@@ -16,6 +16,7 @@ import { CyclePhaseBar } from './CyclePhaseBar.js';
 import { TelemetryGauges } from './TelemetryGauges.js';
 import { BarrelHeatingZones } from './BarrelHeatingZones.js';
 import { Euromap77DiagnosticsCard } from './Euromap77DiagnosticsCard.js';
+import { IngestSourceSelectorCard } from './IngestSourceSelectorCard.js';
 import { ScenarioControlPanel } from './ScenarioControlPanel.js';
 
 interface MachineDetailViewProps {
@@ -257,6 +258,9 @@ export const MachineDetailView: React.FC<MachineDetailViewProps> = ({
         temperatures={machine.latestMetrics?.barrelTemperatures}
         hasHeaterFault={hasHeaterFault}
       />
+
+      {/* Telemetry Ingestion Source Selector (Simulator / MQTT / Modbus TCP) */}
+      <IngestSourceSelectorCard machineCode={machine.code} />
 
       {/* Euromap 77 / OPC 40077 Fieldbus Gateway Diagnostics */}
       <Euromap77DiagnosticsCard
