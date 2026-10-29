@@ -101,6 +101,39 @@ describe('PackagingService', () => {
       expect(res.varianceUnpacked).toBe(0);
       expect(res.isFullyPacked).toBe(true);
       expect(res.completionPercentage).toBe(80); // 200/250 = 80%
+      expect(res.discrepancyStatus).toBe('BALANCED');
+      expect(res.discrepancyAlert).toBe(false);
+      expect(res.pallets).toHaveLength(1);
+      expect(res.pallets[0].palletId).toBe('PAL-1');
+      expect(res.pallets[0].totalParts).toBe(200);
+      expect(res.pallets[0].cartonCount).toBe(2);
+    });
+
+    it('should flag DEFICIT and discrepancyAlert if unpacked variance exceeds 2% tolerance threshold', async () => {
+      mockPrisma.productionRun.findUnique.mockResolvedValue({
+        id: 'run-deficit',
+        goodQuantity: 1000,
+        rejectQuantity: 20,
+        totalShots: 510,
+        productionOrder: {
+          orderNumber: 'WO-DEFICIT',
+          targetQuantity: 1000,
+          product: { partNumber: 'P-1', name: 'Widget' },
+        },
+        machine: { code: 'IMM-01', name: 'Machine 1' },
+        mold: { code: 'M-1', cavityCount: 2 },
+        packagingUnits: [
+          // 800 packed vs 1000 produced = 200 variance (20% deficit > 2% tolerance)
+          { id: 'p1', barcode: 'B1', partCount: 800, palletId: 'PAL-1', packedAt: new Date() },
+        ],
+      });
+
+      const res = await service.reconcileRun('run-deficit');
+
+      expect(res.discrepancyStatus).toBe('DEFICIT');
+      expect(res.discrepancyAlert).toBe(true);
+      expect(res.varianceUnpacked).toBe(200);
+      expect(res.variancePercentage).toBe(20);
     });
   });
 });

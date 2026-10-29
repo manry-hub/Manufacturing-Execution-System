@@ -139,6 +139,36 @@ export class PackagingService {
     const target = run.productionOrder.targetQuantity;
     const completionPercentage = target > 0 ? (totalPacked / target) * 100 : 0;
 
+    // Shot-to-pack expected good output vs actual molded
+    const cavityCount = run.mold?.cavityCount ?? 1;
+    const expectedFromShots = Math.max(0, run.totalShots * cavityCount - run.rejectQuantity);
+
+    // Tolerance discrepancy calculation (2% threshold)
+    const baseQuantity = run.goodQuantity > 0 ? run.goodQuantity : target;
+    const toleranceMargin = Math.max(1, Math.round(baseQuantity * 0.02));
+    const isWithinTolerance = Math.abs(variance) <= toleranceMargin;
+
+    let discrepancyStatus: 'BALANCED' | 'DEFICIT' | 'SURPLUS' = 'BALANCED';
+    if (!isWithinTolerance && (run.goodQuantity > 0 || totalPacked > 0)) {
+      discrepancyStatus = totalPacked < run.goodQuantity ? 'DEFICIT' : 'SURPLUS';
+    }
+
+    const variancePercentage =
+      run.goodQuantity > 0
+        ? Math.round(((run.goodQuantity - totalPacked) / run.goodQuantity) * 10000) / 100
+        : 0;
+
+    // Pallet Aggregation Summary
+    const palletsMap = new Map<string, { palletId: string; cartonCount: number; totalParts: number }>();
+    for (const u of run.packagingUnits) {
+      const pid = u.palletId?.trim() || 'UNASSIGNED';
+      const existing = palletsMap.get(pid) ?? { palletId: pid, cartonCount: 0, totalParts: 0 };
+      existing.cartonCount += 1;
+      existing.totalParts += u.partCount;
+      palletsMap.set(pid, existing);
+    }
+    const pallets = Array.from(palletsMap.values());
+
     return {
       runId: run.id,
       orderNumber: run.productionOrder.orderNumber,
@@ -155,13 +185,20 @@ export class PackagingService {
         cavities: run.mold.cavityCount,
       },
       targetQuantity: target,
+      totalShots: run.totalShots,
+      expectedFromShots,
       producedGoodQuantity: run.goodQuantity,
       scrappedQuantity: run.rejectQuantity,
       packedQuantity: totalPacked,
       varianceUnpacked: variance,
+      variancePercentage,
+      discrepancyStatus,
+      discrepancyAlert: !isWithinTolerance && (run.goodQuantity > 0 || totalPacked > 0),
+      toleranceMargin,
       completionPercentage: Math.round(completionPercentage * 100) / 100,
       isFullyPacked: totalPacked >= run.goodQuantity && run.goodQuantity > 0,
       packagingUnitsCount: run.packagingUnits.length,
+      pallets,
       packagingUnits: run.packagingUnits.map((u) => ({
         id: u.id,
         barcode: u.barcode,

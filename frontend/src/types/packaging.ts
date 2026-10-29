@@ -42,13 +42,24 @@ export interface RunReconciliation {
     cavities: number;
   };
   targetQuantity: number;
+  totalShots?: number;
+  expectedFromShots?: number;
   producedGoodQuantity: number;
   scrappedQuantity: number;
   packedQuantity: number;
   varianceUnpacked: number;
+  variancePercentage?: number;
+  discrepancyStatus?: 'BALANCED' | 'DEFICIT' | 'SURPLUS';
+  discrepancyAlert?: boolean;
+  toleranceMargin?: number;
   completionPercentage: number;
   isFullyPacked: boolean;
   packagingUnitsCount: number;
+  pallets?: Array<{
+    palletId: string;
+    cartonCount: number;
+    totalParts: number;
+  }>;
   packagingUnits: Array<{
     id: string;
     barcode: string;
