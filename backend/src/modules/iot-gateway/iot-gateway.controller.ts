@@ -9,7 +9,7 @@ import {
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { MqttIngestionService } from './services/mqtt-ingestion.service.js';
 
-@Controller('api/v1/iot-gateway')
+@Controller('iot-gateway')
 export class IotGatewayController {
   constructor(private readonly mqttIngestion: MqttIngestionService) {}
 
