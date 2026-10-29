@@ -369,6 +369,12 @@ export class SchedulingService {
       throw new NotFoundException(`Production order with ID ${orderId} not found`);
     }
 
+    if (order.status === 'IN_PROGRESS' || order.status === 'COMPLETED') {
+      throw new BadRequestException(
+        `Cannot reschedule order ${order.orderNumber} because it is already ${order.status}`,
+      );
+    }
+
     const newStart = new Date(dto.plannedStartTime);
     const prevStart = order.plannedStartTime;
     const prevEnd = order.plannedEndTime ?? new Date(prevStart.getTime() + 4 * 3600 * 1000);

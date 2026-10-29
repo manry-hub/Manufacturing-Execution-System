@@ -242,4 +242,86 @@ describe('SchedulingService', () => {
       );
     });
   });
+
+  describe('rescheduleOrder', () => {
+    it('should shift planned start and end times preserving order duration', async () => {
+      const orderId = 'po-resched-1';
+      const origStart = new Date('2026-10-28T08:00:00Z');
+      const origEnd = new Date('2026-10-28T12:00:00Z'); // 4 hours duration
+      const newStart = new Date('2026-10-28T10:00:00Z');
+
+      const mockOrder = {
+        id: orderId,
+        orderNumber: 'WO-RESCHED-1',
+        status: 'SCHEDULED',
+        assignedMachineId: 'm-1',
+        assignedMoldId: 'mold-1',
+        plannedStartTime: origStart,
+        plannedEndTime: origEnd,
+      };
+
+      mockPrisma.productionOrder.findUnique.mockResolvedValue(mockOrder);
+      mockPrisma.productionOrder.update.mockResolvedValue({
+        ...mockOrder,
+        plannedStartTime: newStart,
+        plannedEndTime: new Date('2026-10-28T14:00:00Z'),
+      });
+
+      await service.rescheduleOrder(orderId, {
+        plannedStartTime: newStart.toISOString(),
+      });
+
+      const updateCall = mockPrisma.productionOrder.update.mock.calls[0][0];
+      expect(updateCall.data.plannedStartTime.toISOString()).toBe(newStart.toISOString());
+      // Duration of 4 hours preserved: 10:00 + 4 hours = 14:00
+      expect(updateCall.data.plannedEndTime.toISOString()).toBe(new Date('2026-10-28T14:00:00Z').toISOString());
+    });
+
+    it('should relocate order to a different machine', async () => {
+      const orderId = 'po-resched-2';
+      const origStart = new Date('2026-10-28T08:00:00Z');
+      const origEnd = new Date('2026-10-28T10:00:00Z');
+
+      const mockOrder = {
+        id: orderId,
+        orderNumber: 'WO-RESCHED-2',
+        status: 'SCHEDULED',
+        assignedMachineId: 'm-1',
+        assignedMoldId: 'mold-1',
+        plannedStartTime: origStart,
+        plannedEndTime: origEnd,
+      };
+
+      mockPrisma.productionOrder.findUnique.mockResolvedValue(mockOrder);
+      mockPrisma.productionOrder.update.mockResolvedValue({
+        ...mockOrder,
+        assignedMachineId: 'm-2',
+      });
+
+      await service.rescheduleOrder(orderId, {
+        machineId: 'm-2',
+        plannedStartTime: origStart.toISOString(),
+      });
+
+      const updateCall = mockPrisma.productionOrder.update.mock.calls[0][0];
+      expect(updateCall.data.assignedMachineId).toBe('m-2');
+    });
+
+    it('should reject rescheduling for orders already IN_PROGRESS or COMPLETED', async () => {
+      const mockOrder = {
+        id: 'po-active',
+        orderNumber: 'WO-ACTIVE',
+        status: 'IN_PROGRESS',
+        plannedStartTime: new Date(),
+      };
+
+      mockPrisma.productionOrder.findUnique.mockResolvedValue(mockOrder);
+
+      await expect(
+        service.rescheduleOrder('po-active', {
+          plannedStartTime: new Date().toISOString(),
+        }),
+      ).rejects.toThrow(/Cannot reschedule order WO-ACTIVE because it is already IN_PROGRESS/);
+    });
+  });
 });

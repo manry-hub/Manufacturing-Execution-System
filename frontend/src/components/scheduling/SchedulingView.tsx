@@ -31,6 +31,10 @@ interface DragOverSlotState {
   percent: number;
   timeString: string;
   durationMinutes: number;
+  conflict?: {
+    type: 'TONNAGE_MISMATCH' | 'TOOLING_COLLISION' | 'MACHINE_OVERLAP';
+    message: string;
+  } | null;
 }
 
 interface ActiveDragItem {
@@ -39,6 +43,8 @@ interface ActiveDragItem {
   orderNumber: string;
   durationMinutes: number;
   productName?: string;
+  moldId?: string;
+  moldCode?: string;
 }
 
 export const SchedulingView: React.FC = () => {
@@ -307,6 +313,63 @@ export const SchedulingView: React.FC = () => {
 
       const snappedPercent = ((clampedMs - startMs) / totalMs) * 100;
       const duration = activeDragItem?.durationMinutes ?? 120;
+      const slotStart = clampedMs;
+      const slotEnd = clampedMs + duration * 60 * 1000;
+
+      // Real-time Conflict Validation during drag
+      let conflict: DragOverSlotState['conflict'] = null;
+      const targetMachine = machines.find((m) => m.id === machineId);
+      const targetTonnage = targetMachine?.clampingTonnage ?? 150;
+      const activeMoldCode = activeDragItem?.moldCode;
+
+      // 1. Tonnage Check
+      if (activeMoldCode?.toUpperCase().includes('BUMP') && targetTonnage < 450) {
+        conflict = {
+          type: 'TONNAGE_MISMATCH',
+          message: `Tonnage Deficit: Mold ${activeMoldCode} requires ≥ 450T (Machine is ${targetTonnage}T)`,
+        };
+      }
+
+      // 2. Tooling / Mold Collision Check across all machines
+      if (!conflict && activeDragItem?.moldId) {
+        for (const mRow of timelineData.machines) {
+          if (mRow.machineId === machineId) continue;
+          for (const blk of mRow.blocks) {
+            if (blk.orderId === activeDragItem.orderId) continue;
+            if (blk.moldId === activeDragItem.moldId) {
+              const bStart = new Date(blk.startTime).getTime();
+              const bEnd = new Date(blk.endTime).getTime();
+              if (slotStart < bEnd && slotEnd > bStart) {
+                conflict = {
+                  type: 'TOOLING_COLLISION',
+                  message: `Tooling Collision: Mold ${blk.moldCode ?? 'assigned'} is already running on ${mRow.machineCode}`,
+                };
+                break;
+              }
+            }
+          }
+          if (conflict) break;
+        }
+      }
+
+      // 3. Machine Overlap Check on the target track
+      if (!conflict) {
+        const targetRow = timelineData.machines.find((m) => m.machineId === machineId);
+        if (targetRow) {
+          for (const blk of targetRow.blocks) {
+            if (blk.orderId === activeDragItem?.orderId) continue;
+            const bStart = new Date(blk.startTime).getTime();
+            const bEnd = new Date(blk.endTime).getTime();
+            if (slotStart < bEnd && slotEnd > bStart) {
+              conflict = {
+                type: 'MACHINE_OVERLAP',
+                message: `Schedule Overlap: Slot overlaps with ${blk.orderNumber ?? 'scheduled block'}`,
+              };
+              break;
+            }
+          }
+        }
+      }
 
       setDragOverSlot({
         machineId,
@@ -314,9 +377,10 @@ export const SchedulingView: React.FC = () => {
         percent: snappedPercent,
         timeString: snappedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         durationMinutes: duration,
+        conflict,
       });
     },
-    [timelineData, activeDragItem],
+    [timelineData, activeDragItem, machines],
   );
 
   const handleTrackDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -682,7 +746,7 @@ export const SchedulingView: React.FC = () => {
                     />
                   ))}
 
-                  {/* Drag & Drop Ghost Slot Preview */}
+                  {/* Drag & Drop Ghost Slot Preview with Real-time Conflict Guard */}
                   {dragOverSlot && dragOverSlot.machineId === machine.machineId && (
                     <div
                       style={{
@@ -694,15 +758,31 @@ export const SchedulingView: React.FC = () => {
                             100
                         )}%`,
                       }}
-                      className="absolute top-1.5 bottom-1.5 z-30 pointer-events-none rounded-md border-2 border-dashed border-[#1868DB] bg-[#1868DB]/20 backdrop-blur-2xs flex items-center justify-between px-2 text-xs font-bold text-[#1868DB] shadow-sm animate-pulse"
+                      className={`absolute top-1.5 bottom-1.5 z-30 pointer-events-none rounded-md border-2 border-dashed flex items-center justify-between px-2 text-xs font-bold shadow-md transition-all ${
+                        dragOverSlot.conflict
+                          ? 'border-[#E2483D] bg-[#FFECEB]/90 text-[#AE2E24]'
+                          : 'border-[#1868DB] bg-[#E9F2FE]/90 text-[#123263]'
+                      }`}
                     >
-                      <div className="flex items-center gap-1 truncate">
-                        <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                      <div className="flex items-center gap-1.5 truncate">
+                        {dragOverSlot.conflict ? (
+                          <AlertTriangle className="h-3.5 w-3.5 text-[#C9372C] flex-shrink-0 animate-bounce" />
+                        ) : (
+                          <Clock className="h-3.5 w-3.5 text-[#1868DB] flex-shrink-0" />
+                        )}
                         <span className="truncate">
-                          {activeDragItem?.orderNumber ?? 'Slot'}: {dragOverSlot.timeString}
+                          {dragOverSlot.conflict
+                            ? dragOverSlot.conflict.message
+                            : `${activeDragItem?.orderNumber ?? 'Slot'}: ${dragOverSlot.timeString}`}
                         </span>
                       </div>
-                      <span className="text-xs font-mono px-1 rounded bg-[#FFFFFF]/90 border border-[#1868DB]/30 flex-shrink-0">
+                      <span
+                        className={`text-[10px] font-mono px-1 rounded flex-shrink-0 border ${
+                          dragOverSlot.conflict
+                            ? 'bg-white text-[#AE2E24] border-[#E2483D]'
+                            : 'bg-white/90 text-[#123263] border-[#1868DB]/30'
+                        }`}
+                      >
                         {dragOverSlot.durationMinutes}m
                       </span>
                     </div>
@@ -714,7 +794,9 @@ export const SchedulingView: React.FC = () => {
                     const isChangeover = block.blockType === 'MOLD_CHANGEOVER';
                     const hasConflict = block.conflicts && block.conflicts.length > 0;
                     const isSelected = selectedBlock?.id === block.id;
-                    const isDraggable = !isChangeover && block.status === 'SCHEDULED';
+                    const isDraggable =
+                      !isChangeover &&
+                      (block.status === 'SCHEDULED' || block.status === 'RELEASED');
                     const isCurrentlyDragged = activeDragItem?.orderId === block.orderId;
 
                     return (
@@ -734,6 +816,8 @@ export const SchedulingView: React.FC = () => {
                                   orderNumber: block.orderNumber!,
                                   durationMinutes: block.durationMinutes,
                                   productName: block.productName,
+                                  moldId: block.moldId,
+                                  moldCode: block.moldCode,
                                 });
                                 e.dataTransfer.setData(
                                   'application/json',
@@ -743,6 +827,8 @@ export const SchedulingView: React.FC = () => {
                                     orderNumber: block.orderNumber,
                                     fromMachineId: machine.machineId,
                                     durationMinutes: block.durationMinutes,
+                                    moldId: block.moldId,
+                                    moldCode: block.moldCode,
                                   }),
                                 );
                                 e.dataTransfer.effectAllowed = 'move';
@@ -857,12 +943,15 @@ export const SchedulingView: React.FC = () => {
                     draggable={true}
                     onDragStart={(e) => {
                       setIsDragging(true);
+                      const compMold = getCompatibleMoldForProduct(order.productId);
                       setActiveDragItem({
                         source: 'BACKLOG',
                         orderId: order.id,
                         orderNumber: order.orderNumber,
                         durationMinutes: 120,
                         productName: order.product?.name,
+                        moldId: compMold?.id,
+                        moldCode: compMold?.code,
                       });
                       e.dataTransfer.setData(
                         'application/json',
@@ -872,6 +961,8 @@ export const SchedulingView: React.FC = () => {
                           orderNumber: order.orderNumber,
                           productId: order.productId,
                           targetQuantity: order.targetQuantity,
+                          moldId: compMold?.id,
+                          moldCode: compMold?.code,
                         }),
                       );
                       e.dataTransfer.effectAllowed = 'copyMove';
