@@ -19,6 +19,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  TrendingUp,
   X,
 } from 'lucide-react';
 import { useAuth, DEMO_ROLES } from '../../context/AuthContext.js';
@@ -35,7 +36,8 @@ export type ActiveTab =
   | 'maintenance'
   | 'andon'
   | 'oee'
-  | 'traveler';
+  | 'traveler'
+  | 'analytics';
 
 export interface NavItemConfig {
   id: ActiveTab;
@@ -137,13 +139,19 @@ export const NAV_GROUPS: NavGroupConfig[] = [
   },
   {
     id: 'analytics',
-    title: 'Performance',
+    title: 'Performance & Engineering',
     items: [
       {
         id: 'oee',
         label: 'OEE analytics',
         shortLabel: 'OEE',
         icon: BarChart3,
+      },
+      {
+        id: 'analytics',
+        label: 'SPC & FMEA analytics',
+        shortLabel: 'SPC & FMEA',
+        icon: TrendingUp,
       },
     ],
   },

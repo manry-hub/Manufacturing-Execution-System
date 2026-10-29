@@ -87,9 +87,9 @@ To balance deep vertical equipment telemetry (plastic injection mechanics) with 
 |  ┌─────────────────────────┐  ┌─────────────────────────┐  ┌────────────────────────────────────┐ |
 |  │ Material & Genealogy    │  │ Quality Inspection Gate │  │ Tooling PM & Mold Lifecycles       │ |
 |  └─────────────────────────┘  └─────────────────────────┘  └────────────────────────────────────┘ |
-|  ┌─────────────────────────┐  ┌─────────────────────────┐                                         |
-|  │ Visual Gantt Scheduler  │  │ Packaging & Barcode Ver.│                                         |
-|  └─────────────────────────┘  └─────────────────────────┘                                         |
+|  ┌─────────────────────────┐  ┌─────────────────────────┐  ┌────────────────────────────────────┐ |
+|  │ Visual Gantt Scheduler  │  │ Packaging & Barcode Ver.│  │ SPC & FMEA Analytics Engine        │ |
+|  └─────────────────────────┘  └─────────────────────────┘  └────────────────────────────────────┘ |
 +---------------------------------------------------------------------------------------------------+
                     │                                                   │
                     ▼ (Prisma ORM)                                      ▼ (Socket.IO & REST)
@@ -114,6 +114,7 @@ To balance deep vertical equipment telemetry (plastic injection mechanics) with 
 | `Tooling Lifecycle Engine`       | Domain Service   | Accumulates lifetime mold shot strokes, triggers automated preventive maintenance (PM) work orders upon interval thresholds (25k/100k), and logs mold repair histories.                         | NestJS, Prisma ORM                  |
 | `Visual Gantt Scheduler`         | Domain Service   | Multi-horizon machine timeline planning, finite capacity modeling, and automated mold changeover matrix duration projections.                                                                   | NestJS, Prisma ORM, React Gantt     |
 | `Packaging Station Module`       | Domain Service   | Touchscreen barcode/QR scanning station, finished carton packaging aggregation, and real-time reconciliation between machine shots and packed quantities.                                         | NestJS, React 19                    |
+| `SPC & FMEA Analytics Engine`    | Domain Service   | Shewhart X-bar & R control charts, Cp/Cpk process capability, Nelson rules out-of-control detection, AIAG-VDA FMEA risk ranking with dynamic Andon/scrap occurrence correlation, and cycle time variation histogram. | NestJS, Prisma ORM, React 19 SVG    |
 | `Event Streaming Gateway`        | WebSocket Hub    | Broadcasts real-time machine telemetry, active Andon ticket alerts, and production output counters to web clients.                                                                               | Socket.IO, NestJS WebSocket Gateway |
 | `Operations Web Client`          | Frontend SPA     | Shop floor visualization interface: real-time 10-machine board, order execution panel, operator scrap/stop forms, Andon response, OEE Pareto, and quality/traceability panels.                   | React 19, Vite, Tailwind CSS        |
 | `Relational Database`            | Persistent DB    | Primary transactional store for master data, order lifecycles, append-only machine event logs, time segments, and security audit logs.                                                           | Microsoft SQL Server 2022           |

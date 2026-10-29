@@ -22,6 +22,12 @@ import type {
   IngestSourceMode,
   ModbusClientConfig,
 } from '../types/iot-gateway.js';
+import type {
+  SpcParameter,
+  SpcResponse,
+  FmeaResponse,
+  CycleTimeDistributionResponse,
+} from '../types/analytics.js';
 
 const API_BASE_URL = '/api/v1';
 
@@ -656,6 +662,40 @@ class ApiService {
     return this.request(`/iot-gateway/modbus/poll/${encodeURIComponent(machineCode)}`, {
       method: 'POST',
     });
+  }
+
+  // --- Advanced Analytics (SPC & FMEA) ---
+  public async getSpcData(
+    machineCode: string = 'IMM-01',
+    parameter: SpcParameter = 'cushionPositionMm',
+    subgroupSize: number = 5,
+    sampleCount: number = 100,
+  ): Promise<SpcResponse> {
+    const params = new URLSearchParams({
+      machineCode,
+      parameter,
+      subgroupSize: subgroupSize.toString(),
+      sampleCount: sampleCount.toString(),
+    });
+    return this.request<SpcResponse>(`/analytics/spc?${params.toString()}`);
+  }
+
+  public async getFmeaData(machineCode?: string, riskFilter: string = 'ALL'): Promise<FmeaResponse> {
+    const params = new URLSearchParams();
+    if (machineCode) params.set('machineCode', machineCode);
+    if (riskFilter) params.set('riskFilter', riskFilter);
+    return this.request<FmeaResponse>(`/analytics/fmea?${params.toString()}`);
+  }
+
+  public async getCycleTimeDistribution(
+    machineCode: string = 'IMM-01',
+    sampleCount: number = 100,
+  ): Promise<CycleTimeDistributionResponse> {
+    const params = new URLSearchParams({
+      machineCode,
+      sampleCount: sampleCount.toString(),
+    });
+    return this.request<CycleTimeDistributionResponse>(`/analytics/cycle-time-distribution?${params.toString()}`);
   }
 }
 

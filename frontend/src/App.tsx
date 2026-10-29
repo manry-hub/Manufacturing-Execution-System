@@ -20,6 +20,7 @@ import { MaintenanceView } from './components/maintenance/MaintenanceView.js';
 import { PackagingView } from './components/packaging/PackagingView.js';
 import { SchedulingView } from './components/scheduling/SchedulingView.js';
 import { TravelerView } from './components/traveler/TravelerView.js';
+import { AnalyticsView } from './components/analytics/AnalyticsView.js';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const DashboardContent: React.FC = () => {
@@ -424,6 +425,9 @@ const DashboardContent: React.FC = () => {
 
             {/* View 10: Digital Traveler & Certificate of Conformance */}
             {activeTab === 'traveler' && <TravelerView runs={runs} />}
+
+            {/* View 11: Statistical Process Control (SPC) & FMEA Analytics */}
+            {activeTab === 'analytics' && <AnalyticsView />}
           </>
         )}
       </main>
