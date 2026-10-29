@@ -2,7 +2,7 @@ import type { LoginResponse } from '../types/auth.js';
 import type { Machine } from '../types/machine.js';
 import type { AndonTicket } from '../types/andon.js';
 import type { ProductionOrder, ProductionRun, Product, Mold, OrderOperationStep } from '../types/production.js';
-import type { OeeCalculationResult, PlantOeeResponse } from '../types/oee.js';
+import type { OeeCalculationResult, PlantOeeResponse, ExecutiveOeeAnalyticsResponse, ExecutiveOeeFilterParams } from '../types/oee.js';
 import type { Material, MaterialLot, RunGenealogy, LotGenealogy, CartonGenealogy, QuarantineResponse, HopperLevel } from '../types/materials.js';
 import type { InspectionPlan, QualityCheck, FirstPieceReleaseStatus, CpkAnalyticsResponse } from '../types/quality.js';
 import type { MoldPmSchedule, MaintenanceWorkOrder } from '../types/maintenance.js';
@@ -259,6 +259,17 @@ class ApiService {
   }
 
   // --- OEE Endpoints ---
+  public async getExecutiveOeeAnalytics(params?: ExecutiveOeeFilterParams): Promise<ExecutiveOeeAnalyticsResponse> {
+    const query = new URLSearchParams();
+    if (params?.areaId) query.set('areaId', params.areaId);
+    if (params?.machineId) query.set('machineId', params.machineId);
+    if (params?.window) query.set('window', params.window);
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return this.request<ExecutiveOeeAnalyticsResponse>(`/oee/executive${qs}`);
+  }
+
   public async getMachineOee(machineId: string, window: 'RUN' | 'SHIFT' | 'DAY' = 'SHIFT'): Promise<OeeCalculationResult> {
     return this.request<OeeCalculationResult>(`/oee/machines/${encodeURIComponent(machineId)}?window=${window}`);
   }

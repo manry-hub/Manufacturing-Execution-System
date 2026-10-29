@@ -7,6 +7,23 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 export class OeeController {
   constructor(private readonly oeeService: OeeService) {}
 
+  @Get('executive')
+  async getExecutiveAnalytics(
+    @Query('machineId') machineId?: string,
+    @Query('areaId') areaId?: string,
+    @Query('window') window?: 'SHIFT' | 'DAY' | 'WEEK',
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.oeeService.getExecutiveAnalytics({
+      machineId,
+      areaId,
+      window,
+      startDate,
+      endDate,
+    });
+  }
+
   @Get('machines/:identifier')
   async getMachineOee(
     @Param('identifier') identifier: string,
