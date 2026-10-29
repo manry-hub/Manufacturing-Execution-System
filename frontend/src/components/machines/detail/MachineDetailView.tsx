@@ -15,6 +15,7 @@ import { StatusBadge } from '../../common/StatusBadge.js';
 import { CyclePhaseBar } from './CyclePhaseBar.js';
 import { TelemetryGauges } from './TelemetryGauges.js';
 import { BarrelHeatingZones } from './BarrelHeatingZones.js';
+import { Euromap77DiagnosticsCard } from './Euromap77DiagnosticsCard.js';
 import { ScenarioControlPanel } from './ScenarioControlPanel.js';
 
 interface MachineDetailViewProps {
@@ -255,6 +256,12 @@ export const MachineDetailView: React.FC<MachineDetailViewProps> = ({
       <BarrelHeatingZones
         temperatures={machine.latestMetrics?.barrelTemperatures}
         hasHeaterFault={hasHeaterFault}
+      />
+
+      {/* Euromap 77 / OPC 40077 Fieldbus Gateway Diagnostics */}
+      <Euromap77DiagnosticsCard
+        machine={machine}
+        onRefresh={onRefresh}
       />
 
       {/* Demonstration Scenario Controls */}

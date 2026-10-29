@@ -17,6 +17,7 @@ import { MaintenanceModule } from './modules/maintenance/maintenance.module.js';
 import { PackagingModule } from './modules/packaging/packaging.module.js';
 import { SchedulingModule } from './modules/scheduling/scheduling.module.js';
 import { TravelerModule } from './modules/traveler/traveler.module.js';
+import { IotGatewayModule } from './modules/iot-gateway/iot-gateway.module.js';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { TravelerModule } from './modules/traveler/traveler.module.js';
     PackagingModule,
     SchedulingModule,
     TravelerModule,
+    IotGatewayModule,
   ],
   controllers: [AppController],
   providers: [AppService],

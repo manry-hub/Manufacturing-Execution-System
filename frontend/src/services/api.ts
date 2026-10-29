@@ -14,6 +14,7 @@ import type {
   TravelerRunSummaryDto,
   SignoffTravelerPayload,
 } from '../types/traveler.js';
+import type { IotGatewayStatus, RawPacketRecord } from '../types/iot-gateway.js';
 
 const API_BASE_URL = '/api/v1';
 
@@ -545,6 +546,29 @@ class ApiService {
 
   public async getCertificateOfConformance(runId: string): Promise<CertificateOfConformanceDto> {
     return this.request<CertificateOfConformanceDto>(`/traveler/${encodeURIComponent(runId)}/coc`);
+  }
+
+  // --- Industrial IoT Gateway Endpoints ---
+  public async getIotGatewayStatus(): Promise<IotGatewayStatus> {
+    return this.request<IotGatewayStatus>('/iot-gateway/status');
+  }
+
+  public async getIotGatewayPackets(machineCode?: string, limit = 20): Promise<RawPacketRecord[]> {
+    const params = new URLSearchParams();
+    if (machineCode) params.append('machineCode', machineCode);
+    if (limit) params.append('limit', limit.toString());
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<RawPacketRecord[]>(`/iot-gateway/packets${query}`);
+  }
+
+  public async simulateEuromap77Packet(
+    machineCode: string,
+    overrides?: Record<string, unknown>,
+  ): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>('/iot-gateway/simulate-euromap77', {
+      method: 'POST',
+      body: JSON.stringify({ machineCode, ...overrides }),
+    });
   }
 }
 

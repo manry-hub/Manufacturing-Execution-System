@@ -22,6 +22,22 @@ services:
       retries: 5
       start_period: 15s
 
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: mes-mosquitto
+    restart: unless-stopped
+    ports:
+      - "${MQTT_PORT:-1883}:1883"
+      - "9001:9001"
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+
 volumes:
   mssql_data:
+    driver: local
+  mosquitto_data:
+    driver: local
+  mosquitto_log:
     driver: local

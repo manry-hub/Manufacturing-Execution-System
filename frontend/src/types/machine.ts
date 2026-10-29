@@ -26,6 +26,8 @@ export interface BarrelTemperatures {
 export interface TelemetryMetrics {
   cycleTimeSeconds?: number;
   injectionPressureBar?: number;
+  peakInjectionPressureBar?: number;
+  clampingForceKn?: number;
   holdingPressureBar?: number;
   cushionPositionMm?: number;
   plasticizingTimeSeconds?: number;
