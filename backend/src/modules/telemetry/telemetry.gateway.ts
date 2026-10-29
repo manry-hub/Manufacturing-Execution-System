@@ -164,7 +164,8 @@ export class TelemetryGateway implements OnGatewayInit, OnGatewayConnection, OnG
     event:
       | 'materials:hopper_loaded'
       | 'materials:hopper_depleted'
-      | 'materials:lot_stock_updated',
+      | 'materials:lot_stock_updated'
+      | 'materials:lot_quarantined',
     payload: any,
   ) {
     if (!this.server) return;

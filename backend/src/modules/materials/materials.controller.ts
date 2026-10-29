@@ -69,4 +69,22 @@ export class MaterialsController {
   async getLotGenealogy(@Param('lotNumber') lotNumber: string) {
     return this.materialsService.getLotGenealogy(lotNumber);
   }
+
+  @Get('genealogy/carton/:barcode')
+  async getCartonGenealogy(@Param('barcode') barcode: string) {
+    return this.materialsService.getCartonGenealogy(barcode);
+  }
+
+  @Post('lots/:id/quarantine')
+  async quarantineLot(
+    @Param('id') id: string,
+    @Body('reason') reason?: string,
+  ) {
+    return this.materialsService.quarantineLot(id, reason);
+  }
+
+  @Get('hopper/levels')
+  async getHopperLevels() {
+    return this.materialsService.getHopperLevels();
+  }
 }

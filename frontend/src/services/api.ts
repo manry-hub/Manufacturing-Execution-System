@@ -3,7 +3,7 @@ import type { Machine } from '../types/machine.js';
 import type { AndonTicket } from '../types/andon.js';
 import type { ProductionOrder, ProductionRun, Product, Mold, OrderOperationStep } from '../types/production.js';
 import type { OeeCalculationResult } from '../types/oee.js';
-import type { Material, MaterialLot, RunGenealogy, LotGenealogy } from '../types/materials.js';
+import type { Material, MaterialLot, RunGenealogy, LotGenealogy, CartonGenealogy, QuarantineResponse, HopperLevel } from '../types/materials.js';
 import type { InspectionPlan, QualityCheck, FirstPieceReleaseStatus } from '../types/quality.js';
 import type { MoldPmSchedule, MaintenanceWorkOrder } from '../types/maintenance.js';
 import type { PackagingUnit, RunReconciliation } from '../types/packaging.js';
@@ -337,6 +337,21 @@ class ApiService {
 
   public async getLotGenealogy(lotNumber: string): Promise<LotGenealogy> {
     return this.request<LotGenealogy>(`/materials/genealogy/lot/${encodeURIComponent(lotNumber)}`);
+  }
+
+  public async getCartonGenealogy(barcode: string): Promise<CartonGenealogy> {
+    return this.request<CartonGenealogy>(`/materials/genealogy/carton/${encodeURIComponent(barcode)}`);
+  }
+
+  public async quarantineLot(lotId: string, reason?: string): Promise<QuarantineResponse> {
+    return this.request<QuarantineResponse>(`/materials/lots/${encodeURIComponent(lotId)}/quarantine`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  public async getHopperLevels(): Promise<HopperLevel[]> {
+    return this.request<HopperLevel[]>('/materials/hopper/levels');
   }
 
   // --- Quality Endpoints ---

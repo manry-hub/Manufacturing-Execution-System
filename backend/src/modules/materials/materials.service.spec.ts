@@ -23,6 +23,11 @@ describe('MaterialsService', () => {
       },
       productionRun: {
         findUnique: vi.fn(),
+        findMany: vi.fn(),
+      },
+      packagingUnit: {
+        findUnique: vi.fn(),
+        findMany: vi.fn(),
       },
       runMaterialConsumption: {
         create: vi.fn(),
@@ -139,6 +144,135 @@ describe('MaterialsService', () => {
           status: 'AVAILABLE',
         },
       });
+    });
+  });
+
+  describe('getCartonGenealogy', () => {
+    it('should throw NotFoundException if carton barcode does not exist', async () => {
+      mockPrisma.packagingUnit.findUnique.mockResolvedValue(null);
+
+      await expect(service.getCartonGenealogy('PKG-NONEXISTENT')).rejects.toThrow(NotFoundException);
+    });
+
+    it('should trace backward from carton barcode to run and raw materials', async () => {
+      mockPrisma.packagingUnit.findUnique.mockResolvedValue({
+        id: 'u-1',
+        barcode: 'PKG-CARTON-101',
+        partCount: 50,
+        palletId: 'PAL-01',
+        packedAt: new Date(),
+        packager: { id: 'usr-1', username: 'Operator-A' },
+        run: {
+          id: 'run-10',
+          status: 'RUNNING',
+          totalShots: 200,
+          goodQuantity: 390,
+          rejectQuantity: 10,
+          productionOrder: {
+            orderNumber: 'WO-10',
+            product: { partNumber: 'P-100', name: 'Door Trim' },
+          },
+          machine: { code: 'IMM-02', name: 'Machine 2' },
+          mold: { code: 'M-2', cavityCount: 2 },
+          consumptions: [
+            {
+              id: 'c-1',
+              materialLot: {
+                id: 'lot-99',
+                lotNumber: 'LOT-PP-99',
+                supplierLot: 'SUP-HEAT-44',
+                status: 'AVAILABLE',
+                material: { code: 'PP-01', name: 'Polypro', category: 'BASE_RESIN' },
+              },
+              loadedBy: { username: 'Handler-1' },
+              quantityKg: new Prisma.Decimal(25),
+              loadedAt: new Date(),
+            },
+          ],
+        },
+      });
+
+      const res = await service.getCartonGenealogy('PKG-CARTON-101');
+
+      expect(res.carton.barcode).toBe('PKG-CARTON-101');
+      expect(res.run.orderNumber).toBe('WO-10');
+      expect(res.machine.code).toBe('IMM-02');
+      expect(res.rawMaterials).toHaveLength(1);
+      expect(res.rawMaterials[0].lotNumber).toBe('LOT-PP-99');
+      expect(res.rawMaterials[0].supplierLot).toBe('SUP-HEAT-44');
+    });
+  });
+
+  describe('quarantineLot', () => {
+    it('should set lot status to QUARANTINE and calculate containment blast radius', async () => {
+      mockPrisma.materialLot.findUnique.mockResolvedValue({
+        id: 'lot-bad',
+        lotNumber: 'LOT-DEFECT-1',
+        remainingQtyKg: new Prisma.Decimal(40),
+        material: { name: 'ABS Polymer' },
+        consumptions: [
+          {
+            runId: 'run-1',
+            run: {
+              productionOrder: { orderNumber: 'WO-101' },
+              packagingUnits: [
+                { id: 'c-1', barcode: 'PKG-1', partCount: 50 },
+                { id: 'c-2', barcode: 'PKG-2', partCount: 50 },
+              ],
+            },
+          },
+        ],
+      });
+
+      mockPrisma.materialLot.update.mockResolvedValue({
+        id: 'lot-bad',
+        lotNumber: 'LOT-DEFECT-1',
+        status: 'QUARANTINE',
+        remainingQtyKg: new Prisma.Decimal(40),
+      });
+
+      const res = await service.quarantineLot('lot-bad', 'Polymer melt flow index out of spec');
+
+      expect(res.lot.status).toBe('QUARANTINE');
+      expect(res.blastRadius.affectedRunsCount).toBe(1);
+      expect(res.blastRadius.affectedCartonsCount).toBe(2);
+      expect(res.blastRadius.totalPartsQuarantined).toBe(100);
+      expect(res.blastRadius.reason).toBe('Polymer melt flow index out of spec');
+    });
+  });
+
+  describe('getHopperLevels', () => {
+    it('should calculate estimated residual kg and flag low resin status', async () => {
+      mockPrisma.productionRun.findMany.mockResolvedValue([
+        {
+          id: 'run-active',
+          totalShots: 200,
+          status: 'RUNNING',
+          machine: { id: 'm-1', code: 'IMM-01', name: 'Machine 1' },
+          mold: { code: 'M-1', cavityCount: 2 },
+          productionOrder: { product: { name: 'Bracket' } },
+          consumptions: [
+            {
+              quantityKg: new Prisma.Decimal(35),
+              loadedAt: new Date(),
+              materialLot: {
+                lotNumber: 'LOT-1',
+                material: { name: 'Resin A', category: 'BASE_RESIN' },
+              },
+            },
+          ],
+        },
+      ]);
+
+      const res = await service.getHopperLevels();
+
+      expect(res).toHaveLength(1);
+      expect(res[0].totalLoadedKg).toBe(35);
+      // 200 shots * 2 cav * 0.08 kg = 32 kg consumed
+      expect(res[0].estimatedConsumedKg).toBe(32);
+      // 35 - 32 = 3 kg remaining -> isLowResin: true (< 10kg)
+      expect(res[0].currentHopperKg).toBe(3);
+      expect(res[0].isLowResin).toBe(true);
     });
   });
 });

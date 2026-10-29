@@ -295,4 +295,203 @@ export class MaterialsService {
       })),
     };
   }
+
+  async getCartonGenealogy(barcode: string) {
+    const unit = await this.prisma.packagingUnit.findUnique({
+      where: { barcode },
+      include: {
+        packager: { select: { id: true, username: true, email: true } },
+        run: {
+          include: {
+            productionOrder: { include: { product: true } },
+            machine: true,
+            mold: true,
+            consumptions: {
+              include: {
+                materialLot: { include: { material: true } },
+                loadedBy: { select: { id: true, username: true } },
+              },
+              orderBy: { loadedAt: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!unit) {
+      throw new NotFoundException(`Packaging carton with barcode "${barcode}" not found`);
+    }
+
+    const { run } = unit;
+    return {
+      carton: {
+        id: unit.id,
+        barcode: unit.barcode,
+        partCount: unit.partCount,
+        palletId: unit.palletId,
+        packedAt: unit.packedAt,
+        packager: unit.packager.username,
+      },
+      run: {
+        id: run.id,
+        orderNumber: run.productionOrder.orderNumber,
+        status: run.status,
+        totalShots: run.totalShots,
+        goodQuantity: run.goodQuantity,
+        rejectQuantity: run.rejectQuantity,
+      },
+      product: {
+        partNumber: run.productionOrder.product.partNumber,
+        name: run.productionOrder.product.name,
+      },
+      machine: {
+        code: run.machine.code,
+        name: run.machine.name,
+      },
+      mold: {
+        code: run.mold.code,
+        cavities: run.mold.cavityCount,
+      },
+      rawMaterials: run.consumptions.map((c) => ({
+        consumptionId: c.id,
+        lotId: c.materialLot.id,
+        lotNumber: c.materialLot.lotNumber,
+        materialCode: c.materialLot.material.code,
+        materialName: c.materialLot.material.name,
+        category: c.materialLot.material.category,
+        supplierLot: c.materialLot.supplierLot,
+        status: c.materialLot.status,
+        quantityKg: c.quantityKg.toNumber(),
+        loadedAt: c.loadedAt,
+        loadedBy: c.loadedBy.username,
+      })),
+    };
+  }
+
+  async quarantineLot(lotId: string, reason?: string) {
+    const lot = await this.prisma.materialLot.findUnique({
+      where: { id: lotId },
+      include: {
+        material: true,
+        consumptions: {
+          include: {
+            run: {
+              include: {
+                productionOrder: true,
+                packagingUnits: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!lot) {
+      throw new NotFoundException(`Material lot with ID "${lotId}" not found`);
+    }
+
+    const updatedLot = await this.prisma.materialLot.update({
+      where: { id: lotId },
+      data: { status: 'QUARANTINE' },
+    });
+
+    // Compute containment blast radius
+    const affectedRunsMap = new Map<string, { runId: string; orderNumber: string; cartonCount: number; partCount: number }>();
+    let totalCartons = 0;
+    let totalParts = 0;
+
+    for (const c of lot.consumptions) {
+      if (!affectedRunsMap.has(c.runId)) {
+        const cartonsInRun = c.run.packagingUnits.length;
+        const partsInRun = c.run.packagingUnits.reduce((acc, u) => acc + u.partCount, 0);
+        affectedRunsMap.set(c.runId, {
+          runId: c.runId,
+          orderNumber: c.run.productionOrder.orderNumber,
+          cartonCount: cartonsInRun,
+          partCount: partsInRun,
+        });
+        totalCartons += cartonsInRun;
+        totalParts += partsInRun;
+      }
+    }
+
+    const blastRadius = {
+      affectedRunsCount: affectedRunsMap.size,
+      affectedRuns: Array.from(affectedRunsMap.values()),
+      affectedCartonsCount: totalCartons,
+      totalPartsQuarantined: totalParts,
+      quarantinedAt: new Date(),
+      reason: reason ?? 'Quality containment hold triggered by quality engineering',
+    };
+
+    if (this.gateway) {
+      this.gateway.broadcastMaterialsEvent('materials:lot_quarantined', {
+        lotId: lot.id,
+        lotNumber: lot.lotNumber,
+        status: 'QUARANTINE',
+        blastRadius,
+      });
+    }
+
+    return {
+      lot: {
+        id: updatedLot.id,
+        lotNumber: updatedLot.lotNumber,
+        status: updatedLot.status,
+        remainingQtyKg: updatedLot.remainingQtyKg.toNumber(),
+      },
+      blastRadius,
+    };
+  }
+
+  async getHopperLevels() {
+    const activeRuns = await this.prisma.productionRun.findMany({
+      where: {
+        status: { in: ['SETUP', 'RUNNING', 'PAUSED'] },
+      },
+      include: {
+        machine: true,
+        mold: true,
+        productionOrder: { include: { product: true } },
+        consumptions: {
+          include: {
+            materialLot: { include: { material: true } },
+          },
+          orderBy: { loadedAt: 'desc' },
+        },
+      },
+    });
+
+    return activeRuns.map((run) => {
+      const totalLoadedKg = run.consumptions.reduce((acc, c) => acc + c.quantityKg.toNumber(), 0);
+      // Rough estimation: 80g per part molded
+      const estimatedPartKg = 0.08;
+      const consumedKg = Math.round(run.totalShots * (run.mold?.cavityCount ?? 1) * estimatedPartKg * 100) / 100;
+      const currentHopperKg = Math.max(0, Math.round((totalLoadedKg - consumedKg) * 100) / 100);
+      const isLowResin = currentHopperKg < 10 && currentHopperKg > 0;
+      const isEmpty = currentHopperKg === 0 && totalLoadedKg > 0;
+
+      return {
+        runId: run.id,
+        orderNumber: run.productionOrder.orderNumber,
+        machine: {
+          id: run.machine.id,
+          code: run.machine.code,
+          name: run.machine.name,
+        },
+        productName: run.productionOrder.product.name,
+        totalLoadedKg,
+        estimatedConsumedKg: consumedKg,
+        currentHopperKg,
+        isLowResin,
+        isEmpty,
+        activeLots: run.consumptions.slice(0, 3).map((c) => ({
+          lotNumber: c.materialLot.lotNumber,
+          materialName: c.materialLot.material.name,
+          category: c.materialLot.material.category,
+          quantityKg: c.quantityKg.toNumber(),
+        })),
+      };
+    });
+  }
 }
