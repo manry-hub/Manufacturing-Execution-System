@@ -1,80 +1,67 @@
 import React from 'react';
 import { BarChart3, Clock, Zap, CheckCircle2, Award, AlertTriangle } from 'lucide-react';
-import type { OeeCalculationResult } from '../../types/oee.js';
+import type { OeeCalculationResult, PlantOeeResponse } from '../../types/oee.js';
 
 interface OeeScorecardsProps {
-  result?: (OeeCalculationResult & {
-    metrics?: {
-      availability: number;
-      performance: number;
-      quality: number;
-      oee: number;
-      speedOverPerformance?: boolean;
-      breakdown?: {
-        plannedProductionTimeSeconds: number;
-        operatingTimeSeconds: number;
-        totalPartsProduced: number;
-        goodPartsCount: number;
-      };
-    };
-  }) | null;
+  result?: PlantOeeResponse | OeeCalculationResult | null;
 }
 
 export const OeeScorecards: React.FC<OeeScorecardsProps> = ({ result }) => {
+  const metrics = result && 'metrics' in result ? result.metrics : undefined;
+  const legacy = result && 'availability' in result ? result : undefined;
+
   const availability =
-    result?.availability != null
-      ? result.availability * 100
-      : result?.metrics?.availability != null
-      ? result.metrics.availability * 100
+    metrics != null
+      ? metrics.availability * 100
+      : legacy?.availability != null
+      ? legacy.availability * 100
       : 92.4;
 
   const performance =
-    result?.performance != null
-      ? result.performance * 100
-      : result?.metrics?.performance != null
-      ? result.metrics.performance * 100
+    metrics != null
+      ? metrics.performance * 100
+      : legacy?.performance != null
+      ? legacy.performance * 100
       : 89.6;
 
   const quality =
-    result?.quality != null
-      ? result.quality * 100
-      : result?.metrics?.quality != null
-      ? result.metrics.quality * 100
+    metrics != null
+      ? metrics.quality * 100
+      : legacy?.quality != null
+      ? legacy.quality * 100
       : 98.1;
 
   const oee =
-    result?.oee != null
-      ? result.oee * 100
-      : result?.metrics?.oee != null
-      ? result.metrics.oee * 100
+    metrics != null
+      ? metrics.oee * 100
+      : legacy?.oee != null
+      ? legacy.oee * 100
       : (availability * performance * quality) / 10000;
 
   const plannedMins =
-    result?.plannedProductionTimeMinutes ??
-    (result?.metrics?.breakdown?.plannedProductionTimeSeconds
-      ? Math.round(result.metrics.breakdown.plannedProductionTimeSeconds / 60)
-      : 480);
+    metrics?.breakdown?.plannedProductionTimeSeconds != null
+      ? Math.round(metrics.breakdown.plannedProductionTimeSeconds / 60)
+      : legacy?.plannedProductionTimeMinutes ?? 480;
 
   const operatingMins =
-    result?.operatingTimeMinutes ??
-    (result?.metrics?.breakdown?.operatingTimeSeconds
-      ? Math.round(result.metrics.breakdown.operatingTimeSeconds / 60)
-      : 440);
+    metrics?.breakdown?.operatingTimeSeconds != null
+      ? Math.round(metrics.breakdown.operatingTimeSeconds / 60)
+      : legacy?.operatingTimeMinutes ?? 440;
 
   const goodParts =
-    result?.goodPartsProduced ??
-    result?.metrics?.breakdown?.goodPartsCount ??
+    metrics?.breakdown?.goodPartsCount ??
+    legacy?.goodPartsProduced ??
     5680;
 
   const totalParts =
-    result?.totalPartsProduced ??
-    result?.metrics?.breakdown?.totalPartsProduced ??
+    metrics?.breakdown?.totalPartsProduced ??
+    legacy?.totalPartsProduced ??
     5788;
 
   const isWorldClass = oee >= 85.0;
   const isOverSpeed =
-    result?.isOverSpeed ??
-    result?.metrics?.speedOverPerformance ??
+    metrics?.speedOverPerformance ??
+    legacy?.isOverSpeed ??
     performance > 100.0;
 
   return (

@@ -2,7 +2,7 @@ import type { LoginResponse } from '../types/auth.js';
 import type { Machine } from '../types/machine.js';
 import type { AndonTicket } from '../types/andon.js';
 import type { ProductionOrder, ProductionRun, Product, Mold, OrderOperationStep } from '../types/production.js';
-import type { OeeCalculationResult } from '../types/oee.js';
+import type { OeeCalculationResult, PlantOeeResponse } from '../types/oee.js';
 import type { Material, MaterialLot, RunGenealogy, LotGenealogy, CartonGenealogy, QuarantineResponse, HopperLevel } from '../types/materials.js';
 import type { InspectionPlan, QualityCheck, FirstPieceReleaseStatus, CpkAnalyticsResponse } from '../types/quality.js';
 import type { MoldPmSchedule, MaintenanceWorkOrder } from '../types/maintenance.js';
@@ -263,8 +263,8 @@ class ApiService {
     return this.request<OeeCalculationResult>(`/oee/machines/${encodeURIComponent(machineId)}?window=${window}`);
   }
 
-  public async getPlantOee(window: 'SHIFT' | 'DAY' = 'SHIFT'): Promise<OeeCalculationResult> {
-    return this.request<OeeCalculationResult>(`/oee/plant?window=${window}`);
+  public async getPlantOee(window: 'SHIFT' | 'DAY' = 'SHIFT'): Promise<PlantOeeResponse> {
+    return this.request<PlantOeeResponse>(`/oee/plant?window=${window}`);
   }
 
   // --- Andon Endpoints ---

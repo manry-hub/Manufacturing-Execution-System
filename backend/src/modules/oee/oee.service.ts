@@ -226,8 +226,11 @@ export class OeeService {
    * Calculates plant-wide OEE using ISO 22400-2 weighted aggregation across all machines.
    */
   async calculatePlantOee(window: 'SHIFT' | 'DAY' = 'SHIFT') {
-    const machines = await this.prisma.machine.findMany();
+    const machines = await this.prisma.machine.findMany({
+      orderBy: { code: 'asc' },
+    });
     const machineInputs: OeeCalculationInput[] = [];
+    const machineBreakdown = [];
 
     for (const machine of machines) {
       const oeeData = await this.calculateMachineOee(machine.id, window);
@@ -238,6 +241,12 @@ export class OeeService {
         totalPartsProduced: oeeData.metrics.breakdown.totalPartsProduced,
         goodPartsCount: oeeData.metrics.breakdown.goodPartsCount,
       });
+      machineBreakdown.push({
+        machineId: machine.id,
+        machineCode: machine.code,
+        machineName: machine.name,
+        metrics: oeeData.metrics,
+      });
     }
 
     const aggregatedMetrics = OeeCalculator.aggregate(machineInputs);
@@ -246,6 +255,7 @@ export class OeeService {
       window,
       machineCount: machines.length,
       metrics: aggregatedMetrics,
+      machineBreakdown,
     };
   }
 }

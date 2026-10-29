@@ -18,3 +18,36 @@ export interface OeeCalculationResult {
   scrapPartsProduced: number;
   isOverSpeed?: boolean;
 }
+
+export interface OeeBreakdownDetails {
+  plannedProductionTimeSeconds: number;
+  operatingTimeSeconds: number;
+  idealCycleTimeSeconds: number;
+  totalPartsProduced: number;
+  goodPartsCount: number;
+  scrapPartsCount: number;
+}
+
+export interface OeeMetricsResult {
+  availability: number;
+  performance: number;
+  quality: number;
+  oee: number;
+  speedOverPerformance: boolean;
+  isValid: boolean;
+  breakdown: OeeBreakdownDetails;
+}
+
+export interface MachineOeeBreakdownItem {
+  machineId: string;
+  machineCode: string;
+  machineName: string;
+  metrics: OeeMetricsResult;
+}
+
+export interface PlantOeeResponse {
+  window: 'SHIFT' | 'DAY';
+  machineCount: number;
+  metrics: OeeMetricsResult;
+  machineBreakdown?: MachineOeeBreakdownItem[];
+}
