@@ -201,6 +201,12 @@ model ProductionOrder {
   sequenceOrder     Int       @default(0) @map("sequence_order")
   schedulingNotes   String?   @map("scheduling_notes") @db.VarChar(255)
 
+  // External PPSS Integration extensions
+  externalOrderRef     String?   @unique @map("external_order_ref") @db.VarChar(100)
+  dueDate              DateTime? @map("due_date")
+  externalSyncStatus   String    @default("LOCAL") @map("external_sync_status") @db.VarChar(30) // LOCAL, SYNCED_FROM_PPSS, DESYNC_ALERT
+  suggestedMachineCode String?   @map("suggested_machine_code") @db.VarChar(50)
+
   product         Product              @relation(fields: [productId], references: [id], onUpdate: NoAction, onDelete: NoAction)
   assignedMachine Machine?             @relation("MachineScheduledOrders", fields: [assignedMachineId], references: [id], onUpdate: NoAction, onDelete: SetNull)
   assignedMold    Mold?                @relation("MoldScheduledOrders", fields: [assignedMoldId], references: [id], onUpdate: NoAction, onDelete: SetNull)
@@ -211,6 +217,7 @@ model ProductionOrder {
   @@index([status], name: "idx_po_status")
   @@index([assignedMachineId, plannedStartTime], name: "idx_po_machine_schedule")
   @@index([assignedMoldId], name: "idx_po_assigned_mold")
+  @@index([externalOrderRef], name: "idx_po_external_ref")
   @@map("production_orders")
 }
 
@@ -576,4 +583,21 @@ model MoldChangeover {
 
   @@unique([fromMoldId, toMoldId], name: "uq_mold_changeover")
   @@map("mold_changeovers")
+}
+
+// -----------------------------------------------------------------------------
+// External PPSS Integration & Webhooks
+// -----------------------------------------------------------------------------
+
+model IntegrationWebhookConfig {
+  id          String   @id @default(uuid())
+  systemName  String   @unique @default("PPSS") @map("system_name") @db.VarChar(50)
+  targetUrl   String   @map("target_url") @db.VarChar(500)
+  secretToken String   @map("secret_token") @db.VarChar(255)
+  isActive    Boolean  @default(true) @map("is_active")
+  events      String   @default("order.scheduled,order.released,run.started,run.progress,run.completed,machine.down") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("integration_webhook_configs")
 }

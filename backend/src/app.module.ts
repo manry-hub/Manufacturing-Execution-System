@@ -19,6 +19,7 @@ import { SchedulingModule } from './modules/scheduling/scheduling.module.js';
 import { TravelerModule } from './modules/traveler/traveler.module.js';
 import { IotGatewayModule } from './modules/iot-gateway/iot-gateway.module.js';
 import { AnalyticsModule } from './modules/analytics/analytics.module.js';
+import { IntegrationModule } from './modules/integration/integration.module.js';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module.js';
     TravelerModule,
     IotGatewayModule,
     AnalyticsModule,
+    IntegrationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -20,7 +20,6 @@ import {
   WifiOff,
   CheckCircle2,
   Clock,
-  Sparkles,
 } from 'lucide-react';
 import { useShopfloor } from '../context/ShopfloorContext.js';
 import { useAuth } from '../context/AuthContext.js';

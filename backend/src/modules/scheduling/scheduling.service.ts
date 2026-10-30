@@ -5,9 +5,10 @@ import type { RescheduleSlotDto } from './dto/reschedule-slot.dto.js';
 import type { UpsertChangeoverDto } from './dto/upsert-changeover.dto.js';
 import type { ScheduleQueryDto } from './dto/schedule-query.dto.js';
 import { TelemetryGateway } from '../telemetry/telemetry.gateway.js';
+import { PpssWebhookService } from '../integration/services/ppss-webhook.service.js';
 
 export interface TimelineBlockConflict {
-  type: 'TONNAGE_MISMATCH' | 'TOOLING_COLLISION' | 'MACHINE_OVERLAP';
+  type: 'TONNAGE_MISMATCH' | 'TOOLING_COLLISION' | 'MACHINE_OVERLAP' | 'DUE_DATE_RISK';
   severity: 'WARNING' | 'CRITICAL';
   message: string;
 }
@@ -19,6 +20,10 @@ export interface TimelineBlock {
   blockType: TimelineBlockType;
   orderId?: string;
   orderNumber?: string;
+  externalOrderRef?: string;
+  dueDate?: string;
+  externalSyncStatus?: string;
+  suggestedMachineCode?: string;
   productName?: string;
   moldId?: string;
   moldCode?: string;
@@ -49,6 +54,7 @@ export class SchedulingService {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly gateway?: TelemetryGateway,
+    @Optional() private readonly webhookService?: PpssWebhookService,
   ) {}
 
   /**
@@ -179,6 +185,15 @@ export class SchedulingService {
           }
         }
 
+        // Check 3: Customer due date violation
+        if (order.dueDate && end > order.dueDate) {
+          conflicts.push({
+            type: 'DUE_DATE_RISK',
+            severity: 'WARNING',
+            message: `Due Date Risk: Planned completion (${end.toISOString().slice(0, 16)}) exceeds customer deadline (${order.dueDate.toISOString().slice(0, 16)}).`,
+          });
+        }
+
         if (conflicts.length > 0) {
           activeConflictsCount += conflicts.length;
         }
@@ -220,6 +235,10 @@ export class SchedulingService {
           blockType: order.status === 'IN_PROGRESS' ? 'ACTIVE_RUN' : 'PRODUCTION_ORDER',
           orderId: order.id,
           orderNumber: order.orderNumber,
+          externalOrderRef: order.externalOrderRef ?? undefined,
+          dueDate: order.dueDate ? order.dueDate.toISOString() : undefined,
+          externalSyncStatus: order.externalSyncStatus,
+          suggestedMachineCode: order.suggestedMachineCode ?? undefined,
           productName: order.product?.name ?? 'Injection Part',
           moldId: order.assignedMoldId ?? undefined,
           moldCode: order.assignedMold?.code ?? undefined,
@@ -355,6 +374,17 @@ export class SchedulingService {
       });
     }
 
+    if (this.webhookService) {
+      void this.webhookService.notifyOrderScheduled({
+        orderNumber: order.orderNumber,
+        externalOrderRef: order.externalOrderRef,
+        assignedMachineCode: machine.code,
+        assignedMoldCode: mold.code,
+        plannedStartTime: startTime,
+        plannedEndTime: endTime,
+      });
+    }
+
     return updated;
   }
 
@@ -412,6 +442,17 @@ export class SchedulingService {
       });
     }
 
+    if (this.webhookService) {
+      void this.webhookService.notifyOrderScheduled({
+        orderNumber: order.orderNumber,
+        externalOrderRef: order.externalOrderRef,
+        assignedMachineCode: updated.assignedMachine?.code,
+        assignedMoldCode: updated.assignedMold?.code,
+        plannedStartTime: newStart,
+        plannedEndTime: newEnd,
+      });
+    }
+
     return updated;
   }
 
@@ -455,6 +496,13 @@ export class SchedulingService {
       this.gateway.broadcastSchedulingEvent('scheduling:timeline_updated', {
         action: 'RELEASE',
         orderId,
+      });
+    }
+
+    if (this.webhookService) {
+      void this.webhookService.notifyOrderReleased({
+        orderNumber: released.orderNumber,
+        externalOrderRef: released.externalOrderRef,
       });
     }
 

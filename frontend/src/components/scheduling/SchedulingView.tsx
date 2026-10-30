@@ -982,6 +982,11 @@ export const SchedulingView: React.FC = () => {
                       <div className="flex items-center gap-1.5 min-w-0">
                         <GripVertical className="h-4 w-4 text-[#6B6E76] group-hover:text-[#1868DB] flex-shrink-0" />
                         <span className="text-xs font-bold text-[#292A2E] truncate">{order.orderNumber}</span>
+                        {order.externalOrderRef && (
+                          <span className="text-[10px] font-bold px-1 rounded bg-purple-100 text-purple-700 border border-purple-200 flex-shrink-0" title={`PPSS Ref: ${order.externalOrderRef}`}>
+                            PPSS
+                          </span>
+                        )}
                       </div>
                       <span
                         className={`text-xs font-bold px-1.5 py-0.2 rounded flex-shrink-0 ${
@@ -998,7 +1003,19 @@ export const SchedulingView: React.FC = () => {
 
                     <div className="text-xs text-[#505258]">
                       <p className="font-medium text-[#292A2E] truncate">{order.product?.name}</p>
-                      <p className="font-mono">Target: {order.targetQuantity} parts</p>
+                      <div className="flex items-center justify-between font-mono text-[11px] mt-0.5">
+                        <span>Target: {order.targetQuantity} parts</span>
+                        {order.dueDate && (
+                          <span className="text-[#693200] bg-[#FFF5DB] px-1 py-0.2 rounded border border-[#F5CD47]/50" title={`Deadline: ${new Date(order.dueDate).toLocaleString()}`}>
+                            Due: {new Date(order.dueDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
+                      {order.suggestedMachineCode && (
+                        <p className="text-[10px] text-[#1868DB] font-mono mt-0.5">
+                          Suggested Line: {order.suggestedMachineCode}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between pt-1 gap-2">
@@ -1051,6 +1068,16 @@ export const SchedulingView: React.FC = () => {
                 <span className="text-xs font-semibold uppercase px-1.5 py-0.2 rounded bg-[#E9F2FE] text-[#123263]">
                   {selectedBlock.status}
                 </span>
+                {selectedBlock.externalOrderRef && (
+                  <span className="text-xs font-semibold px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 border border-purple-200">
+                    PPSS: {selectedBlock.externalOrderRef}
+                  </span>
+                )}
+                {selectedBlock.dueDate && (
+                  <span className="text-xs font-medium px-1.5 py-0.2 rounded bg-[#FFF5DB] text-[#693200] border border-[#F5CD47]/60">
+                    Due: {new Date(selectedBlock.dueDate).toLocaleString()}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-[#505258] mt-0.5">
                 {new Date(selectedBlock.startTime).toLocaleString()} →{' '}
