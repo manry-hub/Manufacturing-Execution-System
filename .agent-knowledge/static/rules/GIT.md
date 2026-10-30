@@ -28,6 +28,7 @@ Add a ticket prefix only when the project uses ticket tracking and the work has 
 
 - Before Git changes, inspect the working tree, staged diff, and exact target branch or remote; preserve unrelated user changes.
 - Never read or expose secrets. Do not commit secret values, credentials, or sensitive data; redact them from output and commit messages.
+- **Mandatory User Authorization for Commit and Push:** Never run `git commit` or `git push` automatically upon completing an implementation or task. Always stop after local verification (lint, tests, build), present the summary of modified files and git status, and ask for explicit user permission before committing or pushing changes. Execute `git commit` and `git push` ONLY after receiving explicit user approval.
 - Push, force-push, reset, clean, or delete a branch only when the user explicitly authorized that operation and its target. A direct request scoped to that operation and target is authorization. Do not use a broad command that affects unrelated branches or work.
 - Follow `.agent-knowledge/static/rules/SAFE-OPERATIONS.md` for detailed handling of sensitive data and destructive operations.
 
@@ -41,6 +42,7 @@ Use Conventional Commits:
 
 Rules:
 
+- Never commit automatically without explicit user authorization.
 - One logical change per commit.
 - Imperative subject, no trailing period.
 - Do not commit secrets, build artifacts, or dependencies.

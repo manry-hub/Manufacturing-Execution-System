@@ -28,6 +28,15 @@ import type {
   FmeaResponse,
   CycleTimeDistributionResponse,
 } from '../types/analytics.js';
+import type {
+  ManagedUser,
+  SystemRole,
+  CreateUserPayload,
+  UpdateUserPayload,
+  AuditPaginatedResponse,
+  AuditStats,
+  AuditFilterParams,
+} from '../types/user-admin.js';
 
 const API_BASE_URL = '/api/v1';
 
@@ -696,6 +705,74 @@ class ApiService {
       sampleCount: sampleCount.toString(),
     });
     return this.request<CycleTimeDistributionResponse>(`/analytics/cycle-time-distribution?${params.toString()}`);
+  }
+
+  // --- User Administration ---
+  public async getManagedUsers(search?: string, role?: string, isActive?: boolean): Promise<ManagedUser[]> {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (role) params.set('role', role);
+    if (isActive !== undefined) params.set('isActive', String(isActive));
+    return this.request<ManagedUser[]>(`/users?${params.toString()}`);
+  }
+
+  public async getSystemRoles(): Promise<SystemRole[]> {
+    return this.request<SystemRole[]>('/users/roles');
+  }
+
+  public async createManagedUser(payload: CreateUserPayload): Promise<ManagedUser> {
+    return this.request<ManagedUser>('/users', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  public async updateManagedUser(id: string, payload: UpdateUserPayload): Promise<ManagedUser> {
+    return this.request<ManagedUser>(`/users/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  public async resetUserPassword(id: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/users/${encodeURIComponent(id)}/reset-password`, {
+      method: 'PUT',
+      body: JSON.stringify({ newPassword }),
+    });
+  }
+
+  public async toggleUserActive(id: string, isActive: boolean): Promise<ManagedUser> {
+    return this.request<ManagedUser>(`/users/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
+    });
+  }
+
+  // --- Security Audit Log Explorer ---
+  public async getAuditLogs(params?: AuditFilterParams): Promise<AuditPaginatedResponse> {
+    const query = new URLSearchParams();
+    if (params?.entityType) query.set('entityType', params.entityType);
+    if (params?.action) query.set('action', params.action);
+    if (params?.userId) query.set('userId', params.userId);
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    if (params?.search) query.set('search', params.search);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+
+    return this.request<AuditPaginatedResponse>(`/audit?${query.toString()}`);
+  }
+
+  public async getAuditStats(): Promise<AuditStats> {
+    return this.request<AuditStats>('/audit/stats');
+  }
+
+  public async getAuditEntityTypes(): Promise<string[]> {
+    return this.request<string[]>('/audit/entities');
+  }
+
+  public async getAuditActions(): Promise<string[]> {
+    return this.request<string[]>('/audit/actions');
   }
 }
 

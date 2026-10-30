@@ -21,6 +21,7 @@ import { PackagingView } from './components/packaging/PackagingView.js';
 import { SchedulingView } from './components/scheduling/SchedulingView.js';
 import { TravelerView } from './components/traveler/TravelerView.js';
 import { AnalyticsView } from './components/analytics/AnalyticsView.js';
+import { AdminView } from './components/admin/AdminView.js';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const DashboardContent: React.FC = () => {
@@ -428,6 +429,9 @@ const DashboardContent: React.FC = () => {
 
             {/* View 11: Statistical Process Control (SPC) & FMEA Analytics */}
             {activeTab === 'analytics' && <AnalyticsView />}
+
+            {/* View 12: User Administration & Security Audit Log Explorer */}
+            {activeTab === 'admin' && <AdminView />}
           </>
         )}
       </main>

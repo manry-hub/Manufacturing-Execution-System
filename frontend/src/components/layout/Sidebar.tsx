@@ -37,7 +37,8 @@ export type ActiveTab =
   | 'andon'
   | 'oee'
   | 'traveler'
-  | 'analytics';
+  | 'analytics'
+  | 'admin';
 
 export interface NavItemConfig {
   id: ActiveTab;
@@ -152,6 +153,18 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         label: 'SPC & FMEA analytics',
         shortLabel: 'SPC & FMEA',
         icon: TrendingUp,
+      },
+    ],
+  },
+  {
+    id: 'admin_security',
+    title: 'Governance & Security',
+    items: [
+      {
+        id: 'admin',
+        label: 'Users & audit explorer',
+        shortLabel: 'Admin & Audit',
+        icon: UserCheck,
       },
     ],
   },
