@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   Activity,
+  LayoutGrid,
   Layers,
   BarChart3,
   AlertTriangle,
@@ -26,6 +27,7 @@ import { useAuth, DEMO_ROLES } from '../../context/AuthContext.js';
 import type { UserRole } from '../../types/auth.js';
 
 export type ActiveTab =
+  | 'overview'
   | 'shopfloor'
   | 'machines'
   | 'orders'
@@ -42,6 +44,7 @@ export type ActiveTab =
 
 export interface NavItemConfig {
   id: ActiveTab;
+  path: string;
   label: string;
   shortLabel: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -55,17 +58,32 @@ export interface NavGroupConfig {
 
 export const NAV_GROUPS: NavGroupConfig[] = [
   {
+    id: 'general',
+    title: 'MES Portal',
+    items: [
+      {
+        id: 'overview',
+        path: '/',
+        label: 'Modules directory & hub',
+        shortLabel: 'Hub',
+        icon: LayoutGrid,
+      },
+    ],
+  },
+  {
     id: 'operations',
     title: 'Operations',
     items: [
       {
         id: 'shopfloor',
+        path: '/shopfloor',
         label: 'Shop floor matrix',
         shortLabel: 'Shop floor',
         icon: Layers,
       },
       {
         id: 'machines',
+        path: '/machines',
         label: 'Machine telemetry',
         shortLabel: 'Telemetry',
         icon: Cpu,
@@ -78,18 +96,21 @@ export const NAV_GROUPS: NavGroupConfig[] = [
     items: [
       {
         id: 'orders',
+        path: '/orders',
         label: 'Orders & runs',
         shortLabel: 'Orders',
         icon: PlaySquare,
       },
       {
         id: 'scheduling',
+        path: '/scheduling',
         label: 'Production scheduling',
         shortLabel: 'Scheduling',
         icon: Calendar,
       },
       {
         id: 'packaging',
+        path: '/packaging',
         label: 'Packaging & reconciliation',
         shortLabel: 'Packaging',
         icon: PackageCheck,
@@ -102,18 +123,21 @@ export const NAV_GROUPS: NavGroupConfig[] = [
     items: [
       {
         id: 'quality',
+        path: '/quality',
         label: 'Quality gates & first-piece',
         shortLabel: 'Quality',
         icon: ShieldCheck,
       },
       {
         id: 'traveler',
+        path: '/traveler',
         label: 'Digital traveler & CoC',
         shortLabel: 'Traveler & CoC',
         icon: FileCheck,
       },
       {
         id: 'materials',
+        path: '/materials',
         label: 'Materials & genealogy',
         shortLabel: 'Materials',
         icon: Package,
@@ -126,12 +150,14 @@ export const NAV_GROUPS: NavGroupConfig[] = [
     items: [
       {
         id: 'maintenance',
+        path: '/maintenance',
         label: 'Tooling & mold PM',
         shortLabel: 'Tooling PM',
         icon: Wrench,
       },
       {
         id: 'andon',
+        path: '/andon',
         label: 'Digital andon',
         shortLabel: 'Andon',
         icon: AlertTriangle,
@@ -144,12 +170,14 @@ export const NAV_GROUPS: NavGroupConfig[] = [
     items: [
       {
         id: 'oee',
+        path: '/oee',
         label: 'OEE analytics',
         shortLabel: 'OEE',
         icon: BarChart3,
       },
       {
         id: 'analytics',
+        path: '/analytics',
         label: 'SPC & FMEA analytics',
         shortLabel: 'SPC & FMEA',
         icon: TrendingUp,
@@ -162,6 +190,7 @@ export const NAV_GROUPS: NavGroupConfig[] = [
     items: [
       {
         id: 'admin',
+        path: '/admin',
         label: 'Users & audit explorer',
         shortLabel: 'Admin & Audit',
         icon: UserCheck,
@@ -222,11 +251,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         aria-label="Main sidebar navigation"
         className={`fixed inset-y-0 left-0 z-50 bg-[#FFFFFF] border-r border-[#0B120E24] flex flex-col transition-all duration-200 ease-in-out md:static md:h-full flex-shrink-0 ${
           isOpenMobile ? 'translate-x-0 w-64 shadow-xl' : '-translate-x-full md:translate-x-0'
-        } ${isCollapsed ? 'md:w-16' : 'md:w-64'}`}
+        } ${isCollapsed ? 'md:w-16' : 'md:w-70'}`}
       >
         {/* Brand & Header */}
         <div className="h-14 flex items-center justify-between px-3.5 border-b border-[#0B120E24] flex-shrink-0">
-          <div className="flex items-center gap-2.5 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => {
+              onTabChange('overview');
+              if (isOpenMobile) onCloseMobile();
+            }}
+            aria-label="Go to MES Portal Overview"
+            className="flex items-center gap-2.5 overflow-hidden text-left hover:opacity-85 transition-opacity"
+          >
             <div className="h-8 w-8 rounded-md bg-[#1868DB] flex items-center justify-center text-white flex-shrink-0 shadow-xs">
               <Activity className="h-4 w-4" />
             </div>
@@ -244,7 +281,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span className="text-xs text-[#6B6E76] truncate">Plant 01 • Plastics</span>
               </div>
             )}
-          </div>
+          </button>
 
           {/* Close button for mobile / Collapse button for desktop */}
           <div className="flex items-center">

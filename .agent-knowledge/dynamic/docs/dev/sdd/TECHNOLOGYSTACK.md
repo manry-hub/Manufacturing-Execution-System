@@ -13,6 +13,7 @@
 | **Database ORM & Migrations** | Prisma ORM                | ^6.0.0                      | Type-safe database queries, schema modeling, relation constraints, and migration management         |
 | **Database Engine**           | Microsoft SQL Server      | 2022                        | Enterprise relational database for master data, production transactions, and time-series event logs |
 | **Frontend Framework**        | React                     | ^19.3.1                     | Single-Page Application (SPA) library for operator HMI and management dashboards                    |
+| **Frontend Routing**          | React Router DOM          | ^7.18.5                     | Client-side declarative routing, browser history, route params (`/machines/:code`), and 404 fallback |
 | **Frontend Build Tool**       | Vite                      | ^8.3.4                      | Development server with zero-CORS backend proxy and production asset bundling                       |
 | **Real-Time Communication**   | Socket.IO                 | ^4.8.0                      | Bidirectional WebSocket protocol for real-time telemetry streaming and instant Andon alerting       |
 | **Programming Language**      | TypeScript                | ~6.0.0                      | End-to-end static type safety from machine event contracts to UI view components                    |
