@@ -1,33 +1,33 @@
-# TEMPLATE TASK
+# Task Report Template
 
-> **Jangan ubah file ini saat membuat laporan.** Salin formatnya ke `.agent-knowledge/dynamic/reports/tasks/{incremental-number}-{task-summary}.md`, lalu isi berdasarkan pekerjaan yang benar-benar dilakukan.
+> **DO NOT MODIFY THIS FILE WHEN CREATING A REPORT.** Copy its structure to `.agent-knowledge/dynamic/reports/tasks/{incremental-number}-{task-summary}.md`, then complete it based on the work actually performed.
 
-# {incremental-number} — {ringkasan tugas}
+# {incremental-number} — {task summary}
 
-Tanggal: {YYYY-MM-DD}
+Date: {YYYY-MM-DD}
 
 ## Checklist
 
-- [ ] {hasil yang dapat diamati}
+- [ ] {observable outcome}
 
-## Deskripsi Perubahan
+## Change Description
 
-{Jelaskan fitur, perbaikan, atau refactor yang dilakukan dengan kalimat jelas dan ringkas.}
+{Describe the implemented feature, fix, or refactor clearly and concisely.}
 
-## Daftar File yang Diubah
+## Modified Files
 
 - `{path/file_1}` — {add/edit/delete}
 
 ## Review
 
-- Result: {yang selesai}
-- Verification: {pemeriksaan dan hasilnya}
-- Follow-up: {tindak lanjut atau Tidak ada}
+- Result: {completed outcome}
+- Verification: {check and result}
+- Follow-up: {follow-up action or None}
 
-## Verifikasi UAT (User Acceptance Test)
+## UAT (User Acceptance Test) Verification
 
-| # | Tes | Hasil |
+| # | Test | Result |
 | --- | --- | --- |
-| 1 | {deskripsi tes} | {Lulus/Gagal} |
+| 1 | {test description} | {Pass/Fail} |
 
-{Jika UAT belum dilakukan, tulis "Belum diuji" beserta alasannya. Jangan menandai tes lulus tanpa menjalankannya.}
+{If UAT has not been performed, write "Not tested" and explain why. Do not mark a test as passed without running it.}

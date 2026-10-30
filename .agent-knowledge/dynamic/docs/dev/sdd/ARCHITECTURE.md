@@ -27,51 +27,97 @@
 2. **Modular Isolation:** Each bounded domain context (Master Data, Production Execution, Machine Integration, OEE Analytics, Digital Andon, Security & Audit) is encapsulated in an isolated NestJS module with explicit public service interfaces.
 3. **Evolutionary Decoupling:** The machine integration layer operates behind an adapter interface. If high-throughput ingestion or telemetry caching requires independent horizontal scaling in the future, it can be extracted into a dedicated service without altering core MES domain rules.
 
-### High-Level Diagram
+### 1.2 Hybrid ISA-95 Work Center Architecture
+
+To balance deep vertical equipment telemetry (plastic injection mechanics) with discrete shop-floor routing workflows, the system implements a **Hybrid ISA-95 Work Center Model**:
 
 ```text
-+-------------------------------------------------------------------------+
-|                  Machine Simulator / OPC UA Adapter                     |
-|  (10 Virtual Machines: 8 Normal Flow, 1 Slow Cycle, 1 Fault / Andon)    |
-|               (Deterministic Engine, Seed Replay, Speed Multiplier)     |
-+-------------------------------------------------------------------------+
-                                    │
-                                    ▼ (Internal Normalized Event Protocol)
-+-------------------------------------------------------------------------+
-|                    Machine Integration & Ingestion Layer                |
-|           (Schema Validation, Deduplication, Timestamp Separation)       |
-+-------------------------------------------------------------------------+
-                                    │
-                                    ▼
-+-------------------------------------------------------------------------+
-|                     MES Application Core (NestJS)                       |
-|  ┌─────────────────────┐ ┌──────────────────────┐ ┌──────────────────┐  |
-|  │ Plant & Master Data │ │ Production Execution │ │ Machine Monitor  │  |
-|  └─────────────────────┘ └──────────────────────┘ └──────────────────┘  |
-|  ┌─────────────────────┐ ┌──────────────────────┐ ┌──────────────────┐  |
-|  │ OEE & Loss Engine   │ │ Digital Andon/Downtime│ │ Identity & Audit │  |
-|  └─────────────────────┘ └──────────────────────┘ └──────────────────┘  |
-+-------------------------------------------------------------------------+
-            │                                           │
-            ▼ (Prisma ORM)                              ▼ (Socket.IO & REST)
-+-------------------------+                 +-----------------------------+
-|  Microsoft SQL Server   |                 |      React Web HMI /        |
-| (Transactional & Event) |                 |     Operations Board        |
-+-------------------------+                 +-----------------------------+
+                                  SHOP FLOOR WORKFLOW (HYBRID ROUTING)
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                                        │
+│  [Operation 10: MOLDING]          ──►  [Operation 20: SECONDARY]      ──►  [Operation 30: PACKAGING]   │
+│  (Mandatory Primary Heavy Station)     (Optional Manual / Finishing)       (Final Barcode Verification)│
+│  ┌───────────────────────────┐         ┌─────────────────────────┐         ┌─────────────────────────┐ │
+│  │ Primary Work Center:      │         │ Downstream Station:     │         │ Downstream Station:     │ │
+│  │ INJECTION MOLDING MACHINE │         │ WORK BENCH / ASSEMBLY   │         │ PACKAGING TERMINAL      │ │
+│  ├───────────────────────────┤         ├─────────────────────────┤         ├─────────────────────────┤ │
+│  │ • Mold & Cavity Count     │         │ • Runner Degating       │         │ • Handheld Barcode Scan │ │
+│  │ • Barrel Temperatures PID │         │ • Ultrasonic Welding    │         │ • Carton & Pallet Serial│ │
+│  │ • Hydraulic Line Pressure │         │ • Manual Assembly Steps │         │ • Shot-to-Pack Match    │ │
+│  │ • Real-Time Automated OEE │         │ • Post-Molding Scrap Log│         │ • Shipping Clearance    │ │
+│  └───────────────────────────┘         └─────────────────────────┘         └─────────────────────────┘ │
+│                                                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Architectural Separation of Concerns:
+1. **Physical Equipment Layer (Injection Specialization):**
+   - Bound to `Machine`, `Mold`, `MachineCurrentState`, and `MachineEventLog`.
+   - Maintains sub-second telemetry (hydraulic pressure, cushion position, barrel zone heating, and stroke accumulation).
+   - Serves as the primary operational station (`Operation 10: MOLDING`) where automated OEE (ISO 22400-2) is derived directly from raw cycle completion pulses.
+2. **Operational Routing Layer (Discrete Workflow Tracking):**
+   - Bound to `ProductionOrder`, `ProductionRun`, `OrderOperationStep`, and `PackagingUnit`.
+   - Allows orders to be executed in **Simple 1-Step Mode** (`Molding -> Completed`) for commodity parts, or **Multi-Step Regulated Mode** (`Molding -> Secondary Finishing -> Packaging Verification`) for high-precision components.
+   - Preserves complete backward compatibility with all existing Phase 1–4 dashboards and database structures.
+
+### 1.3 High-Level Diagram
+
+```text
++---------------------------------------------------------------------------------------------------+
+|                        Physical Machine Adapters & Virtual Simulator                              |
+|  - 10-Machine Deterministic Simulator (Steady-state, Slow Cycle, E-Stop / Heater Alarm Scenarios) |
+|  - Industrial IoT Adapters: MQTT Listener, Modbus TCP Poller, Euromap 77 (OPC 40077) Client       |
++---------------------------------------------------------------------------------------------------+
+                                            │
+                                            ▼ (Internal Normalized Event Protocol)
++---------------------------------------------------------------------------------------------------+
+|                              Machine Ingestion & Dispatch Layer                                   |
+|                (Schema Validation, Deduplication on eventId, Monotonic Timestamps)                 |
++---------------------------------------------------------------------------------------------------+
+                                            │
+                                            ▼
++---------------------------------------------------------------------------------------------------+
+|                                MES Application Core (NestJS)                                      |
+|  ┌─────────────────────────┐  ┌─────────────────────────┐  ┌────────────────────────────────────┐ |
+|  │ Plant & Master Data     │  │ Production Execution    │  │ Machine Monitoring & Projections   │ |
+|  └─────────────────────────┘  └─────────────────────────┘  └────────────────────────────────────┘ |
+|  ┌─────────────────────────┐  ┌─────────────────────────┐  ┌────────────────────────────────────┐ |
+|  │ OEE ISO 22400-2 Engine  │  │ Digital Andon & Downtime│  │ Identity, RBAC & Audit Logs        │ |
+|  └─────────────────────────┘  └─────────────────────────┘  └────────────────────────────────────┘ |
+|  ┌─────────────────────────┐  ┌─────────────────────────┐  ┌────────────────────────────────────┐ |
+|  │ Material & Genealogy    │  │ Quality Inspection Gate │  │ Tooling PM & Mold Lifecycles       │ |
+|  └─────────────────────────┘  └─────────────────────────┘  └────────────────────────────────────┘ |
+|  ┌─────────────────────────┐  ┌─────────────────────────┐  ┌────────────────────────────────────┐ |
+|  │ Visual Gantt Scheduler  │  │ Packaging & Barcode Ver.│  │ SPC & FMEA Analytics Engine        │ |
+|  └─────────────────────────┘  └─────────────────────────┘  └────────────────────────────────────┘ |
++---------------------------------------------------------------------------------------------------+
+                    │                                                   │
+                    ▼ (Prisma ORM)                                      ▼ (Socket.IO & REST)
++---------------------------------+                 +-----------------------------------------------+
+|      Microsoft SQL Server       |                 |        React 19 Operations Web Client         |
+|  (Transactional, Audits, Logs)  |                 | (Atlassian Design System, Mobile/Tablet PWA)  |
++---------------------------------+                 +-----------------------------------------------+
 ```
 
 ---
 
 ## 2. Component Breakdown
 
-| Component                 | Type             | Responsibility                                                                                                                                                                                   | Technology                          |
-| ------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
-| `Machine Simulator`       | Worker / Service | Manages state machines for 10 virtual injection molding machines (default: 8 normal, 1 slow cycle, 1 fault). Generates cycle pulses, simulates mold changes, and supports scenario reset/replay. | TypeScript, NestJS Provider         |
-| `Ingestion Gateway`       | Backend Engine   | Receives machine telemetry events, validates schema contracts, enforces idempotency deduplication (`eventId`), and normalizes monotonic timestamps.                                              | NestJS, RxJS, class-validator       |
-| `MES Core API Server`     | Backend API      | Orchestrates business workflows for work orders, production runs, current state projections, Andon dispatching, and OEE loss categorization.                                                     | NestJS, Prisma ORM, SWC             |
-| `Event Streaming Gateway` | WebSocket Hub    | Broadcasts real-time machine telemetry, active Andon ticket alerts, and production output counters to web clients.                                                                               | Socket.IO, NestJS WebSocket Gateway |
-| `Operations Web Client`   | Frontend SPA     | Shop floor visualization interface: real-time 10-machine board, order execution panel, operator scrap/stop forms, Andon response, and OEE Pareto analytics.                                      | React 19, Vite, TypeScript          |
-| `Relational Database`     | Persistent DB    | Primary transactional store for master data, order lifecycles, append-only machine event logs, time segments, and security audit logs.                                                           | Microsoft SQL Server 2022           |
+| Component                        | Type             | Responsibility                                                                                                                                                                                   | Technology                          |
+| -------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| `Machine Simulator`              | Worker / Service | Manages state machines for 10 virtual injection molding machines (default: 8 normal, 1 slow cycle, 1 fault). Generates cycle pulses, simulates mold changes, and supports scenario reset/replay. | TypeScript, NestJS Provider         |
+| `IoT Protocol Adapters`          | Gateway Services | Modular adapters translating MQTT topics, Modbus TCP holding registers, and Euromap 77 (OPC 40077) OPC UA nodes into normalized MES event contracts.                                            | NestJS, `mqtt`, `modbus-serial`, `node-opcua` |
+| `Ingestion Gateway`              | Backend Engine   | Receives machine telemetry events, validates schema contracts, enforces idempotency deduplication (`eventId`), and normalizes monotonic timestamps.                                              | NestJS, RxJS, class-validator       |
+| `MES Core API Server`            | Backend API      | Orchestrates business workflows for work orders, production runs, current state projections, Andon dispatching, and OEE loss categorization.                                                     | NestJS, Prisma ORM, SWC             |
+| `Material & Genealogy Engine`    | Domain Service   | Manages raw resin lots, masterbatch allocations, hopper loads, and constructs bidirectional forward/backward traceability trees for recall containment.                                         | NestJS, Prisma ORM                  |
+| `Quality Inspection Gate`        | Domain Service   | Enforces First-Piece Approval before full run release, manages sampling inspection plans (dimensions, weight, visual flash), and executes disposition workflows (`RELEASED`, `QUARANTINE`).     | NestJS, Prisma ORM                  |
+| `Tooling Lifecycle Engine`       | Domain Service   | Accumulates lifetime mold shot strokes, triggers automated preventive maintenance (PM) work orders upon interval thresholds (25k/100k), and logs mold repair histories.                         | NestJS, Prisma ORM                  |
+| `Visual Gantt Scheduler`         | Domain Service   | Multi-horizon machine timeline planning, finite capacity modeling, and automated mold changeover matrix duration projections.                                                                   | NestJS, Prisma ORM, React Gantt     |
+| `Packaging Station Module`       | Domain Service   | Touchscreen barcode/QR scanning station, finished carton packaging aggregation, and real-time reconciliation between machine shots and packed quantities.                                         | NestJS, React 19                    |
+| `SPC & FMEA Analytics Engine`    | Domain Service   | Shewhart X-bar & R control charts, Cp/Cpk process capability, Nelson rules out-of-control detection, AIAG-VDA FMEA risk ranking with dynamic Andon/scrap occurrence correlation, and cycle time variation histogram. | NestJS, Prisma ORM, React 19 SVG    |
+| `Event Streaming Gateway`        | WebSocket Hub    | Broadcasts real-time machine telemetry, active Andon ticket alerts, and production output counters to web clients.                                                                               | Socket.IO, NestJS WebSocket Gateway |
+| `Operations Web Client`          | Frontend SPA     | Shop floor visualization interface: real-time 10-machine board, order execution panel, operator scrap/stop forms, Andon response, OEE Pareto, and quality/traceability panels.                   | React 19, Vite, Tailwind CSS        |
+| `Relational Database`            | Persistent DB    | Primary transactional store for master data, order lifecycles, append-only machine event logs, time segments, and security audit logs.                                                           | Microsoft SQL Server 2022           |
 
 ---
 
@@ -130,6 +176,105 @@
 [Technician: Resolve & Close]    ──► [Status: RESOLVED, Log Resolution Time]
                                     │
                                     ▼ [Classify Verified Downtime Reason in OEE Engine]
+```
+
+### 4.3 Material Lot Allocation & Bidirectional Genealogy Flow
+
+```text
+[Material Receipt: Resin / Masterbatch]
+       │
+       ▼ (Register Lot, Vendor Heat #, Exp Date, COA Verification)
+[material_lots (Status: AVAILABLE)]
+       │
+       ▼ (Operator Loads Hopper for ProductionRun)
+[run_material_consumptions] ──► [Link Lot to ProductionRun & Machine]
+       │
+       ├──► Forward Trace:  Lot ID ──► Find All Runs ──► Finished Orders ──► Packed Cartons
+       └──► Backward Trace: Carton / Serial ──► Run ──► Consumed Lot IDs ──► Vendor & Heat #
+```
+
+### 4.4 First-Piece Quality Gate & In-Process Inspection Flow
+
+```text
+[Machine Run Setup State (Mold Clamped & Temperatures Reached)]
+       │
+       ▼ (Produce Initial 3-5 Sample Shots)
+[QC Inspector: First-Piece Inspection Checklist]
+       │
+       ├──► [Pass: Record Dimensions, Weight & Visual Criteria]
+       │         │
+       │         ▼
+       │    [Disposition: RELEASED] ──► [Run Status: SETUP ──► RUNNING (Full Production Release)]
+       │
+       └──► [Fail: Dimensional Flash, Sink Mark, or Weight Out-of-Spec]
+                 │
+                 ▼
+            [Disposition: QUARANTINE / REWORK] ──► [Hold Machine in SETUP, Trigger Tooling/Process Tuning]
+```
+
+### 4.5 Tooling Stroke Accumulation & Preventive Maintenance Trigger Flow
+
+```text
+[Machine CYCLE_COMPLETED Telemetry Event]
+       │
+       ▼
+[molds.total_shots Increment (shots += 1)]
+       │
+       ├──► [Evaluate Active mold_maintenance_schedules]
+       │         │
+       │         ├──► [Threshold Exceeded (e.g., >= 25,000 shots since last service)]
+       │         │         │
+       │         │         ▼
+       │         │    [Auto-Generate maintenance_work_orders (Type: PREVENTIVE, Status: OPEN)]
+       │         │    [Set mold.status = 'MAINTENANCE_REQUIRED', Notify Tooling Lead via Socket.IO]
+       │         │
+       │         └──► [Below Threshold: Continue Nominal Flow]
+       ▼
+[Technician Executes Service Checklist ──► Completes Work Order ──► Resets PM Shot Baseline]
+```
+
+### 4.6 Packaging Barcode Scan & Count Reconciliation Flow
+
+```text
+[Finished Goods at Packaging Station]
+       │
+       ▼ (Operator Scans Box / Part Barcode via Handheld Scanner)
+[POST /api/v1/packaging/scan] ──► [Validate Order Match & Deduplicate Barcode]
+       │
+       ▼
+[Increment packaging_units & production_runs.packed_quantity]
+       │
+       ▼ (Evaluate Reconciliation Metric)
+[Reconciliation: (goodQuantity vs packedQuantity)]
+       ├──► [Within Tolerance (Delta <= 1%): Nominal Order Closeout]
+       └──► [Discrepancy (Delta > 1%): Trigger Count Variance Warning for Supervisor Audit]
+```
+
+### 4.7 Real-Time Module Synchronization & WebSocket Room Topology
+
+```text
+                                 SOCKET.IO GATEWAY (/ws/telemetry)
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                                        │
+│  Global Rooms:                                                                                         │
+│  • plant:all                           ──► All connected clients (Supervisor Control Room)            │
+│  • machine:{machineId}                 ──► Machine-specific cards & detail views                       │
+│                                                                                                        │
+│  Specialized Module Rooms:                                                                             │
+│  • module:packaging   ──► packaging:unit_created, packaging:reconciled                                 │
+│  • module:maintenance ──► maintenance:work_order_created, maintenance:work_order_updated,               │
+│                           mold:stroke_accumulated                                                      │
+│  • module:quality     ──► quality:check_recorded, quality:first_piece_status_changed,                  │
+│                           machine:interlock_state                                                      │
+│  • module:materials   ──► materials:hopper_loaded, materials:hopper_depleted, materials:lot_stock_updated│
+│  • module:scheduling  ──► scheduling:timeline_updated, scheduling:order_scheduled,                     │
+│                           scheduling:order_rescheduled, scheduling:changeover_updated                  │
+│                                                                                                        │
+│  Reactive Interlock Action:                                                                            │
+│  QC REJECT / QUARANTINE ──► machine:interlock_state (isInterlocked: true)                              │
+│                         ──► MachineCard & MachineDetailView lock badge & cycle lockout banner          │
+│                                                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---

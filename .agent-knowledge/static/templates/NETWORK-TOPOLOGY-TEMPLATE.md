@@ -1,8 +1,8 @@
 # Network Topology — {Server Name}
 
-> **IMMUTABLE — AI TIDAK BOLEH mengubah file ini.**
+> **IMMUTABLE — DO NOT MODIFY THIS FILE.**
 >
-> Gunakan file ini sebagai panduan struktur. Tulis atau perbarui hasilnya di `.agent-knowledge/dynamic/docs/prod/NETWORK-TOPOLOGY.md`.
+> Use this file as the structural guide. Write or update its output in `.agent-knowledge/dynamic/docs/prod/NETWORK-TOPOLOGY.md`.
 
 > **Server:** {hostname}
 > **Terakhir diperbarui:** {YYYY-MM-DD}
@@ -11,7 +11,7 @@
 
 ## Network Overview
 
-{Jelaskan topologi jaringan server secara umum tanpa memasukkan credential, private key, atau secret.}
+{Describe the server network topology at a high level without including credentials, private keys, or secrets.}
 
 ## Network Diagram
 
@@ -65,7 +65,7 @@ Internet
 
 ## Firewall Rules
 
-{Jelaskan firewall rules yang diterapkan. Jangan masukkan token atau credential.}
+{Describe the applied firewall rules. Do not include tokens or credentials.}
 
 | Rule | Direction | Port | Source | Action | Purpose |
 |------|-----------|------|--------|--------|---------|
@@ -100,13 +100,13 @@ cat /etc/resolv.conf
 
 ## SSL/TLS Configuration
 
-{Jelaskan konfigurasi SSL/TLS, lokasi certificate tanpa private key, SSL termination, forwarded headers, dan proses renewal.}
+{Describe SSL/TLS configuration, certificate locations without private keys, SSL termination, forwarded headers, and the renewal process.}
 
 ## Routing & Load Balancing
 
 ### Load Balancer Configuration
 
-{Jelaskan algorithm, health check, session persistence, dan SSL offloading.}
+{Describe the algorithm, health checks, session persistence, and SSL offloading.}
 
 ### Nginx Routing
 

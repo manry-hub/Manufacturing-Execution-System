@@ -35,6 +35,50 @@ Injection molding facilities face persistent operational challenges:
 | **Material Handler**               | Warehouse and raw material coordinator           | Registering resin material lots, assigning lots to machines/orders, and managing WIP transfer between stations.                                            |
 | **Management / Read-only Analyst** | Executive leadership and industrial engineers    | High-level OEE trend analytics, downtime Pareto charts, reject loss breakdowns, and plant/shift efficiency comparisons.                                    |
 
+### 1.4 Execution Philosophy: Hybrid ISA-95 Work Center Architecture
+
+To bridge the gap between deep vertical process telemetry (injection molding mechanics) and multi-echelon discrete manufacturing operations, MES implements a **Hybrid ISA-95 Work Center Model**:
+
+#### 1. Shop Floor Reality in Plastic Manufacturing
+Manufacturing execution in real-world injection facilities spans two production models:
+* **Single-Stage Simple Products:** For commodity goods (e.g., bottle caps, disposable cutlery), parts eject fully formed from the mold and proceed directly to bulk packing. The machine-centric model (`Machine + Mold -> Output`) is 100% sufficient and optimal.
+* **Multi-Stage Precision & Regulated Products:** For automotive, medical, and electronic assemblies, molded parts require downstream sequential processing:
+  1. *Stage 1 (Molding):* High-pressure injection molding on the IMM (Injection Molding Machine) using tooling molds, barrel heat profiles, and hydraulic cycle telemetry.
+  2. *Stage 2 (Secondary / Finishing - Optional):* Runner/sprue gate degating, ultrasonic welding, hot stamping, or pad printing.
+  3. *Stage 3 (Sub-Assembly - Optional):* Inserting metal threaded clips, O-rings, or secondary fasteners.
+  4. *Stage 4 (Final QC & Packaging):* Handheld barcode scan verification, serial pallet aggregation, and final inspection clearance.
+
+#### 2. Resolving the Model Extremes
+* **The Pitfall of Pure Routing-Centric Models:** Treating an injection molding machine as just an abstract generic "workstation" loses all mission-critical telemetry fidelity (closed-loop PID barrel thermal zones, cushion distance, clamp tonnage, and stroke accumulation).
+* **The Pitfall of Pure Machine-Centric Models:** Treating manufacturing as strictly ending at the machine clamp makes the MES blind to work-in-progress (WIP) assembly, secondary finishing defects, and packaging discrepancies.
+* **The Hybrid Resolution:** MES establishes **Injection Molding Machines as Primary Heavy Work Centers (The Core Heart)** while seamlessly linking **Downstream Operational Steps** within `ProductionOrder` lifecycles:
+
+```text
+                                  PRODUCTION ORDER OPERATION ROUTING
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                                        │
+│  [Operation 10: MOLDING]          ──►  [Operation 20: FINISHING]      ──►  [Operation 30: PACKAGING]   │
+│  (Mandatory Primary Station)           (Optional Manual/Assembly)          (Recommended Verification)  │
+│  ┌───────────────────────────┐         ┌─────────────────────────┐         ┌─────────────────────────┐ │
+│  │ Assigned Work Center:     │         │ Assigned Work Center:   │         │ Assigned Work Center:   │ │
+│  │ INJECTION MOLDING MACHINE │         │ WORK BENCH / ASSEMBLY   │         │ PACKAGING TERMINAL      │ │
+│  ├───────────────────────────┤         ├─────────────────────────┤         ├─────────────────────────┤ │
+│  │ • Mold & Cavity Count     │         │ • Manual WIP Assembly   │         │ • Barcode Scan Handheld │ │
+│  │ • Barrel Temperatures PID │         │ • Finishing Scrap Log   │         │ • Carton/Pallet Serial  │ │
+│  │ • Hydraulic Pressure      │         │ • Operator Checklist    │         │ • Shot-to-Pack Match    │ │
+│  │ • Automated OEE Telemetry │         │                         │         │                         │ │
+│  └───────────────────────────┘         └─────────────────────────┘         └─────────────────────────┘ │
+│                                                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 3. Core Architectural Principles
+1. **Primary Work Center Preservation:** `Machine` remains a first-class physical aggregate root with real-time state projections, time-series telemetry, barrel zones, and ISO 22400-2 OEE calculations. Existing simulator, database, and dashboard implementations remain 100% preserved.
+2. **Decoupled Downstream Steps:** Production runs represent primary molding executions. Subsequent finishing or packaging stations receive molded output as incoming WIP, recording stage-specific scrap and packed tallies.
+3. **Operational Flexibility (Dual-Mode):**
+   * *Simple Direct-Pack Mode:* 1-step routing (`Molding -> Completed`).
+   * *Full Regulated Mode (ISO 9001 / IATF 16949):* Multi-step routing (`Material Lot Intake -> Mold Setup QC Gate -> Molding Run -> Secondary/Finishing -> Packaging Verification`).
+
 ---
 
 ## 2. User Stories / Use Cases
@@ -81,13 +125,49 @@ Injection molding facilities face persistent operational challenges:
 | US-011 | As a User, I want to log in with secure credentials and access features authorized for my role so that operational safety is preserved. | P0       | JWT authentication with argon2/bcrypt password hashing; backend RBAC guards reject unauthorized cross-role requests with HTTP 403.                      |
 | US-012 | As an Administrator, I want to inspect audit logs for critical data mutations so that system actions are fully accountable.             | P0       | Mutations to order states, master configurations, and maintenance resolutions are recorded in `audit_logs` with actor ID, timestamp, and payload diffs. |
 
-### Epic 7: Quality, Material & Maintenance (Post-MVP Core)
+### Epic 7: Material Management & Bidirectional Genealogy
 
-| ID     | User Story                                                                                                                     | Priority | Acceptance Criteria                                                                                                    |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------- |
-| US-013 | As a Quality Inspector, I want to record sampling inspection results and mark lots as `HOLD`, `RELEASED`, or `REWORK`.         | P2       | Parts marked as `HOLD` are excluded from finalized good production output until officially dispositioned.              |
-| US-014 | As a Material Handler, I want to assign resin material lots to machines/runs to enable forward and backward genealogy tracing. | P2       | Material lot tracking links consumed raw resin heats to specific production runs and finished serial numbers.          |
-| US-015 | As a Maintenance Supervisor, I want to manage preventive maintenance schedules and monitor MTTR/MTBF metrics.                  | P2       | Maintenance work orders link to Andon tickets and equipment service histories; MTTR/MTBF metrics update automatically. |
+| ID     | User Story                                                                                                                              | Priority | Acceptance Criteria                                                                                                                            |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| US-013 | As a Material Handler, I want to register incoming raw resin lots and colorant masterbatches with lot numbers and expiration dates.     | P1       | Material catalog supports base polymers, masterbatches, and regrinds; lots enforce unique lot codes, vendor heat numbers, and expiration dates. |
+| US-014 | As an Operator, I want to scan or assign material lots to my active machine run so that component consumption is recorded against orders. | P1       | System validates lot compatibility with product recipe; records loaded weight/timestamp; deducts line-side stock allocations.                 |
+| US-015 | As a Quality Engineer, I want to query complete forward and backward genealogy for any resin lot or finished serial number.             | P1       | Bidirectional tree query: forward trace identifies all production runs and packaged cartons; backward trace identifies raw resin lots/vendors. |
+
+### Epic 8: Quality Gates, Sampling & Inspection Plans
+
+| ID     | User Story                                                                                                                              | Priority | Acceptance Criteria                                                                                                                            |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| US-016 | As a Quality Inspector, I want part-specific inspection plans defining critical dimensions, weights, and visual criteria.              | P1       | Inspection plans support first-piece signoff, periodic hourly patrol checks, and end-of-run inspection checklists with nominal ± tolerances.   |
+| US-017 | As a Quality Inspector, I want to record sample measurements and enforce disposition states (`RELEASED`, `QUARANTINE`, `REWORK`, `SCRAP`). | P1       | Out-of-tolerance measurements automatically trigger `QUARANTINE` disposition, preventing order completion until disposition review.             |
+| US-018 | As a Quality Manager, I want First-Piece Approval gated before full production run release so that bad parts are not mass-produced.    | P1       | Machine run status cannot transition from `SETUP` to `RUNNING` until QC signoff is recorded for the active mold and product recipe.            |
+
+### Epic 9: Tooling & Mold Preventive Maintenance
+
+| ID     | User Story                                                                                                                              | Priority | Acceptance Criteria                                                                                                                            |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| US-019 | As a Maintenance Supervisor, I want stroke accumulation thresholds on molds to trigger automated PM work orders.                         | P1       | Molds track lifetime shots; exceeding PM thresholds (e.g., 25k cleaning, 100k cavity polish) auto-creates PM work order and flags `MAINTENANCE`. |
+| US-020 | As a Technician, I want to complete mold PM checklists, log serviced components, and reset the PM shot counter upon verification.       | P1       | PM work orders capture technician signoff, checklist completion, mold inspection notes, and reset next-due shot intervals.                   |
+
+### Epic 10: Production Scheduling & Mold Changeover Matrix
+
+| ID     | User Story                                                                                                                              | Priority | Acceptance Criteria                                                                                                                            |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| US-021 | As a Planner, I want to schedule production orders on a visual drag-and-drop Gantt timeline across 10 machines.                         | P2       | Weekly, daily, and shift Gantt horizons; drag-and-drop order placement; visual warnings for overlapping runs or machine capability mismatches. |
+| US-022 | As a Planner, I want the system to calculate mold changeover times automatically based on a transition matrix between product types.    | P2       | Matrix maps `from_mold` / `to_mold` to setup minutes (clamping adjustment, barrel purge, temperature stabilization) in timeline projections.   |
+
+### Epic 11: Finished Goods Packaging & Barcode Scanning
+
+| ID     | User Story                                                                                                                              | Priority | Acceptance Criteria                                                                                                                            |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| US-023 | As a Packaging Operator, I want a dedicated touchscreen station to scan finished part barcodes and generate carton labels.              | P2       | Dedicated `/operator/packaging` view; sub-second barcode/QR lookup; automatic increment of `packedQuantity` against active production order.   |
+| US-024 | As a Supervisor, I want reconciliation between machine shots and packed cartons to catch physical count discrepancies before shipping.  | P2       | System flags delta between `goodQuantity` (machine shots × cavities - reported scrap) and `packedQuantity` with threshold tolerance alerts.    |
+
+### Epic 12: Industrial IoT Protocol Connectivity
+
+| ID     | User Story                                                                                                                              | Priority | Acceptance Criteria                                                                                                                            |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| US-025 | As a Plant Admin, I want to ingest telemetry from physical PLCs over MQTT and Modbus TCP alongside the virtual simulator.             | P2       | Ingestion gateway provides protocol adapter interfaces; converts MQTT topics and Modbus holding registers into standardized MES event contracts. |
+| US-026 | As a Systems Engineer, I want an OPC UA client connector conforming to Euromap 77 (OPC 40077) for standardized injection molding data. | P2       | Gateway connects to physical machine Euromap 77 servers, reading cycle counters, hydraulic pressures, barrel temperatures, and alarm states.  |
 
 ---
 
@@ -110,14 +190,15 @@ Injection molding facilities face persistent operational challenges:
 
 ### Post-MVP / Future
 
-| #   | Feature                       | Description                                                                                                | Priority         |
-| --- | ----------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------- |
-| 1   | Quality Management & Sampling | Inspection plans, sampling checklists, nonconformance workflows, and hold/rework dispositions.             | High (Phase 4)   |
-| 2   | Material Lots & Genealogy     | Resin lot tracking, multi-echelon WIP movement, and bi-directional traceability DAGs.                      | High (Phase 4)   |
-| 3   | Mold & Recipe Management      | Mold stroke accumulation tracking, process recipe versioning, and mold changeover checklists.              | Medium (Phase 5) |
-| 4   | Maintenance Management        | Preventive maintenance calendar, maintenance work orders, spare parts consumption, and MTTR/MTBF tracking. | Medium (Phase 5) |
-| 5   | Physical OPC UA Adapter       | Fieldbus connectivity engine conforming to OPC 40077 (Euromap 77) for physical machine controllers.        | Medium (Phase 6) |
-| 6   | Advanced Analytics & FMEA     | Long-term OEE trend projections, FMEA-based risk prioritization, and cycle deviation pattern analysis.     | Low (Phase 6)    |
+| #   | Feature                                   | Description                                                                                                                                           | Priority         |
+| --- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 1   | **Material Lots & Genealogy Traceability** | Raw resin and masterbatch lot registration, hopper loading assignments, line-side stock deductions, and bi-directional genealogy DAG query tree.       | High (Phase 4)   |
+| 2   | **Quality Gates & In-Process Inspection** | Part inspection plans (tolerances, critical dimensions, weights), First-Piece Approval run gating, sample measurements, and quarantine dispositions.  | High (Phase 4)   |
+| 3   | **Mold Preventive Maintenance Lifecycle** | Lifetime shot stroke accumulation, recurring PM interval triggers (25k/100k shots), automated maintenance work orders, and mold service histories.   | High (Phase 4)   |
+| 4   | **Visual Gantt Scheduler & Changeovers**  | Drag-and-drop machine timeline scheduling (shift/daily/weekly), mold changeover setup matrix calculations, and backlog capacity sequencing.           | Medium (Phase 5) |
+| 5   | **Packaging Station & Barcode Scanning**  | Dedicated `/operator/packaging` workstation, handheld scanner barcode/QR reading, carton labeling, and shot-to-pack reconciliation.                  | Medium (Phase 5) |
+| 6   | **Industrial IoT Protocol Adapters**      | Modular NestJS fieldbus connectors for MQTT topics, Modbus TCP holding registers, and Euromap 77 (OPC 40077) OPC UA physical machine connectivity.    | Medium (Phase 6) |
+| 7   | **Advanced Analytics & FMEA Insights**    | Long-term OEE trend projections, FMEA-based risk prioritization, and machine cycle deviation pattern analysis.                                        | Low (Phase 6)    |
 
 ---
 

@@ -1,8 +1,8 @@
 # Deployment — {Server Name}
 
-> **IMMUTABLE — AI TIDAK BOLEH mengubah file ini.**
+> **IMMUTABLE — DO NOT MODIFY THIS FILE.**
 >
-> Gunakan file ini sebagai panduan struktur. Tulis atau perbarui hasilnya di `.agent-knowledge/dynamic/docs/prod/DEPLOYMENT.md`.
+> Use this file as the structural guide. Write or update its output in `.agent-knowledge/dynamic/docs/prod/DEPLOYMENT.md`.
 
 > **Terakhir diperbarui:** {YYYY-MM-DD}
 
@@ -10,7 +10,7 @@
 
 ## Overview
 
-{Jelaskan strategi deployment yang digunakan di server ini tanpa memasukkan credential, token, private key, atau nilai secret.}
+{Describe the deployment strategy used on this server without including credentials, tokens, private keys, or secret values.}
 
 ## Deployment Strategy
 
@@ -26,7 +26,7 @@
 
 ### Systemd Timer
 
-```ini
+```text
 [Unit]
 Description=Auto Deploy Timer
 
@@ -58,11 +58,11 @@ sudo systemctl start auto-deploy.service
 
 ## Initial Server Setup
 
-{Dokumentasikan prosedur pertama kali untuk git-based deploy, backup yang diverifikasi, clone repository, restore konfigurasi non-secret melalui prosedur aman, dan permission. Jangan menuliskan nilai .env, token, atau private key.}
+{Document the initial procedure for Git-based deployment, verified backup, repository cloning, safe restoration of non-secret configuration, and permissions. Do not write `.env` values, tokens, or private keys.}
 
 ### Git Authentication
 
-{Nyatakan metode yang digunakan, misalnya deploy key atau credential manager, tanpa memasukkan key maupun token.}
+{State the method used, such as a deploy key or credential manager, without including keys or tokens.}
 
 ### Setup Verification
 
@@ -142,25 +142,25 @@ docker compose up -d
 
 ### Database Rollback
 
-{Jelaskan migration rollback atau restore backup yang sudah diverifikasi. Cantumkan otorisasi dan titik keputusan sebelum tindakan pemulihan yang merusak data.}
+{Describe verified migration rollback or backup restoration. Include authorization and decision points before data-destructive recovery actions.}
 
 ### Emergency Rollback
 
-{Jelaskan pemilik keputusan, kondisi pemicu, komunikasi, prosedur restore, dan verifikasi pemulihan.}
+{Describe the decision owner, trigger conditions, communications, restoration procedure, and recovery verification.}
 
 ## Blue-Green Deployment (if applicable)
 
-{Jelaskan setup, health check, switch traffic, monitoring, dan rollback untuk blue-green deployment bila digunakan.}
+{Describe setup, health checks, traffic switching, monitoring, and rollback for blue-green deployment when used.}
 
 ## Canary Deployment (if applicable)
 
-{Jelaskan traffic split, kriteria promosi, monitoring, dan rollback untuk canary deployment bila digunakan.}
+{Describe traffic splitting, promotion criteria, monitoring, and rollback for canary deployment when used.}
 
 ## Environment Management
 
 ### Environment Variables and Secrets
 
-{Jelaskan lokasi konfigurasi dan mekanisme secrets tanpa mencantumkan nilainya. Sertakan ownership, permissions, rotasi, dan backup terenkripsi bila berlaku.}
+{Describe configuration locations and secret-management mechanisms without including values. Include ownership, permissions, rotation, and encrypted backups where applicable.}
 
 ## Deployment Windows
 
@@ -181,7 +181,7 @@ docker compose up -d
 
 ### Alerting
 
-{Jelaskan alerting aktif selama deployment dan eskalasinya.}
+{Describe active deployment alerting and its escalation path.}
 
 ## Common Deployment Issues
 
@@ -193,7 +193,7 @@ docker compose up -d
 
 ## Deployment Scripts
 
-{Cantumkan path, purpose, owner, invocation method, dan review requirement untuk script deploy. Jangan menyalin credential atau menjalankan perintah pembersihan yang merusak tanpa target dan otorisasi eksplisit.}
+{Include the path, purpose, owner, invocation method, and review requirement for deployment scripts. Do not copy credentials or run destructive cleanup commands without a target and explicit authorization.}
 
 **Last Updated:** {YYYY-MM-DD}
 **Maintained by:** DevOps Team

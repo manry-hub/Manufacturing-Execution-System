@@ -1,109 +1,126 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow: rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@import "tailwindcss";
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow: rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+    --color-surface: #ffffff;
+    --color-surface-sunken: #f8f8f8;
+    --color-surface-raised: #ffffff;
+    --color-surface-overlay: #ffffff;
+    --color-text: #292a2e;
+    --color-text-subtle: #505258;
+    --color-text-subtlest: #6b6e76;
+    --color-text-inverse: #ffffff;
+    --color-border: rgba(9, 30, 66, 0.14);
+    --color-border-bold: #7d818a;
+    --color-border-input: #8c8f97;
+    --color-border-focused: #4688ec;
+    --color-brand: #1868db;
+    --color-brand-hover: #1558bc;
+    --color-brand-pressed: #0c4cb3;
+
+    /* Semantic Roles */
+    --color-success-text: #37471f;
+    --color-success-bg: #efffd6;
+    --color-success-border: #6a9a23;
+
+    --color-warning-text: #693200;
+    --color-warning-bg: #fff5db;
+    --color-warning-border: #e06c00;
+
+    --color-danger-text: #5d1f1a;
+    --color-danger-bg: #ffeceb;
+    --color-danger-border: #e2483d;
+
+    --color-info-text: #123263;
+    --color-info-bg: #e9f2fe;
+    --color-info-border: #357de8;
+
+    --color-neutral-text: #505258;
+    --color-neutral-bg: #f1f2f4;
+    --color-neutral-border: #dcdfe4;
+    --color-blanket: #050c1f75;
   }
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    font-family: 'Atlassian Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
   }
-}
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+  /* Accessible dialog and focus ring per DESIGN.md */
+  dialog:modal {
+    overscroll-behavior: contain;
   }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
+
+  dialog::backdrop {
+    overflow: hidden;
+    overscroll-behavior: contain;
+    background: #050c1f75;
+    backdrop-filter: blur(2px);
   }
-}
-p {
-  margin: 0;
-}
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
+  /* Focus ring contract: 2px focused border + 2px offset */
+  :focus-visible {
+    outline: 2px solid var(--color-border-focused);
+    outline-offset: 2px;
+  }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  /* Intentional reduced-motion alternative that preserves state visibility */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001s !important;
+    }
+    .animate-spin {
+      animation: none !important;
+    }
+    .animate-pulse {
+      animation: none !important;
+      opacity: 1 !important;
+    }
+    .animate-ping {
+      animation: none !important;
+      display: none !important;
+    }
+  }
+
+  /* Print Optimization for Digital Traveler, CoC and Barcode Labels */
+  @media print {
+    header,
+    aside,
+    nav,
+    .print\:hidden {
+      display: none !important;
+    }
+
+    body {
+      background-color: #ffffff !important;
+      color: #000000 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    main {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+      width: 100% !important;
+    }
+
+    .page-break-avoid {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    @page {
+      margin: 1cm;
+      size: auto;
+    }
+  }
 }
