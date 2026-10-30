@@ -325,10 +325,7 @@ export const ModulesHubPage: React.FC = () => {
       >
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#E9F2FE] border border-[#8FB8F6] text-[#123263] text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-[#1868DB]" />
-              <span>Plant 01 • Injection Molding Shop Floor</span>
-            </div>
+           
 
             <h1 className="text-2xl sm:text-3xl font-bold text-[#292A2E] tracking-tight">
               Manufacturing Execution Portal
