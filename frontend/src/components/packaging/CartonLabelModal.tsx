@@ -1,7 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import bwipjs from 'bwip-js/browser';
-import { Printer, X, Copy, Check, Tag, Layers, CheckCircle2 } from 'lucide-react';
-import type { PackagingUnit, RunReconciliation } from '../../types/packaging.js';
+import {
+  Printer,
+  X,
+  Copy,
+  Check,
+  Tag,
+  Layers,
+  CheckCircle2,
+  Send,
+  Loader2,
+  AlertCircle,
+} from 'lucide-react';
+import { api } from '../../services/api.js';
+import type { PackagingUnit, RunReconciliation, NetworkPrinterInfo } from '../../types/packaging.js';
 
 interface CartonLabelModalProps {
   isOpen: boolean;
@@ -30,6 +42,13 @@ export const CartonLabelModal: React.FC<CartonLabelModalProps> = ({
   const [dateCode, setDateCode] = useState<string>('');
   const [palletMasterSerial, setPalletMasterSerial] = useState<string>('');
 
+  // Network Industrial Printer State
+  const [printers, setPrinters] = useState<NetworkPrinterInfo[]>([]);
+  const [selectedPrinterId, setSelectedPrinterId] = useState<string>('');
+  const [copies, setCopies] = useState<number>(1);
+  const [isPrintingZpl, setIsPrintingZpl] = useState<boolean>(false);
+  const [zplStatus, setZplStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const partBarcodeRef = useRef<HTMLCanvasElement | null>(null);
   const qtyBarcodeRef = useRef<HTMLCanvasElement | null>(null);
   const serialBarcodeRef = useRef<HTMLCanvasElement | null>(null);
@@ -43,8 +62,21 @@ export const CartonLabelModal: React.FC<CartonLabelModalProps> = ({
       setPalletMasterSerial(
         `PAL-MST-${(palletId ?? '01').replace(/[^a-zA-Z0-9]/g, '')}-${now.getTime().toString(36).toUpperCase()}`,
       );
+      setZplStatus(null);
+
+      void api
+        .getPackagingPrinters()
+        .then((list) => {
+          setPrinters(list);
+          if (list.length > 0 && !selectedPrinterId) {
+            setSelectedPrinterId(list[0].id);
+          }
+        })
+        .catch((err) => {
+          console.warn('Could not retrieve network printers:', err);
+        });
     }
-  }, [isOpen, palletId]);
+  }, [isOpen, palletId, selectedPrinterId]);
 
   const orderNumber = unit?.run?.productionOrder?.orderNumber ?? reconciliation?.orderNumber ?? 'WO-UNKNOWN';
   const partNumber = unit?.run?.productionOrder?.product?.partNumber ?? reconciliation?.product?.partNumber ?? 'PART-001';
@@ -140,6 +172,44 @@ export const CartonLabelModal: React.FC<CartonLabelModalProps> = ({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // fallback
+    }
+  };
+
+  const handlePrintZpl = async () => {
+    const chosen = printers.find((p) => p.id === selectedPrinterId) || printers[0];
+    if (!chosen) {
+      setZplStatus({ type: 'error', text: 'No industrial network printer available' });
+      return;
+    }
+
+    setIsPrintingZpl(true);
+    setZplStatus(null);
+    try {
+      const result = await api.printCartonToNetwork({
+        barcode: serialCode,
+        printerIp: chosen.ip,
+        printerPort: chosen.port,
+        copies,
+      });
+
+      if (result.success) {
+        setZplStatus({
+          type: 'success',
+          text: `ZPL dispatched (${result.bytesWritten} bytes) to ${chosen.name}`,
+        });
+      } else {
+        setZplStatus({
+          type: 'error',
+          text: result.message || `Printer ${chosen.ip}:${chosen.port} unreachable`,
+        });
+      }
+    } catch (err) {
+      setZplStatus({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Error transmitting raw ZPL over TCP socket',
+      });
+    } finally {
+      setIsPrintingZpl(false);
     }
   };
 
@@ -331,6 +401,71 @@ export const CartonLabelModal: React.FC<CartonLabelModalProps> = ({
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Network Thermal Printer Hardware Section */}
+        <div className="px-6 py-3 bg-[#F4F5F7] border-t border-[#0B120E24] space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <Printer className="w-4 h-4 text-[#1868DB]" />
+              <span className="font-bold text-[#292A2E]">Industrial Thermal Printer (ZPL via TCP :9100):</span>
+              <select
+                aria-label="Target Network Printer"
+                value={selectedPrinterId}
+                onChange={(e) => setSelectedPrinterId(e.target.value)}
+                className="bg-[#FFFFFF] border border-[#0B120E24] rounded-md px-2.5 py-1 text-xs text-[#292A2E] font-medium"
+              >
+                {printers.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.ip}:{p.port})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label htmlFor="zpl-copies" className="text-[#505258] font-semibold">Copies:</label>
+              <input
+                id="zpl-copies"
+                type="number"
+                min={1}
+                max={10}
+                value={copies}
+                onChange={(e) => setCopies(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-14 bg-[#FFFFFF] border border-[#0B120E24] rounded-md px-2 py-1 text-xs text-center font-bold"
+              />
+              <button
+                type="button"
+                onClick={() => void handlePrintZpl()}
+                disabled={isPrintingZpl || printers.length === 0}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold bg-[#091E42] hover:bg-[#000000] text-[#FFFFFF] disabled:opacity-50 transition-colors shadow-xs"
+              >
+                {isPrintingZpl ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Send className="w-3.5 h-3.5 text-[#36B37E]" />
+                )}
+                <span>{isPrintingZpl ? 'Transmitting...' : 'Send ZPL to Printer'}</span>
+              </button>
+            </div>
+          </div>
+
+          {zplStatus && (
+            <div
+              className={`text-[11px] p-2 rounded-md flex items-center gap-2 ${
+                zplStatus.type === 'success'
+                  ? 'bg-[#E3FCEF] text-[#216E4E] border border-[#7EE2B8]'
+                  : 'bg-[#FFEBE6] text-[#AE2A19] border border-[#FF8F73]'
+              }`}
+            >
+              {zplStatus.type === 'success' ? (
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              ) : (
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              )}
+              <span>{zplStatus.text}</span>
+            </div>
+          )}
         </div>
 
         {/* Modal Actions Footer */}

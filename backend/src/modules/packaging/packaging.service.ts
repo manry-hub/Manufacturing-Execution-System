@@ -119,6 +119,28 @@ export class PackagingService {
     });
   }
 
+  async findUnitByBarcode(barcode: string) {
+    const unit = await this.prisma.packagingUnit.findUnique({
+      where: { barcode },
+      include: {
+        packager: { select: { id: true, username: true } },
+        run: {
+          include: {
+            productionOrder: { include: { product: true } },
+            machine: true,
+            mold: true,
+          },
+        },
+      },
+    });
+
+    if (!unit) {
+      throw new NotFoundException(`Packaging unit with barcode "${barcode}" not found`);
+    }
+
+    return unit;
+  }
+
   async reconcileRun(runId: string) {
     const run = await this.prisma.productionRun.findUnique({
       where: { id: runId },

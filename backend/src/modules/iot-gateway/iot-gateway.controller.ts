@@ -12,11 +12,13 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { MqttIngestionService } from './services/mqtt-ingestion.service.js';
 import { ModbusTcpGatewayService } from './services/modbus-tcp-gateway.service.js';
 import { IngestSourceSelectorService } from './services/ingest-source-selector.service.js';
+import { OpcUaClientDaemonService } from './services/opcua-client-daemon.service.js';
 import {
   UpdateIngestSourceDto,
   ModbusWriteRegisterDto,
   ModbusWriteMultipleRegistersDto,
 } from './dto/modbus-config.dto.js';
+import { OpcUaClientConfigDto } from './dto/opcua-config.dto.js';
 
 @Controller('iot-gateway')
 export class IotGatewayController {
@@ -24,6 +26,7 @@ export class IotGatewayController {
     private readonly mqttIngestion: MqttIngestionService,
     private readonly modbusGateway: ModbusTcpGatewayService,
     private readonly ingestSelector: IngestSourceSelectorService,
+    private readonly opcuaDaemon: OpcUaClientDaemonService,
   ) {}
 
   @Get('status')
@@ -149,5 +152,31 @@ export class IotGatewayController {
     };
 
     return this.mqttIngestion.publishTestPacket(topic, payload);
+  }
+
+  @Get('opcua/status')
+  getOpcUaStatus() {
+    return this.opcuaDaemon.getStatus();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('opcua/connect/:machineCode')
+  connectOpcUaMachine(
+    @Param('machineCode') machineCode: string,
+    @Body() dto?: OpcUaClientConfigDto,
+  ) {
+    return this.opcuaDaemon.connectMachine(machineCode, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('opcua/disconnect/:machineCode')
+  disconnectOpcUaMachine(@Param('machineCode') machineCode: string) {
+    return this.opcuaDaemon.disconnectMachine(machineCode);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('opcua/read/:machineCode')
+  readOpcUaMachine(@Param('machineCode') machineCode: string) {
+    return this.opcuaDaemon.readMachineNodes(machineCode);
   }
 }

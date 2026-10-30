@@ -6,7 +6,7 @@ import type { OeeCalculationResult, PlantOeeResponse, ExecutiveOeeAnalyticsRespo
 import type { Material, MaterialLot, RunGenealogy, LotGenealogy, CartonGenealogy, QuarantineResponse, HopperLevel } from '../types/materials.js';
 import type { InspectionPlan, QualityCheck, FirstPieceReleaseStatus, CpkAnalyticsResponse } from '../types/quality.js';
 import type { MoldPmSchedule, MaintenanceWorkOrder } from '../types/maintenance.js';
-import type { PackagingUnit, RunReconciliation } from '../types/packaging.js';
+import type { PackagingUnit, RunReconciliation, NetworkPrinterInfo, PrintResult } from '../types/packaging.js';
 import type { SchedulingTimelineResponse, MoldChangeoverRule } from '../types/scheduling.js';
 import type {
   DigitalTravelerRecord,
@@ -486,6 +486,33 @@ class ApiService {
 
   public async reconcileRunPackaging(runId: string): Promise<RunReconciliation> {
     return this.request<RunReconciliation>(`/packaging/reconcile/run/${encodeURIComponent(runId)}`);
+  }
+
+  public async getPackagingPrinters(): Promise<NetworkPrinterInfo[]> {
+    return this.request<NetworkPrinterInfo[]>('/packaging/printers');
+  }
+
+  public async testNetworkPrinter(printerIp: string, printerPort = 9100): Promise<PrintResult & { isOnline: boolean }> {
+    return this.request<PrintResult & { isOnline: boolean }>('/packaging/printers/test', {
+      method: 'POST',
+      body: JSON.stringify({ printerIp, printerPort }),
+    });
+  }
+
+  public async getCartonZpl(barcode: string): Promise<{ barcode: string; zpl: string }> {
+    return this.request<{ barcode: string; zpl: string }>(`/packaging/cartons/${encodeURIComponent(barcode)}/zpl`);
+  }
+
+  public async printCartonToNetwork(dto: {
+    barcode: string;
+    printerIp?: string;
+    printerPort?: number;
+    copies?: number;
+  }): Promise<PrintResult> {
+    return this.request<PrintResult>('/packaging/printers/print-carton', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
   }
 
   // --- Hybrid Operation Steps Endpoints ---

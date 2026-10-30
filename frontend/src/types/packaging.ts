@@ -68,3 +68,20 @@ export interface RunReconciliation {
     packedAt: string;
   }>;
 }
+
+export interface NetworkPrinterInfo {
+  id: string;
+  name: string;
+  ip: string;
+  port: number;
+  model: string;
+  location: string;
+  isOnline?: boolean;
+}
+
+export interface PrintResult {
+  success: boolean;
+  bytesWritten: number;
+  printer: string;
+  message: string;
+}

@@ -1,11 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { IngestSourceMode, type ModbusClientConfigDto, type UpdateIngestSourceDto } from '../dto/modbus-config.dto.js';
+import type { OpcUaClientConfigDto } from '../dto/opcua-config.dto.js';
 
 export interface MachineSourceEntry {
   machineCode: string;
   source: IngestSourceMode;
   modbusConfig?: ModbusClientConfigDto;
   mqttTopic?: string;
+  opcuaConfig?: OpcUaClientConfigDto;
   lastPacketAt?: string;
   packetsReceived: number;
 }
@@ -37,6 +39,12 @@ export class IngestSourceSelectorService {
           registerCount: 16,
         },
         mqttTopic: `factory/plant-1/${code}/euromap77`,
+        opcuaConfig: {
+          endpointUrl: `opc.tcp://192.168.10.${100 + i}:4840`,
+          securityMode: 'None',
+          securityPolicy: 'None',
+          pollIntervalMs: 2000,
+        },
         packetsReceived: 0,
       });
     }
@@ -85,6 +93,15 @@ export class IngestSourceSelectorService {
       if (dto.mqttTopic) {
         entry.mqttTopic = dto.mqttTopic;
       }
+      if (dto.opcuaConfig) {
+        entry.opcuaConfig = {
+          endpointUrl: dto.opcuaConfig.endpointUrl ?? entry.opcuaConfig?.endpointUrl ?? `opc.tcp://192.168.10.100:4840`,
+          securityMode: dto.opcuaConfig.securityMode ?? entry.opcuaConfig?.securityMode ?? 'None',
+          securityPolicy: dto.opcuaConfig.securityPolicy ?? entry.opcuaConfig?.securityPolicy ?? 'None',
+          pollIntervalMs: dto.opcuaConfig.pollIntervalMs ?? entry.opcuaConfig?.pollIntervalMs ?? 2000,
+          nodeMappings: dto.opcuaConfig.nodeMappings ?? entry.opcuaConfig?.nodeMappings,
+        };
+      }
     }
 
     this.registry.set(machineCode, entry);
@@ -113,5 +130,10 @@ export class IngestSourceSelectorService {
   public isModbusActiveFor(machineCode: string): boolean {
     const entry = this.registry.get(machineCode);
     return entry?.source === IngestSourceMode.MODBUS_TCP;
+  }
+
+  public isOpcUaActiveFor(machineCode: string): boolean {
+    const entry = this.registry.get(machineCode);
+    return entry?.source === IngestSourceMode.OPC_UA;
   }
 }

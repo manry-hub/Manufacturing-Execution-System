@@ -1,9 +1,11 @@
 import { IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import type { OpcUaClientConfigDto } from './opcua-config.dto.js';
 
 export enum IngestSourceMode {
   SIMULATOR = 'SIMULATOR',
   MQTT = 'MQTT',
   MODBUS_TCP = 'MODBUS_TCP',
+  OPC_UA = 'OPC_UA',
 }
 
 export class ModbusClientConfigDto {
@@ -48,6 +50,9 @@ export class UpdateIngestSourceDto {
   @IsOptional()
   @IsString()
   mqttTopic?: string;
+
+  @IsOptional()
+  opcuaConfig?: OpcUaClientConfigDto;
 }
 
 export class ModbusWriteRegisterDto {
