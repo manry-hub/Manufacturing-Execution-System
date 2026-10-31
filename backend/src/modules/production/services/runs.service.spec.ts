@@ -55,6 +55,7 @@ describe('RunsService', () => {
         findMany: vi.fn(),
       },
       machineCurrentState: {
+        findUnique: vi.fn(),
         update: vi.fn(),
         updateMany: vi.fn(),
       },

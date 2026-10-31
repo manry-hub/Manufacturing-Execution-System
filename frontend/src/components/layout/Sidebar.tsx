@@ -7,8 +7,6 @@ import {
   AlertTriangle,
   PlaySquare,
   Cpu,
-  Wifi,
-  WifiOff,
   UserCheck,
   Package,
   PackageCheck,
@@ -180,8 +178,6 @@ interface SidebarProps {
   isOpenMobile: boolean;
   onCloseMobile: () => void;
   openTicketsCount: number;
-  connected: boolean;
-  latencyMs: number;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -192,8 +188,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpenMobile,
   onCloseMobile,
   openTicketsCount,
-  connected,
-  latencyMs,
 }) => {
   const { role, switchRole, isLoading } = useAuth();
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -245,7 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="font-bold text-[#292A2E] text-sm tracking-tight truncate">
-                    MES Core
+                    MES
                   </span>
                   <span className="text-xs font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[3px] bg-[#E9F2FE] text-[#123263] border border-[#8FB8F6]">
                     INJ
@@ -386,32 +380,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
 
-        {/* Sidebar Footer: Connectivity & User Role */}
-        <div className="border-t border-[#0B120E24] p-2.5 space-y-2 bg-[#F8F8F8] flex-shrink-0">
-          {/* WebSocket Ping status */}
-          <div
-            className={`flex items-center rounded-md border text-xs font-mono transition-colors ${
-              isCollapsed && !isOpenMobile ? 'justify-center p-2' : 'justify-between px-2.5 py-1'
-            } ${
-              connected
-                ? 'bg-[#EFFFD6] text-[#37471F] border-[#6A9A23]'
-                : 'bg-[#FFECEB] text-[#5D1F1A] border-[#E2483D]'
-            }`}
-            title={connected ? `WebSocket active (${latencyMs}ms)` : 'WebSocket reconnecting'}
-          >
-            <div className="flex items-center gap-1.5">
-              {connected ? (
-                <Wifi className="h-3 w-3 text-[#216E4E] flex-shrink-0" />
-              ) : (
-                <WifiOff className="h-3 w-3 text-[#AE2E24] flex-shrink-0" />
-              )}
-              {(!isCollapsed || isOpenMobile) && (
-                <span className="font-sans font-medium text-xs">Live socket</span>
-              )}
-            </div>
-            {(!isCollapsed || isOpenMobile) && <span>{connected ? `${latencyMs}ms` : 'Connecting'}</span>}
-          </div>
-
+        {/* Sidebar Footer: User Role Switcher */}
+        <div className="border-t border-[#0B120E24] p-2.5 bg-[#F8F8F8] flex-shrink-0">
           {/* Demo Role Switcher */}
           {(!isCollapsed || isOpenMobile) ? (
             <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-md p-2 space-y-1">

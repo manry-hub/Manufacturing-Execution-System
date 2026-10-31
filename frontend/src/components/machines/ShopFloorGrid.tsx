@@ -10,6 +10,9 @@ import {
   Clock,
   Layers,
   FastForward,
+  Sliders,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import type { Machine } from '../../types/machine.js';
 import type { ProductionRun } from '../../types/production.js';
@@ -43,6 +46,7 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
 }) => {
   const [selectedArea, setSelectedArea] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [showSimSandbox, setShowSimSandbox] = useState<boolean>(false);
 
   // Compute fleet KPI summaries
   const kpis = useMemo(() => {
@@ -152,67 +156,126 @@ export const ShopFloorGrid: React.FC<ShopFloorGridProps> = ({
           })}
         </div>
 
-        {/* Right: Simulator Controls */}
-        <div className="flex items-center gap-2 bg-[#FFFFFF] border border-[#0B120E24] rounded-md p-1.5 shadow-xs">
-          <span className="text-xs font-mono text-[#505258] px-2 flex items-center gap-1">
-            <Gauge className="h-3.5 w-3.5 text-[#1868DB]" />
-            <span>Sim: {simulatorStatus?.isRunning ? 'Running' : 'Paused'}</span>
-          </span>
-
-          {simulatorStatus?.isRunning ? (
-            <button
-              type="button"
-              onClick={() => void onStopSimulator()}
-              title="Pause simulator loop"
-              aria-label="Pause simulator"
-              className="p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-md bg-[#FFF5DB] text-[#693200] border border-[#E06C00] hover:bg-[#FCE4A6] transition-colors"
-            >
-              <Pause className="h-3.5 w-3.5" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => void onStartSimulator()}
-              title="Start simulator loop"
-              aria-label="Start simulator"
-              className="p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-md bg-[#EFFFD6] text-[#37471F] border border-[#6A9A23] hover:bg-[#D3F1A7] transition-colors"
-            >
-              <Play className="h-3.5 w-3.5" />
-            </button>
-          )}
-
-          {/* Speed multiplier selector */}
-          <div className="flex items-center gap-0.5 border-l border-[#0B120E24] pl-1">
-            {[1, 2, 5].map((spd) => {
-              const isActive = (simulatorStatus?.speedMultiplier ?? 1) === spd;
-              return (
-                <button
-                  key={spd}
-                  type="button"
-                  onClick={() => void onSetSimulatorSpeed(spd)}
-                  className={`text-xs font-mono px-2.5 py-1 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-md transition-colors ${
-                    isActive
-                      ? 'bg-[#1868DB] text-white font-bold'
-                      : 'text-[#505258] hover:text-[#292A2E] hover:bg-[#091E420F]'
-                  }`}
-                >
-                  {spd}x
-                </button>
-              );
-            })}
+        {/* Right: Operational Status & Collapsible Simulation Sandbox Access */}
+        <div className="flex items-center gap-2.5">
+          {/* Live Telemetry Status indicator */}
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#FFFFFF] border border-[#0B120E24] text-xs text-[#505258]">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22A06B] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#216E4E]" />
+            </span>
+            <span className="font-medium text-[#292A2E]">Live Fleet</span>
+            <span className="text-[#6B6E76]">•</span>
+            <span>10 Nodes</span>
           </div>
 
+          {/* Discreet Simulation Sandbox Button */}
           <button
             type="button"
-            onClick={() => void onResetSimulator()}
-            title="Reset simulator to deterministic baseline"
-            aria-label="Reset simulator"
-            className="p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-md text-[#505258] hover:text-[#292A2E] hover:bg-[#091E420F] transition-colors ml-1"
+            onClick={() => setShowSimSandbox((prev) => !prev)}
+            title="Toggle developer & demonstration simulator sandbox"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+              showSimSandbox
+                ? 'bg-[#E9F2FE] text-[#123263] border-[#8FB8F6]'
+                : 'bg-[#FFFFFF] text-[#505258] hover:text-[#292A2E] hover:bg-[#F0F1F2] border-[#0B120E24]'
+            }`}
           >
-            <RotateCcw className="h-3.5 w-3.5" />
+            <Sliders className="h-3.5 w-3.5 text-[#1868DB]" />
+            <span>Sim Sandbox</span>
+            {simulatorStatus?.isRunning && (
+              <span className="h-1.5 w-1.5 rounded-full bg-[#6A9A23]" title="Simulator loop running" />
+            )}
+            {showSimSandbox ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </button>
         </div>
       </div>
+
+      {/* Collapsible Simulator Sandbox Panel */}
+      {showSimSandbox && (
+        <div className="bg-[#FFFFFF] border border-[#8FB8F6] rounded-lg p-3.5 shadow-sm animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded bg-[#E9F2FE] text-[#1868DB]">
+                <Gauge className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-bold text-[#123263] uppercase tracking-wider">
+                    Virtual Telemetry Sandbox
+                  </h4>
+                  <span
+                    className={`text-[11px] font-mono px-1.5 py-0.5 rounded-[3px] border ${
+                      simulatorStatus?.isRunning
+                        ? 'bg-[#EFFFD6] text-[#37471F] border-[#6A9A23]'
+                        : 'bg-[#FFF5DB] text-[#693200] border-[#E06C00]'
+                    }`}
+                  >
+                    {simulatorStatus?.isRunning ? 'Running' : 'Paused'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#505258] mt-0.5">
+                  Internal simulator cycle loop for telemetry generation and edge device emulation.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Play / Pause Toggle */}
+              {simulatorStatus?.isRunning ? (
+                <button
+                  type="button"
+                  onClick={() => void onStopSimulator()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[#FFF5DB] text-[#693200] border border-[#E06C00] hover:bg-[#FCE4A6] transition-colors"
+                >
+                  <Pause className="h-3.5 w-3.5" />
+                  <span>Pause Loop</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void onStartSimulator()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[#EFFFD6] text-[#37471F] border border-[#6A9A23] hover:bg-[#D3F1A7] transition-colors"
+                >
+                  <Play className="h-3.5 w-3.5" />
+                  <span>Start Loop</span>
+                </button>
+              )}
+
+              {/* Speed Multiplier */}
+              <div className="flex items-center gap-0.5 border border-[#0B120E24] rounded-md p-0.5 bg-[#F8F8F8]">
+                {[1, 2, 5].map((spd) => {
+                  const isActive = (simulatorStatus?.speedMultiplier ?? 1) === spd;
+                  return (
+                    <button
+                      key={spd}
+                      type="button"
+                      onClick={() => void onSetSimulatorSpeed(spd)}
+                      className={`text-xs font-mono px-2 py-1 rounded transition-colors ${
+                        isActive
+                          ? 'bg-[#1868DB] text-white font-bold shadow-xs'
+                          : 'text-[#505258] hover:text-[#292A2E] hover:bg-[#FFFFFF]'
+                      }`}
+                    >
+                      {spd}x
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Reset to baseline */}
+              <button
+                type="button"
+                onClick={() => void onResetSimulator()}
+                title="Reset simulation parameters to deterministic baseline"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-[#505258] hover:text-[#292A2E] border border-[#0B120E24] hover:bg-[#F8F8F8] transition-colors"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Reset</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Fleet KPI Summary Ribbon */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

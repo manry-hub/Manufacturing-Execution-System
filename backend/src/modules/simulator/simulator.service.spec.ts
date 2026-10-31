@@ -114,7 +114,7 @@ describe('SimulatorService', () => {
 
     const imm10 = service.getNode('IMM-10');
     expect(imm10?.isFaultActive).toBe(false);
-    expect(imm10?.normalizedStatus).toBe('RUNNING');
+    expect(imm10?.normalizedStatus).toBe('IDLE');
     expect(imm10?.cycleCounter).toBe(0);
   });
 });

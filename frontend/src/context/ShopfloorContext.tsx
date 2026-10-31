@@ -96,13 +96,15 @@ export const ShopfloorProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const simNode = simData.nodes.find((n) => n.machineCode === m.code);
         return {
           ...m,
-          cycleCounter: simNode?.cycleCounter ?? m.currentState?.activeRunId ? 100 : 0,
+          tonnage: m.clampingTonnage ?? (m as any).tonnage ?? simNode?.tonnage ?? 150,
+          cycleCounter: simNode?.cycleCounter ?? 0,
           currentPhase: simNode?.currentPhase as Machine['currentPhase'],
           nominalCycleTimeSeconds: simNode?.nominalCycleTimeSeconds ?? 22.0,
           isSlowCycleActive: simNode?.isSlowCycleActive ?? false,
           isFaultActive: simNode?.isFaultActive ?? false,
           activeFaultCode: simNode?.activeFaultCode ?? null,
           isDisconnected: simNode?.isDisconnected ?? false,
+          latestMetrics: simNode?.latestMetrics ?? m.latestMetrics,
         };
       });
 

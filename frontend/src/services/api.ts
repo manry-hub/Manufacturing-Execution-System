@@ -157,6 +157,7 @@ class ApiService {
       isFaultActive: boolean;
       activeFaultCode: string | null;
       isDisconnected: boolean;
+      latestMetrics?: import('../types/machine.js').TelemetryMetrics;
     }>;
   }> {
     return this.request('/simulator/status');
