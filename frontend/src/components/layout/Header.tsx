@@ -1,9 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, PanelLeftClose, PanelLeftOpen, AlertTriangle, Wifi, WifiOff, Radio } from 'lucide-react';
+import React from 'react';
+import { Menu, PanelLeftClose, PanelLeftOpen, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
 import { type ActiveTab, NAV_GROUPS } from './Sidebar.js';
-import { useAuth } from '../../context/AuthContext.js';
-import { api } from '../../services/api.js';
-import type { IotGatewayStatus } from '../../types/iot-gateway.js';
 
 interface HeaderProps {
   activeTab: ActiveTab;
@@ -26,28 +23,6 @@ export const Header: React.FC<HeaderProps> = ({
   openTicketsCount,
   onNavigateToAndon,
 }) => {
-  const { user } = useAuth();
-  const [iotStatus, setIotStatus] = useState<IotGatewayStatus | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchIotStatus = async () => {
-      try {
-        const data = await api.getIotGatewayStatus();
-        if (isMounted) setIotStatus(data);
-      } catch {
-        // Silently tolerate if backend or network is offline
-      }
-    };
-
-    fetchIotStatus();
-    const interval = setInterval(fetchIotStatus, 6000);
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []);
-
   // Find active navigation item metadata
   const currentGroup = NAV_GROUPS.find((g) => g.items.some((item) => item.id === activeTab));
   const currentItem = currentGroup?.items.find((item) => item.id === activeTab);
@@ -124,32 +99,6 @@ export const Header: React.FC<HeaderProps> = ({
           )}
           <span className="hidden sm:inline">{connected ? `${latencyMs}ms` : 'Connecting...'}</span>
         </div>
-
-        {/* IIoT Gateway MQTT Broker Status */}
-        {iotStatus && iotStatus.enabled && (
-          <div
-            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] border text-xs font-mono transition-colors ${
-              iotStatus.status === 'CONNECTED'
-                ? 'bg-[#EFFFD6] text-[#37471F] border-[#6A9A23]'
-                : 'bg-[#FFF7D6] text-[#533F04] border-[#D39B09]'
-            }`}
-            title={`IIoT MQTT Broker: ${iotStatus.brokerUrl} (${iotStatus.status}) • ${iotStatus.stats.packetsPerSecond} pkt/s • ${iotStatus.stats.totalPacketsReceived} total`}
-          >
-            <Radio
-              className={`h-3 w-3 ${iotStatus.status === 'CONNECTED' ? 'text-[#216E4E]' : 'text-[#D39B09]'}`}
-            />
-            <span>{iotStatus.status === 'CONNECTED' ? 'MQTT: 1883' : `MQTT: ${iotStatus.status}`}</span>
-          </div>
-        )}
-
-        {/* Current User Badge */}
-        {user?.username && (
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[#F8F8F8] border border-[#0B120E24] text-xs text-[#505258]">
-            <span className="font-medium text-[#292A2E]">{user.username}</span>
-            <span className="text-[#6B6E76]">•</span>
-            <span className="capitalize">{user.role ? user.role.replace('_', ' ') : 'User'}</span>
-          </div>
-        )}
       </div>
     </header>
   );

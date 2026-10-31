@@ -95,8 +95,6 @@ export const AppLayout: React.FC = () => {
         isOpenMobile={isMobileNavOpen}
         onCloseMobile={() => setIsMobileNavOpen(false)}
         openTicketsCount={openTickets.length}
-        connected={connected}
-        latencyMs={latencyMs}
       />
 
       {/* Main App Content Area */}

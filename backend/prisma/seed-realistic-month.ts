@@ -254,6 +254,7 @@ export async function seedRealisticMonth(prisma: PrismaClient, ctx: SeedMonthCon
 
   let ticketCounter = 100;
   let eventCounter = 1;
+  const activeRunMap = new Map<string, string>(); // code -> runId
 
   for (const code of machineCodes) {
     const machineId = ctx.createdMachines.get(code)!;
@@ -275,6 +276,8 @@ export async function seedRealisticMonth(prisma: PrismaClient, ctx: SeedMonthCon
 
       // Target quantity per week (~28,000 to ~65,000 units depending on cavities)
       const weeklyTarget = profile.cavities === 4 ? 65000 : 28000;
+      const isWeek4 = w.endDay === 31;
+      const isOrderActive = isWeek4 && code !== 'IMM-10';
 
       const order = await prisma.productionOrder.create({
         data: {
@@ -283,11 +286,11 @@ export async function seedRealisticMonth(prisma: PrismaClient, ctx: SeedMonthCon
           assignedMachineId: machineId,
           assignedMoldId: moldId,
           targetQuantity: weeklyTarget,
-          status: 'COMPLETED',
+          status: isOrderActive ? 'IN_PROGRESS' : 'COMPLETED',
           plannedStartTime: orderStart,
           plannedEndTime: orderEnd,
           actualStartTime: orderStart,
-          actualEndTime: orderEnd,
+          actualEndTime: isOrderActive ? null : orderEnd,
           priority: 2,
         },
       });
@@ -327,19 +330,31 @@ export async function seedRealisticMonth(prisma: PrismaClient, ctx: SeedMonthCon
         const goodQuantity = Math.round(totalParts * 0.964); // 96.4% quality
         const rejectQuantity = totalParts - goodQuantity;
 
+        const isCurrentActiveRun = isOrderActive && rIdx === 1;
+        const runStatus = !isCurrentActiveRun
+          ? 'COMPLETED'
+          : code === 'IMM-08'
+          ? 'SETUP'
+          : 'ACTIVE';
+        const runEndVal = isCurrentActiveRun ? null : runEnd;
+
         const run = await prisma.productionRun.create({
           data: {
             productionOrderId: order.id,
             machineId,
             moldId,
-            status: 'COMPLETED',
+            status: runStatus,
             totalShots,
             goodQuantity,
             rejectQuantity,
             startTime: runStart,
-            endTime: runEnd,
+            endTime: runEndVal,
           },
         });
+
+        if (isCurrentActiveRun) {
+          activeRunMap.set(code, run.id);
+        }
 
         // Seed time segments for this run
         // 1. Setup Segment (1h after run start)
@@ -528,6 +543,8 @@ export async function seedRealisticMonth(prisma: PrismaClient, ctx: SeedMonthCon
     const isIdle = i === 9; // IMM-10 IDLE
 
     const status = isRunning ? 'RUNNING' : isSetup ? 'SETUP' : isFault ? 'FAULT' : 'IDLE';
+    const activeRunId = activeRunMap.get(code) ?? null;
+
     await prisma.machineCurrentState.upsert({
       where: { machineId },
       update: {
@@ -535,6 +552,7 @@ export async function seedRealisticMonth(prisma: PrismaClient, ctx: SeedMonthCon
         rawStatus: status,
         lastEventTimestamp: new Date(),
         currentCycleTime: isRunning ? machineProfiles[code].cycle : null,
+        activeRunId,
       },
       create: {
         machineId,
@@ -542,8 +560,25 @@ export async function seedRealisticMonth(prisma: PrismaClient, ctx: SeedMonthCon
         rawStatus: status,
         lastEventTimestamp: new Date(),
         currentCycleTime: isRunning ? machineProfiles[code].cycle : null,
+        activeRunId,
       },
     });
   }
-  console.log(`✓ Synchronized 10 machine live states.`);
+  console.log(`✓ Synchronized 10 machine live states (7 RUNNING with active runs, 1 SETUP, 1 FAULT, 1 IDLE).`);
+
+  // 8. Open active Andon ticket for IMM-09 (Heater fault ALM-TEMP-04)
+  const imm09MachineId = ctx.createdMachines.get('IMM-09')!;
+  ticketCounter++;
+  await prisma.andonTicket.create({
+    data: {
+      ticketNumber: `ANDON-202610-${ticketCounter}`,
+      machineId: imm09MachineId,
+      category: 'MAINTENANCE',
+      status: 'OPEN',
+      reportedById: ctx.operatorUserId,
+      reportTime: new Date(Date.now() - 25 * 60 * 1000), // 25 mins ago
+      confirmedRootCause: 'Zone 4 Thermocouple Open Circuit / Heater Band Trip (ALM-TEMP-04)',
+    },
+  });
+  console.log(`✓ Seeded open active Andon ticket for IMM-09.`);
 }

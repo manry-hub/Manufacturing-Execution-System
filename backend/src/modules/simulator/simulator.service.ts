@@ -22,6 +22,7 @@ export interface SimulatorStatus {
     isFaultActive: boolean;
     activeFaultCode: string | null;
     isDisconnected: boolean;
+    latestMetrics?: VirtualMachineNode['latestMetrics'];
   }[];
 }
 
@@ -58,16 +59,33 @@ export class SimulatorService implements OnModuleInit, OnModuleDestroy {
     this.nodes.clear();
 
     const machineConfigs = [
-      { code: 'IMM-01', name: 'Battenfeld 150T', tonnage: 150, nominalCycleTime: 18.0 },
-      { code: 'IMM-02', name: 'Battenfeld 150T', tonnage: 150, nominalCycleTime: 18.0 },
-      { code: 'IMM-03', name: 'Engel Victory 200T', tonnage: 200, nominalCycleTime: 20.0 },
-      { code: 'IMM-04', name: 'Engel Victory 200T', tonnage: 200, nominalCycleTime: 20.0 },
-      { code: 'IMM-05', name: 'KraussMaffei 350T', tonnage: 350, nominalCycleTime: 24.0 },
-      { code: 'IMM-06', name: 'KraussMaffei 350T', tonnage: 350, nominalCycleTime: 24.0 },
-      { code: 'IMM-07', name: 'Haitian Mars 500T', tonnage: 500, nominalCycleTime: 28.0 },
-      { code: 'IMM-08', name: 'Haitian Mars 500T', tonnage: 500, nominalCycleTime: 28.0 },
-      { code: 'IMM-09', name: 'Fanuc Roboshot 150T', tonnage: 150, nominalCycleTime: 20.0, isSlowCycleCandidate: true },
-      { code: 'IMM-10', name: 'Demag Ergotech 250T', tonnage: 250, nominalCycleTime: 22.0, isFaultCandidate: true },
+      { code: 'IMM-01', name: 'Battenfeld 150T', tonnage: 150, nominalCycleTime: 18.0, initialStatus: NormalizedStatusEnum.RUNNING },
+      { code: 'IMM-02', name: 'Battenfeld 150T', tonnage: 150, nominalCycleTime: 18.0, initialStatus: NormalizedStatusEnum.RUNNING },
+      { code: 'IMM-03', name: 'Engel Victory 200T', tonnage: 200, nominalCycleTime: 20.0, initialStatus: NormalizedStatusEnum.RUNNING },
+      { code: 'IMM-04', name: 'Engel Victory 200T', tonnage: 200, nominalCycleTime: 20.0, initialStatus: NormalizedStatusEnum.RUNNING },
+      { code: 'IMM-05', name: 'KraussMaffei 350T', tonnage: 350, nominalCycleTime: 24.0, initialStatus: NormalizedStatusEnum.RUNNING },
+      { code: 'IMM-06', name: 'KraussMaffei 350T', tonnage: 350, nominalCycleTime: 24.0, initialStatus: NormalizedStatusEnum.RUNNING },
+      { code: 'IMM-07', name: 'Haitian Mars 500T', tonnage: 500, nominalCycleTime: 28.0, initialStatus: NormalizedStatusEnum.RUNNING },
+      { code: 'IMM-08', name: 'Haitian Mars 500T', tonnage: 500, nominalCycleTime: 28.0, initialStatus: NormalizedStatusEnum.SETUP },
+      {
+        code: 'IMM-09',
+        name: 'Fanuc Roboshot 150T',
+        tonnage: 150,
+        nominalCycleTime: 20.0,
+        initialStatus: NormalizedStatusEnum.FAULT,
+        isSlowCycleCandidate: true,
+        isFaultCandidate: true,
+        activeFaultCode: 'ALM-TEMP-04',
+        activeFaultDescription: 'Zone 4 Thermocouple Open Circuit / Heater Band Trip (ALM-TEMP-04)',
+      },
+      {
+        code: 'IMM-10',
+        name: 'Demag Ergotech 250T',
+        tonnage: 250,
+        nominalCycleTime: 22.0,
+        initialStatus: NormalizedStatusEnum.IDLE,
+        isFaultCandidate: true,
+      },
     ];
 
     for (let i = 0; i < machineConfigs.length; i++) {
@@ -77,10 +95,12 @@ export class SimulatorService implements OnModuleInit, OnModuleDestroy {
         name: cfg.name,
         tonnage: cfg.tonnage,
         nominalCycleTimeSeconds: cfg.nominalCycleTime,
-        initialStatus: NormalizedStatusEnum.RUNNING,
+        initialStatus: cfg.initialStatus,
         seed: seed + i * 100,
         isSlowCycleCandidate: cfg.isSlowCycleCandidate,
         isFaultCandidate: cfg.isFaultCandidate,
+        activeFaultCode: cfg.activeFaultCode,
+        activeFaultDescription: cfg.activeFaultDescription,
       });
 
       this.nodes.set(cfg.code, node);
@@ -222,6 +242,7 @@ export class SimulatorService implements OnModuleInit, OnModuleDestroy {
       isFaultActive: node.isFaultActive,
       activeFaultCode: node.activeFaultCode,
       isDisconnected: node.isDisconnected,
+      latestMetrics: node.latestMetrics,
     }));
 
     return {

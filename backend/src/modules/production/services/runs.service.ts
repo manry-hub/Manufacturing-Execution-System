@@ -306,13 +306,29 @@ export class RunsService implements OnModuleInit {
 
   async handleCycleCompleted(machineId: string) {
     try {
-      const activeRun = await this.prisma.productionRun.findFirst({
-        where: {
-          machineId,
-          status: { in: ['ACTIVE', 'SETUP'] },
-        },
-        include: { mold: true },
-      });
+      const currentState = this.prisma.machineCurrentState?.findUnique
+        ? await this.prisma.machineCurrentState.findUnique({
+            where: { machineId },
+          })
+        : null;
+
+      let activeRun = currentState?.activeRunId
+        ? await this.prisma.productionRun.findUnique({
+            where: { id: currentState.activeRunId },
+            include: { mold: true },
+          })
+        : null;
+
+      if (!activeRun || activeRun.status === 'COMPLETED' || activeRun.status === 'CANCELLED') {
+        activeRun = await this.prisma.productionRun.findFirst({
+          where: {
+            machineId,
+            status: { in: ['ACTIVE', 'SETUP'] },
+          },
+          orderBy: { startTime: 'desc' },
+          include: { mold: true },
+        });
+      }
 
       if (!activeRun) {
         return;
