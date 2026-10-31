@@ -14,6 +14,7 @@ import { EventTypeEnum } from '../../telemetry/dto/normalized-machine-event.dto.
 import { MaintenanceService } from '../../maintenance/maintenance.service.js';
 import { QualityService } from '../../quality/quality.service.js';
 import { TelemetryGateway } from '../../telemetry/telemetry.gateway.js';
+import { PpssWebhookService } from '../../integration/services/ppss-webhook.service.js';
 
 @Injectable()
 export class RunsService implements OnModuleInit {
@@ -25,6 +26,7 @@ export class RunsService implements OnModuleInit {
     private readonly maintenanceService: MaintenanceService,
     private readonly qualityService: QualityService,
     @Optional() private readonly gateway?: TelemetryGateway,
+    @Optional() private readonly webhookService?: PpssWebhookService,
   ) {}
 
   onModuleInit() {
@@ -105,7 +107,7 @@ export class RunsService implements OnModuleInit {
           productionOrderId: order.id,
           machineId: machine.id,
           moldId: mold.id,
-          status: dto.status ?? 'SETUP',
+          status: dto.status ?? 'ACTIVE',
           startTime: new Date(),
           totalShots: 0,
           goodQuantity: 0,
@@ -139,6 +141,17 @@ export class RunsService implements OnModuleInit {
     });
 
     this.logger.log(`Started production run ${run.id} on machine ${machine.code} (Order: ${order.orderNumber})`);
+
+    if (this.webhookService) {
+      void this.webhookService.notifyRunStarted({
+        orderNumber: order.orderNumber,
+        externalOrderRef: order.externalOrderRef,
+        machineCode: machine.code,
+        moldCode: mold.code,
+        startTime: run.startTime,
+      });
+    }
+
     return run;
   }
 
@@ -216,7 +229,7 @@ export class RunsService implements OnModuleInit {
       throw new BadRequestException('Run is already completed');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const completedRun = await tx.productionRun.update({
         where: { id: runId },
         data: {
@@ -255,6 +268,20 @@ export class RunsService implements OnModuleInit {
 
       return completedRun;
     });
+
+    if (this.webhookService) {
+      void this.webhookService.notifyRunCompleted({
+        orderNumber: run.productionOrder.orderNumber,
+        externalOrderRef: run.productionOrder.externalOrderRef,
+        machineCode: run.machine.code,
+        totalShots: result.totalShots,
+        goodQuantity: result.goodQuantity,
+        scrapQuantity: result.rejectQuantity,
+        actualEndTime: result.endTime,
+      });
+    }
+
+    return result;
   }
 
   async recordScrap(runId: string, dto: RecordScrapDto) {
@@ -279,13 +306,29 @@ export class RunsService implements OnModuleInit {
 
   async handleCycleCompleted(machineId: string) {
     try {
-      const activeRun = await this.prisma.productionRun.findFirst({
-        where: {
-          machineId,
-          status: 'ACTIVE',
-        },
-        include: { mold: true },
-      });
+      const currentState = this.prisma.machineCurrentState?.findUnique
+        ? await this.prisma.machineCurrentState.findUnique({
+            where: { machineId },
+          })
+        : null;
+
+      let activeRun = currentState?.activeRunId
+        ? await this.prisma.productionRun.findUnique({
+            where: { id: currentState.activeRunId },
+            include: { mold: true },
+          })
+        : null;
+
+      if (!activeRun || activeRun.status === 'COMPLETED' || activeRun.status === 'CANCELLED') {
+        activeRun = await this.prisma.productionRun.findFirst({
+          where: {
+            machineId,
+            status: { in: ['ACTIVE', 'SETUP'] },
+          },
+          orderBy: { startTime: 'desc' },
+          include: { mold: true },
+        });
+      }
 
       if (!activeRun) {
         return;

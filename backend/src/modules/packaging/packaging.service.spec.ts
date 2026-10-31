@@ -136,4 +136,39 @@ describe('PackagingService', () => {
       expect(res.variancePercentage).toBe(20);
     });
   });
+
+  describe('dispatchWmsWebhook', () => {
+    it('should dispatch signed HMAC SHA-256 payload to WMS webhook endpoint', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const result = await service.dispatchWmsWebhook({
+        cartonBarcode: 'PKG-2026-UNIT-01',
+        orderNumber: 'WO-2026-001',
+        partNumber: 'PRD-AUTO-BUMPER',
+        quantityPacked: 50,
+      });
+
+      expect(result).toBe(true);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      const callArgs = mockFetch.mock.calls[0];
+      expect(callArgs[0]).toBe('http://localhost:8000/api/v1/webhooks/mes');
+      expect(callArgs[1].method).toBe('POST');
+      expect(callArgs[1].headers['X-MES-Signature']).toBeDefined();
+      expect(callArgs[1].headers['X-MES-Event-Id']).toMatch(/^EVT-/);
+
+      const sentBody = JSON.parse(callArgs[1].body);
+      expect(sentBody.eventType).toBe('packaging.unit_created');
+      expect(sentBody.data.cartonBarcode).toBe('PKG-2026-UNIT-01');
+      expect(sentBody.data.partNumber).toBe('PRD-AUTO-BUMPER');
+      expect(sentBody.data.quantityPacked).toBe(50);
+
+      vi.unstubAllGlobals();
+    });
+  });
 });

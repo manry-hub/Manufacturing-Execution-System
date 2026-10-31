@@ -79,23 +79,23 @@ To balance deep vertical equipment telemetry (plastic injection mechanics) with 
 +---------------------------------------------------------------------------------------------------+
 |                                MES Application Core (NestJS)                                      |
 |  ┌─────────────────────────┐  ┌─────────────────────────┐  ┌────────────────────────────────────┐ |
-|  │ Plant & Master Data     │  │ Production Execution    │  │ Machine Monitoring & Projections   │ |
+|  │ Plant & Master Data     │  │ Production Execution    │  │ Machine Monitoring & Telemetry     │ |
 |  └─────────────────────────┘  └─────────────────────────┘  └────────────────────────────────────┘ |
 |  ┌─────────────────────────┐  ┌─────────────────────────┐  ┌────────────────────────────────────┐ |
-|  │ OEE ISO 22400-2 Engine  │  │ Digital Andon & Downtime│  │ Identity, RBAC & Audit Logs        │ |
+|  │ OEE ISO 22400-2 Engine  │  │ Digital Andon Escalation│  │ Scoped-RBAC & Audit Engine         │ |
 |  └─────────────────────────┘  └─────────────────────────┘  └────────────────────────────────────┘ |
 |  ┌─────────────────────────┐  ┌─────────────────────────┐  ┌────────────────────────────────────┐ |
-|  │ Material & Genealogy    │  │ Quality Inspection Gate │  │ Tooling PM & Mold Lifecycles       │ |
+|  │ Line-side Lot Tracking  │  │ Packaging & Barcode Ver.│  │ SPC & FMEA Analytics Engine        │ |
 |  └─────────────────────────┘  └─────────────────────────┘  └────────────────────────────────────┘ |
-|  ┌─────────────────────────┐  ┌─────────────────────────┐  ┌────────────────────────────────────┐ |
-|  │ Visual Gantt Scheduler  │  │ Packaging & Barcode Ver.│  │ SPC & FMEA Analytics Engine        │ |
-|  └─────────────────────────┘  └─────────────────────────┘  └────────────────────────────────────┘ |
+|  ┌──────────────────────────────────────────────────────────────────────────────────────────────┐ |
+|  │ External System Integration Hub (Service Accounts: PPSS, WMS, QMS, MMS, ERP)                │ |
+|  └──────────────────────────────────────────────────────────────────────────────────────────────┘ |
 +---------------------------------------------------------------------------------------------------+
                     │                                                   │
                     ▼ (Prisma ORM)                                      ▼ (Socket.IO & REST)
 +---------------------------------+                 +-----------------------------------------------+
 |      Microsoft SQL Server       |                 |        React 19 Operations Web Client         |
-|  (Transactional, Audits, Logs)  |                 | (Atlassian Design System, Mobile/Tablet PWA)  |
+|  (Transactional, Audits, Logs)  |                 | (Atlassian Design System, Pure Production UI) |
 +---------------------------------+                 +-----------------------------------------------+
 ```
 
@@ -109,10 +109,9 @@ To balance deep vertical equipment telemetry (plastic injection mechanics) with 
 | `IoT Protocol Adapters`          | Gateway Services | Modular adapters translating MQTT topics, Modbus TCP holding registers, and Euromap 77 (OPC 40077) OPC UA nodes into normalized MES event contracts.                                            | NestJS, `mqtt`, `modbus-serial`, `node-opcua` |
 | `Ingestion Gateway`              | Backend Engine   | Receives machine telemetry events, validates schema contracts, enforces idempotency deduplication (`eventId`), and normalizes monotonic timestamps.                                              | NestJS, RxJS, class-validator       |
 | `MES Core API Server`            | Backend API      | Orchestrates business workflows for work orders, production runs, current state projections, Andon dispatching, and OEE loss categorization.                                                     | NestJS, Prisma ORM, SWC             |
-| `Material & Genealogy Engine`    | Domain Service   | Manages raw resin lots, masterbatch allocations, hopper loads, and constructs bidirectional forward/backward traceability trees for recall containment.                                         | NestJS, Prisma ORM                  |
-| `Quality Inspection Gate`        | Domain Service   | Enforces First-Piece Approval before full run release, manages sampling inspection plans (dimensions, weight, visual flash), and executes disposition workflows (`RELEASED`, `QUARANTINE`).     | NestJS, Prisma ORM                  |
-| `Tooling Lifecycle Engine`       | Domain Service   | Accumulates lifetime mold shot strokes, triggers automated preventive maintenance (PM) work orders upon interval thresholds (25k/100k), and logs mold repair histories.                         | NestJS, Prisma ORM                  |
-| `Visual Gantt Scheduler`         | Domain Service   | Multi-horizon machine timeline planning, finite capacity modeling, and automated mold changeover matrix duration projections.                                                                   | NestJS, Prisma ORM, React Gantt     |
+| `Identity, RBAC & Security`      | Security Engine  | Manages production-scoped human roles, dual-token session lifecycles (15m JWT + rotated HttpOnly refresh cookies), client credentials service accounts, and immutable audit logs.                | NestJS, Passport, bcrypt, crypto    |
+| `Packaging & Label Verification` | Domain Service   | Carton and unit barcode scanning, shift pack reconciliation, and raw TCP socket streaming to Zebra industrial thermal printers (ZPL).                                                            | NestJS, Raw TCP sockets, BWIP-JS   |
+| `External Integration Hub`       | Integration Layer| Enforces dedicated Service Accounts (`service-ppss`, `service-wms`, `service-qms`, `service-mms`, `service-erp`) for inbound scheduled orders, material staging, quality gates, and maintenance requests. | NestJS, Axios, Webhooks, HMAC       |
 | `Packaging Station Module`       | Domain Service   | Touchscreen barcode/QR scanning station, finished carton packaging aggregation, and real-time reconciliation between machine shots and packed quantities.                                         | NestJS, React 19                    |
 | `SPC & FMEA Analytics Engine`    | Domain Service   | Shewhart X-bar & R control charts, Cp/Cpk process capability, Nelson rules out-of-control detection, AIAG-VDA FMEA risk ranking with dynamic Andon/scrap occurrence correlation, and cycle time variation histogram. | NestJS, Prisma ORM, React 19 SVG    |
 | `Event Streaming Gateway`        | WebSocket Hub    | Broadcasts real-time machine telemetry, active Andon ticket alerts, and production output counters to web clients.                                                                               | Socket.IO, NestJS WebSocket Gateway |

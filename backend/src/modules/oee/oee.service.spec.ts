@@ -33,6 +33,13 @@ describe('OeeService', () => {
         findMany: vi.fn().mockResolvedValue([]),
         findUnique: vi.fn(),
       },
+      machineOperatingSchedule: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      moldProductCompatibility: {
+        findMany: vi.fn().mockResolvedValue([]),
+        findFirst: vi.fn(),
+      },
       productionRun: {
         findMany: vi.fn().mockResolvedValue([
           {

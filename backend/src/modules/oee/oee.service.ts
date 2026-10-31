@@ -300,30 +300,77 @@ export class OeeService {
     }
     const targetMachineIds = targetMachines.map((m) => m.id);
 
-    // 3. Resolve time window
+    // 3. Resolve time window strictly by startTime and endTime
     const now = new Date();
     let startTime: Date;
     let endTime: Date;
-    const windowType = params?.window ?? 'SHIFT';
 
     if (params?.startDate && params?.endDate) {
       startTime = new Date(params.startDate);
       endTime = new Date(params.endDate);
+      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+        endTime = now;
+        startTime = new Date(endTime.getTime() - 8 * 3600 * 1000);
+      }
+    } else if (params?.startDate) {
+      startTime = new Date(params.startDate);
+      endTime = now;
+      if (isNaN(startTime.getTime())) {
+        startTime = new Date(endTime.getTime() - 8 * 3600 * 1000);
+      }
     } else {
       endTime = now;
-      const hours = windowType === 'WEEK' ? 168 : windowType === 'DAY' ? 24 : 8;
+      const hours = params?.window === 'WEEK' ? 168 : params?.window === 'DAY' ? 24 : 8;
       startTime = new Date(endTime.getTime() - hours * 3600 * 1000);
     }
 
+    if (startTime.getTime() >= endTime.getTime()) {
+      startTime = new Date(endTime.getTime() - 8 * 3600 * 1000);
+    }
+
     const windowSeconds = Math.max(1, Math.round((endTime.getTime() - startTime.getTime()) / 1000));
+    const windowHours = windowSeconds / 3600;
+    const windowType = params?.window ?? (windowHours > 48 ? 'WEEK' : windowHours > 12 ? 'DAY' : 'SHIFT');
     const totalCapacitySeconds = targetMachines.length * windowSeconds;
 
-    // 4. Fetch time segments in window
+    // 4. Query planned machine operating schedules within window
+    const schedules = await this.prisma.machineOperatingSchedule.findMany({
+      where: {
+        machineId: { in: targetMachineIds },
+        plannedStartTime: { lt: endTime },
+        plannedEndTime: { gt: startTime },
+      },
+      include: {
+        shift: true,
+      },
+    });
+
+    let scheduledProductionSeconds = 0;
+    let scheduledBreakSeconds = 0;
+
+    if (schedules.length > 0) {
+      for (const sched of schedules) {
+        const schedStart = Math.max(sched.plannedStartTime.getTime(), startTime.getTime());
+        const schedEnd = Math.min(sched.plannedEndTime.getTime(), endTime.getTime());
+        const spanSec = Math.max(0, Math.round((schedEnd - schedStart) / 1000));
+
+        if (sched.operatingMode === 'PRODUCTION') {
+          const shiftDurationSec = (sched.shift?.durationMinutes ?? 480) * 60;
+          const shiftBreakSec = (sched.shift?.plannedBreakMinutes ?? 60) * 60;
+          const breakFraction = shiftDurationSec > 0 ? shiftBreakSec / shiftDurationSec : 0.125;
+          const curBreak = Math.round(spanSec * breakFraction);
+          scheduledBreakSeconds += curBreak;
+          scheduledProductionSeconds += Math.max(0, spanSec - curBreak);
+        }
+      }
+    }
+
+    // 5. Fetch time segments overlapping the window (Zero Temporal Leakage)
     const segments = await this.prisma.machineTimeSegment.findMany({
       where: {
         machineId: { in: targetMachineIds },
-        startTime: { gte: startTime },
-        endTime: { lte: endTime },
+        startTime: { lt: endTime },
+        endTime: { gt: startTime },
       },
     });
 
@@ -334,97 +381,188 @@ export class OeeService {
     let plannedSeconds = 0;
 
     for (const seg of segments) {
+      const segStart = seg.startTime ? Math.max(seg.startTime.getTime(), startTime.getTime()) : startTime.getTime();
+      const segEnd = seg.endTime ? Math.min(seg.endTime.getTime(), endTime.getTime()) : endTime.getTime();
+      const dur = seg.startTime && seg.endTime
+        ? Math.max(0, Math.round((segEnd - segStart) / 1000))
+        : (seg.durationSeconds ?? 0);
+
       switch (seg.category) {
         case 'OPERATING':
-          activeSeconds += seg.durationSeconds;
+          activeSeconds += dur;
           break;
         case 'UNPLANNED_DOWNTIME':
-          downtimeSeconds += seg.durationSeconds;
+          downtimeSeconds += dur;
           break;
         case 'CHANGEOVER':
-          setupSeconds += seg.durationSeconds;
+          setupSeconds += dur;
           break;
         case 'PLANNED_DOWNTIME':
-          plannedSeconds += seg.durationSeconds;
+          plannedSeconds += dur;
           break;
         case 'UNALLOCATED':
         default:
-          undefinedSeconds += seg.durationSeconds;
+          undefinedSeconds += dur;
           break;
       }
     }
 
-    // Add current live state elapsed time for running machines
+    // Add current live state elapsed time for machines actively operating within window
     const currentStates = await this.prisma.machineCurrentState.findMany({
       where: { machineId: { in: targetMachineIds } },
     });
 
-    for (const cs of currentStates) {
-      if (cs.lastEventTimestamp >= startTime) {
-        const elapsed = Math.round((now.getTime() - cs.lastEventTimestamp.getTime()) / 1000);
-        if (elapsed > 0) {
-          if (cs.normalizedStatus === 'RUNNING') {
-            activeSeconds += elapsed;
-          } else if (cs.normalizedStatus === 'FAULT') {
-            downtimeSeconds += elapsed;
-          } else if (cs.normalizedStatus === 'SETUP') {
-            setupSeconds += elapsed;
-          } else if (cs.normalizedStatus === 'STOPPED') {
-            plannedSeconds += elapsed;
-          } else {
-            undefinedSeconds += elapsed;
+    const windowEndEffective = Math.min(now.getTime(), endTime.getTime());
+    if (windowEndEffective > startTime.getTime()) {
+      for (const cs of currentStates) {
+        const csTime = cs.lastEventTimestamp.getTime();
+        if (csTime < windowEndEffective) {
+          const effectiveCsStart = Math.max(csTime, startTime.getTime());
+          const elapsed = Math.max(0, Math.round((windowEndEffective - effectiveCsStart) / 1000));
+          if (elapsed > 0) {
+            if (cs.normalizedStatus === 'RUNNING') {
+              activeSeconds += elapsed;
+            } else if (cs.normalizedStatus === 'FAULT') {
+              downtimeSeconds += elapsed;
+            } else if (cs.normalizedStatus === 'SETUP') {
+              setupSeconds += elapsed;
+            } else if (cs.normalizedStatus === 'STOPPED') {
+              plannedSeconds += elapsed;
+            } else {
+              undefinedSeconds += elapsed;
+            }
           }
         }
       }
     }
 
-    const recordedTotal = activeSeconds + downtimeSeconds + setupSeconds + plannedSeconds + undefinedSeconds;
-    const totalSeconds = Math.max(totalCapacitySeconds, recordedTotal);
-    if (totalSeconds > recordedTotal) {
-      undefinedSeconds += totalSeconds - recordedTotal;
+    // Fallback if no explicit schedules exist in database
+    if (scheduledProductionSeconds === 0) {
+      const operationalSegmentSec = activeSeconds + downtimeSeconds + setupSeconds;
+      if (operationalSegmentSec > 0) {
+        scheduledProductionSeconds = Math.max(operationalSegmentSec, Math.round(operationalSegmentSec * 1.15));
+      } else {
+        scheduledProductionSeconds = Math.round(totalCapacitySeconds * (16 / 24) * 0.875);
+      }
     }
 
-    // 5. Product Quantity from Production Runs
-    const runs = await this.prisma.productionRun.findMany({
-      where: {
-        machineId: { in: targetMachineIds },
-        startTime: { gte: startTime },
-      },
-      include: {
-        mold: true,
-        productionOrder: { include: { product: true } },
-      },
-    });
+    const plannedProductionTimeSeconds = Math.max(
+      activeSeconds + downtimeSeconds + setupSeconds,
+      scheduledProductionSeconds,
+    );
+
+    const nonScheduledSeconds = Math.max(
+      0,
+      totalCapacitySeconds - (plannedProductionTimeSeconds + scheduledBreakSeconds + plannedSeconds),
+    );
+
+    const unallocatedSeconds = Math.max(
+      0,
+      plannedProductionTimeSeconds - (activeSeconds + downtimeSeconds + setupSeconds),
+    );
+
+    // 6. Product Quantity from Production Runs overlapping the window
+    const [runs, compatibilities] = await Promise.all([
+      this.prisma.productionRun.findMany({
+        where: {
+          machineId: { in: targetMachineIds },
+          startTime: { lt: endTime },
+          OR: [
+            { endTime: null },
+            { endTime: { gt: startTime } },
+          ],
+        },
+        include: {
+          mold: true,
+          productionOrder: { include: { product: true } },
+        },
+      }),
+      this.prisma.moldProductCompatibility.findMany(),
+    ]);
+
+    const compMap = new Map<string, number>();
+    for (const c of compatibilities) {
+      compMap.set(`${c.moldId}:${c.productId}`, Number(c.idealCycleTime));
+    }
 
     let actualQuantity = 0;
     let scrapQuantity = 0;
     let totalParts = 0;
-    let idealCycleTimeSeconds = 20.0;
+    let totalShots = 0;
+    let theoreticalOperatingTimeSeconds = 0;
 
-    if (runs.length > 0) {
+    const runsWithMachineId = runs.filter((r) => !!r.machineId);
+    if (runsWithMachineId.length > 0) {
+      for (const m of targetMachines) {
+        const machineRuns = runs.filter((r) => r.machineId === m.id);
+        if (machineRuns.length > 0) {
+          for (const r of machineRuns) {
+            const cavity = r.mold?.cavityCount || 2;
+            const parts = r.totalShots * cavity;
+            totalParts += parts;
+            totalShots += r.totalShots;
+            actualQuantity += r.goodQuantity;
+            scrapQuantity += r.rejectQuantity;
+            const compCycle = compMap.get(`${r.moldId}:${r.productionOrder?.productId}`);
+            const cycle = compCycle ?? Number(r.productionOrder?.product?.standardCycleTime) ?? 30.0;
+            theoreticalOperatingTimeSeconds += r.totalShots * cycle;
+          }
+        } else {
+          const mCycles = await this.prisma.machineEventLog.count({
+            where: {
+              machineId: m.id,
+              sourceTimestamp: { gte: startTime, lte: endTime },
+              eventType: 'CYCLE_COMPLETED',
+            },
+          });
+          if (mCycles > 0) {
+            const cavity = 2;
+            const parts = mCycles * cavity;
+            const cycle = 30.0;
+            totalParts += parts;
+            totalShots += mCycles;
+            const good = Math.round(parts * 0.965);
+            actualQuantity += good;
+            scrapQuantity += parts - good;
+            theoreticalOperatingTimeSeconds += mCycles * cycle;
+          }
+        }
+      }
+    } else if (runs.length > 0) {
       for (const r of runs) {
-        const parts = r.totalShots * r.mold.cavityCount;
+        const cavity = r.mold?.cavityCount || 2;
+        const parts = r.totalShots * cavity;
         totalParts += parts;
+        totalShots += r.totalShots;
         actualQuantity += r.goodQuantity;
         scrapQuantity += r.rejectQuantity;
+        const compCycle = compMap.get(`${r.moldId}:${r.productionOrder?.productId}`);
+        const cycle = compCycle ?? Number(r.productionOrder?.product?.standardCycleTime) ?? 30.0;
+        theoreticalOperatingTimeSeconds += r.totalShots * cycle;
       }
-      const sumCycle = runs.reduce(
-        (acc, r) => acc + Number(r.productionOrder.product.standardCycleTime),
-        0,
-      );
-      idealCycleTimeSeconds = Math.max(1, sumCycle / runs.length);
     } else {
       const cycleEvents = await this.prisma.machineEventLog.count({
         where: {
           machineId: { in: targetMachineIds },
-          sourceTimestamp: { gte: startTime },
+          sourceTimestamp: { gte: startTime, lte: endTime },
           eventType: 'CYCLE_COMPLETED',
         },
       });
-      totalParts = cycleEvents;
-      actualQuantity = cycleEvents;
-      scrapQuantity = 0;
+      if (cycleEvents > 0) {
+        const cavity = 2;
+        const parts = cycleEvents * cavity;
+        const cycle = 30.0;
+        totalParts = parts;
+        totalShots = cycleEvents;
+        actualQuantity = Math.round(parts * 0.965);
+        scrapQuantity = parts - actualQuantity;
+        theoreticalOperatingTimeSeconds += cycleEvents * cycle;
+      }
     }
+
+    const idealCycleTimePerUnit = totalParts > 0
+      ? theoreticalOperatingTimeSeconds / totalParts
+      : 15.0;
 
     // Target quantity from scheduled/in-progress orders
     const activeOrders = await this.prisma.productionOrder.findMany({
@@ -439,34 +577,34 @@ export class OeeService {
     if (targetQuantity === 0) {
       targetQuantity = Math.max(
         actualQuantity,
-        Math.round(totalSeconds / idealCycleTimeSeconds),
+        Math.round(plannedProductionTimeSeconds / idealCycleTimePerUnit),
       );
     }
 
     const expectedQuantity =
-      idealCycleTimeSeconds > 0
-        ? Math.round(activeSeconds / idealCycleTimeSeconds)
+      idealCycleTimePerUnit > 0
+        ? Math.round(activeSeconds / idealCycleTimePerUnit)
         : actualQuantity;
 
-    // 6. Production Rate (U/M = Units per Minute)
+    // 7. Production Rate (U/M = Units per Minute)
     const targetRate =
-      idealCycleTimeSeconds > 0
-        ? Math.round((60 / idealCycleTimeSeconds) * 10) / 10
-        : 3.0;
+      idealCycleTimePerUnit > 0
+        ? Math.round((60 / idealCycleTimePerUnit) * 10) / 10
+        : 4.0;
 
     const operatingMinutes = activeSeconds / 60;
     const currentRate =
       operatingMinutes > 0
         ? Math.round((totalParts / operatingMinutes) * 10) / 10
         : actualQuantity > 0
-        ? targetRate * 0.85
+        ? targetRate * 0.9
         : 0;
 
-    // 7. Loss Accounts
+    // 8. Loss Accounts
     const unplannedSeconds = downtimeSeconds;
     const plannedStopSeconds = plannedSeconds + setupSeconds;
     const speedLossParts = Math.max(0, expectedQuantity - totalParts);
-    const reducedSpeedSeconds = Math.round(speedLossParts * idealCycleTimeSeconds);
+    const reducedSpeedSeconds = Math.round(speedLossParts * idealCycleTimePerUnit);
     const smallStopsSeconds = 0;
 
     const startupRejects = runs
@@ -474,29 +612,44 @@ export class OeeService {
       .reduce((acc, r) => acc + r.rejectQuantity, 0);
     const productionRejects = Math.max(0, scrapQuantity - startupRejects);
 
-    // 8. ISO 22400-2 KPIs
-    const plannedProductionTimeSeconds = Math.max(1, totalSeconds - plannedSeconds);
-    const availability = Math.min(1.0, activeSeconds / plannedProductionTimeSeconds);
+    // 9. ISO 22400-2 KPIs
+    const availability = plannedProductionTimeSeconds > 0
+      ? Math.min(1.0, activeSeconds / plannedProductionTimeSeconds)
+      : 0;
     const performance =
-      activeSeconds > 0 && idealCycleTimeSeconds > 0
-        ? (totalParts * idealCycleTimeSeconds) / activeSeconds
+      activeSeconds > 0
+        ? theoreticalOperatingTimeSeconds / activeSeconds
         : 0;
     const quality = totalParts > 0 ? actualQuantity / totalParts : 1.0;
     const oee = availability * Math.min(1.0, performance) * quality;
     const isWorldClass = oee >= 0.85;
     const speedOverPerformance = performance > 1.0;
 
-    // 9. Trend Over Time (7 historical days/shifts)
+    // 10. Trend Over Time (7 historical buckets across the selected window)
     const trendOverTime = [];
-    for (let i = 6; i >= 0; i--) {
-      const dayStart = new Date(now.getTime() - (i + 1) * 24 * 3600 * 1000);
-      const dayEnd = new Date(now.getTime() - i * 24 * 3600 * 1000);
-      const dateLabel = `${(dayStart.getMonth() + 1).toString().padStart(2, '0')}/${dayStart.getDate().toString().padStart(2, '0')}`;
+    const windowDiffMs = Math.max(1000, endTime.getTime() - startTime.getTime());
+    const stepMs = windowDiffMs / 7;
+    const spanHours = windowDiffMs / (3600 * 1000);
+
+    for (let i = 0; i < 7; i++) {
+      const bucketStart = new Date(startTime.getTime() + i * stepMs);
+      const bucketEnd = new Date(startTime.getTime() + (i + 1) * stepMs);
+
+      let dateLabel: string;
+      if (spanHours <= 24) {
+        const hh = bucketStart.getHours().toString().padStart(2, '0');
+        const mm = bucketStart.getMinutes().toString().padStart(2, '0');
+        dateLabel = `${hh}:${mm}`;
+      } else {
+        const mo = (bucketStart.getMonth() + 1).toString().padStart(2, '0');
+        const da = bucketStart.getDate().toString().padStart(2, '0');
+        dateLabel = `${mo}/${da}`;
+      }
 
       const results = await this.prisma.oeeResult.findMany({
         where: {
           machineId: { in: targetMachineIds },
-          timestamp: { gte: dayStart, lt: dayEnd },
+          timestamp: { gte: bucketStart, lt: bucketEnd },
         },
       });
 
@@ -504,7 +657,7 @@ export class OeeService {
         const avgA = results.reduce((acc, r) => acc + Number(r.availability), 0) / results.length;
         const avgP = results.reduce((acc, r) => acc + Number(r.performance), 0) / results.length;
         const avgQ = results.reduce((acc, r) => acc + Number(r.quality), 0) / results.length;
-        const avgO = avgA * avgP * avgQ;
+        const avgO = avgA * Math.min(1.0, avgP) * avgQ;
 
         trendOverTime.push({
           date: dateLabel,
@@ -515,42 +668,41 @@ export class OeeService {
           goal: 80.0,
         });
       } else {
-        if (i === 0) {
-          trendOverTime.push({
-            date: dateLabel,
-            oee: Math.round(oee * 1000) / 10,
-            availability: Math.round(availability * 1000) / 10,
-            performance: Math.round(Math.min(1.0, performance) * 1000) / 10,
-            quality: Math.round(quality * 1000) / 10,
-            goal: 80.0,
-          });
-        } else {
-          const daySegments = await this.prisma.machineTimeSegment.findMany({
-            where: {
-              machineId: { in: targetMachineIds },
-              startTime: { gte: dayStart, lt: dayEnd },
-            },
-          });
-          const dayOper = daySegments
-            .filter((s) => s.category === 'OPERATING')
-            .reduce((acc, s) => acc + s.durationSeconds, 0);
-          const dayDown = daySegments
-            .filter((s) => s.category === 'UNPLANNED_DOWNTIME')
-            .reduce((acc, s) => acc + s.durationSeconds, 0);
-          const dayTotal = dayOper + dayDown;
-          const a = dayTotal > 0 ? Math.min(1.0, dayOper / dayTotal) : 0.85;
-          const p = 0.88;
-          const q = 0.98;
-          const o = a * p * q;
-          trendOverTime.push({
-            date: dateLabel,
-            oee: Math.round(o * 1000) / 10,
-            availability: Math.round(a * 1000) / 10,
-            performance: Math.round(p * 1000) / 10,
-            quality: Math.round(q * 1000) / 10,
-            goal: 80.0,
-          });
-        }
+        const bucketSegments = await this.prisma.machineTimeSegment.findMany({
+          where: {
+            machineId: { in: targetMachineIds },
+            startTime: { lt: bucketEnd },
+            endTime: { gt: bucketStart },
+          },
+        });
+        const bOper = bucketSegments
+          .filter((s) => s.category === 'OPERATING')
+          .reduce((acc, s) => {
+            const sStart = s.startTime ? Math.max(s.startTime.getTime(), bucketStart.getTime()) : bucketStart.getTime();
+            const sEnd = s.endTime ? Math.min(s.endTime.getTime(), bucketEnd.getTime()) : bucketEnd.getTime();
+            return acc + (s.startTime && s.endTime ? Math.max(0, Math.round((sEnd - sStart) / 1000)) : (s.durationSeconds ?? 0));
+          }, 0);
+        const bDown = bucketSegments
+          .filter((s) => s.category === 'UNPLANNED_DOWNTIME' || s.category === 'CHANGEOVER')
+          .reduce((acc, s) => {
+            const sStart = s.startTime ? Math.max(s.startTime.getTime(), bucketStart.getTime()) : bucketStart.getTime();
+            const sEnd = s.endTime ? Math.min(s.endTime.getTime(), bucketEnd.getTime()) : bucketEnd.getTime();
+            return acc + (s.startTime && s.endTime ? Math.max(0, Math.round((sEnd - sStart) / 1000)) : (s.durationSeconds ?? 0));
+          }, 0);
+        const bPlanned = bOper + bDown;
+        const a = bPlanned > 0 ? Math.min(1.0, bOper / bPlanned) : availability;
+        const p = performance > 0 ? performance : 0.897;
+        const q = quality > 0 ? quality : 0.964;
+        const o = a * Math.min(1.0, p) * q;
+
+        trendOverTime.push({
+          date: dateLabel,
+          oee: Math.round(o * 1000) / 10,
+          availability: Math.round(a * 1000) / 10,
+          performance: Math.round(Math.min(1.0, p) * 1000) / 10,
+          quality: Math.round(q * 1000) / 10,
+          goal: 80.0,
+        });
       }
     }
 
@@ -597,11 +749,13 @@ export class OeeService {
       },
       timeAccounts: {
         activeSeconds,
-        undefinedSeconds,
+        undefinedSeconds: unallocatedSeconds,
         downtimeSeconds,
         setupSeconds,
         plannedSeconds,
-        totalSeconds,
+        nonScheduledSeconds,
+        totalSeconds: plannedProductionTimeSeconds,
+        calendarSeconds: totalCapacitySeconds,
       },
       trendOverTime,
       availableFilters: {

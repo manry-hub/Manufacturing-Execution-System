@@ -4,12 +4,9 @@ import {
   Layers,
   Cpu,
   PlaySquare,
-  Calendar,
   PackageCheck,
-  ShieldCheck,
   FileCheck,
   Package,
-  Wrench,
   AlertTriangle,
   BarChart3,
   TrendingUp,
@@ -20,7 +17,6 @@ import {
   WifiOff,
   CheckCircle2,
   Clock,
-  Sparkles,
 } from 'lucide-react';
 import { useShopfloor } from '../context/ShopfloorContext.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -112,23 +108,6 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
         ctaText: 'Manage Work Orders',
       },
       {
-        id: 'scheduling',
-        path: '/scheduling',
-        title: 'Production Scheduling & Gantt',
-        shortTag: 'Optimization',
-        description: 'Finite capacity heuristic scheduling, changeover matrix calculation, tooling compatibility constraints, and interactive Gantt scheduling.',
-        icon: Calendar,
-        accentColor: {
-          bg: 'bg-[#F3E8FF]',
-          border: 'border-[#D8A0F7]',
-          text: 'text-[#803FA5]',
-          badgeBg: 'bg-[#F3E8FF]',
-          badgeText: 'text-[#48245D]',
-        },
-        getLiveStat: () => 'Heuristic Optimizer Ready',
-        ctaText: 'Open Gantt Scheduler',
-      },
-      {
         id: 'packaging',
         path: '/packaging',
         title: 'Packaging & Label Printing',
@@ -149,26 +128,9 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
   },
   {
     id: 'quality-traceability',
-    title: 'Quality Assurance & Material Traceability',
-    description: 'First-piece verification, 21 CFR Part 11 compliant digital travelers, and resin genealogy.',
+    title: 'Digital Traceability & Materials',
+    description: '21 CFR Part 11 compliant digital travelers and line-side material consumption tracking.',
     modules: [
-      {
-        id: 'quality',
-        path: '/quality',
-        title: 'Quality Gates & First-Piece',
-        shortTag: 'Inspection',
-        description: 'First-piece approval workflow, critical-to-quality dimension tolerances, sample Cpk verification, and digital QA sign-offs.',
-        icon: ShieldCheck,
-        accentColor: {
-          bg: 'bg-[#E3FCEF]',
-          border: 'border-[#7EE2B8]',
-          text: 'text-[#216E4E]',
-          badgeBg: 'bg-[#E3FCEF]',
-          badgeText: 'text-[#164B35]',
-        },
-        getLiveStat: () => 'Statistical Tolerances Active',
-        ctaText: 'Review Quality Gates',
-      },
       {
         id: 'traveler',
         path: '/traveler',
@@ -189,9 +151,9 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
       {
         id: 'materials',
         path: '/materials',
-        title: 'Materials & Genealogy',
+        title: 'Materials & Lot Consumption',
         shortTag: 'Traceability',
-        description: 'Raw resin lot intake, silo balance monitoring, virgin-to-regrind blend ratios, and interactive multi-tier DAG genealogy trees.',
+        description: 'Line-side material lot validation, virgin-to-regrind blend ratios, and interactive multi-tier DAG consumption trees.',
         icon: Package,
         accentColor: {
           bg: 'bg-[#E6FCFF]',
@@ -207,26 +169,9 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
   },
   {
     id: 'reliability-alerting',
-    title: 'Plant Reliability & Alerting',
-    description: 'Tooling cycle maintenance, wear thresholds, and instant plant-wide emergency alerting.',
+    title: 'Plant Alerting & Escalation',
+    description: 'Instant plant-wide emergency alerting, escalation chimes, and operator assistance dispatch.',
     modules: [
-      {
-        id: 'maintenance',
-        path: '/maintenance',
-        title: 'Tooling & Mold PM',
-        shortTag: 'Preventative',
-        description: 'Mold shot counter accumulation from machine cycle events, wear threshold limits, and automated PM work order generation.',
-        icon: Wrench,
-        accentColor: {
-          bg: 'bg-[#FFF0B3]',
-          border: 'border-[#FBC828]',
-          text: 'text-[#9E4C00]',
-          badgeBg: 'bg-[#FFF0B3]',
-          badgeText: 'text-[#693200]',
-        },
-        getLiveStat: () => 'Shot Counters Synced',
-        ctaText: 'View Mold PM Status',
-      },
       {
         id: 'andon',
         path: '/andon',

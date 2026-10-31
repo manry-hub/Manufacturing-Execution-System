@@ -157,6 +157,7 @@ class ApiService {
       isFaultActive: boolean;
       activeFaultCode: string | null;
       isDisconnected: boolean;
+      latestMetrics?: import('../types/machine.js').TelemetryMetrics;
     }>;
   }> {
     return this.request('/simulator/status');
@@ -610,6 +611,33 @@ class ApiService {
     return this.request<MoldChangeoverRule>('/scheduling/changeovers', {
       method: 'PUT',
       body: JSON.stringify(dto),
+    });
+  }
+
+  // --- External PPSS Integration Endpoints ---
+  public async getPlantCapabilities(): Promise<any> {
+    return this.request<any>('/integration/capabilities');
+  }
+
+  public async getIntegrationWebhookConfig(): Promise<any> {
+    return this.request<any>('/integration/webhook-config');
+  }
+
+  public async updateIntegrationWebhookConfig(dto: {
+    targetUrl: string;
+    secretToken: string;
+    isActive?: boolean;
+    events?: string;
+  }): Promise<any> {
+    return this.request<any>('/integration/webhook-config', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  public async testIntegrationPing(): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>('/integration/test-ping', {
+      method: 'POST',
     });
   }
 

@@ -51,6 +51,10 @@ export interface ProductionOrder {
   priority?: number;
   sequenceOrder?: number;
   schedulingNotes?: string | null;
+  externalOrderRef?: string | null;
+  dueDate?: string | null;
+  externalSyncStatus?: string;
+  suggestedMachineCode?: string | null;
   product?: Product;
   assignedMachine?: { id: string; code: string; name: string };
   assignedMold?: Mold;

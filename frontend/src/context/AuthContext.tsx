@@ -13,12 +13,11 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const DEMO_ROLES: Array<{ role: UserRole; username: string; label: string; badgeColor: string }> = [
-  { role: 'production_supervisor', username: 'supervisor', label: 'Supervisor', badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
-  { role: 'operator', username: 'operator', label: 'Operator', badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-  { role: 'maintenance_technician', username: 'technician', label: 'Technician', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-  { role: 'planner', username: 'planner', label: 'Planner', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-  { role: 'quality_inspector', username: 'quality_inspector', label: 'Quality', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
-  { role: 'admin', username: 'admin', label: 'Admin', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
+  { role: 'admin', username: 'admin', label: 'System Admin (Global)', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
+  { role: 'production_manager', username: 'manager', label: 'Production Manager (Plant)', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+  { role: 'production_supervisor', username: 'supervisor', label: 'Production Supervisor (Plant)', badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
+  { role: 'operator', username: 'operator', label: 'Machine Operator (IMM-01)', badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+  { role: 'production_analyst', username: 'analyst', label: 'Production Analyst (Plant)', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
 ];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -36,11 +35,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const currentUser: User = {
         id: res.user.id,
         username: res.user.username,
-        role: res.user.role,
+        email: res.user.email,
+        role: targetRole,
+        roles: res.user.roles,
+        permissions: res.user.permissions,
+        scopes: res.user.scopes,
         token: res.accessToken,
       };
       setUser(currentUser);
-      setRole(currentUser.role);
+      setRole(targetRole);
       localStorage.setItem('mes_demo_role', targetRole);
     } catch (err) {
       console.error('Failed to authenticate role:', err);

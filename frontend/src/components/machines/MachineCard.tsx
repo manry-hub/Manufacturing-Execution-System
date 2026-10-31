@@ -27,18 +27,25 @@ export const MachineCard: React.FC<MachineCardProps> = ({
   onTriggerAndon,
 }) => {
   const currentStatus = machine.currentState?.normalizedStatus ?? machine.status ?? 'UNKNOWN';
+  const isMachineRunning = currentStatus === 'RUNNING';
+  const tonnageValue = machine.clampingTonnage ?? machine.tonnage ?? 150;
   const cycleTime = Number(
-    machine.latestMetrics?.cycleTimeSeconds ?? machine.currentState?.currentCycleTime ?? 22.0,
+    machine.latestMetrics?.cycleTimeSeconds ?? machine.currentState?.currentCycleTime ?? 0,
   );
   const idealCycleTime = machine.nominalCycleTimeSeconds ?? 22.0;
-  const isSlowCycle = cycleTime > idealCycleTime * 1.15;
-  const totalShots = machine.cycleCounter ?? activeRun?.totalShots ?? 0;
-  const targetQuantity = activeRun?.productionOrder?.targetQuantity ?? 1000;
+  const isSlowCycle = isMachineRunning && cycleTime > idealCycleTime * 1.15;
+  const totalShots = activeRun
+    ? (activeRun.totalShots ?? 0) + (machine.cycleCounter ?? 0)
+    : (machine.cycleCounter ?? 0);
+  const targetQuantity = activeRun?.productionOrder?.targetQuantity ?? 0;
   const goodQuantity = activeRun?.goodQuantity ?? 0;
-  const progressPercent = Math.min(Math.round((goodQuantity / targetQuantity) * 100), 100);
+  const rawProgressPercent = targetQuantity > 0 ? Math.round((goodQuantity / targetQuantity) * 100) : 0;
+  const progressPercent = Math.min(rawProgressPercent, 100);
 
   const borderClass = currentStatus === 'FAULT'
     ? 'border-[#E2483D] shadow-sm'
+    : currentStatus === 'IDLE'
+    ? 'border-[#DCDFE4] bg-[#FAFBFC]'
     : 'border-[#0B120E24] hover:border-[#7D818A]';
 
   return (
@@ -54,7 +61,7 @@ export const MachineCard: React.FC<MachineCardProps> = ({
                 {machine.code}
               </h3>
               <span className="text-xs font-mono text-[#505258] bg-[#F1F2F4] px-1.5 py-0.5 rounded-[3px] border border-[#DCDFE4]">
-                {machine.tonnage}T
+                {tonnageValue}T
               </span>
             </div>
             <p className="text-xs text-[#505258] line-clamp-1">{machine.name}</p>
@@ -63,39 +70,51 @@ export const MachineCard: React.FC<MachineCardProps> = ({
         </div>
 
         {/* Active Order & Production Info Well */}
-        <div className="bg-[#F8F8F8] rounded-md p-3 border border-[#0B120E14] mb-4 space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-[#505258]">Order</span>
-            <span className="font-medium text-[#292A2E]">
-              {activeRun?.productionOrder?.orderNumber ?? 'PO-2026-IMM01'}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-[#505258]">Part</span>
-            <span className="font-mono text-[#292A2E]">
-              {activeRun?.productionOrder?.product?.partNumber ?? 'PART-HOUSING-01'}
-            </span>
-          </div>
-
-          {/* Output Progress */}
-          <div>
-            <div className="flex items-center justify-between text-xs text-[#505258] mb-1">
-              <span>Progress</span>
-              <span>
-                {goodQuantity.toLocaleString()} / {targetQuantity.toLocaleString()} ({progressPercent}%)
+        {activeRun ? (
+          <div className="bg-[#F8F8F8] rounded-md p-3 border border-[#0B120E14] mb-4 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-[#505258]">Order</span>
+              <span className="font-medium text-[#292A2E]">
+                {activeRun.productionOrder?.orderNumber}
               </span>
             </div>
-            <div className="h-1.5 w-full bg-[#091E4214] rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-300 ${
-                  currentStatus === 'FAULT' ? 'bg-[#C9372C]' : 'bg-[#1868DB]'
-                }`}
-                style={{ width: `${progressPercent}%` }}
-              />
+
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-[#505258]">Part</span>
+              <span className="font-mono text-[#292A2E]">
+                {activeRun.productionOrder?.product?.partNumber ?? activeRun.productionOrder?.product?.name}
+              </span>
+            </div>
+
+            {/* Output Progress */}
+            <div>
+              <div className="flex items-center justify-between text-xs text-[#505258] mb-1">
+                <span>Progress</span>
+                <span>
+                  {goodQuantity.toLocaleString()} / {targetQuantity.toLocaleString()} ({rawProgressPercent}%)
+                </span>
+              </div>
+              <div className="h-1.5 w-full bg-[#091E4214] rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    currentStatus === 'FAULT' ? 'bg-[#C9372C]' : 'bg-[#1868DB]'
+                  }`}
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-[#F8F9FA] rounded-md p-3 border border-dashed border-[#8C8F97]/30 mb-4 flex flex-col items-center justify-center text-center py-3.5 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#505258]">
+              <Clock className="h-3.5 w-3.5 text-[#8C8F97]" />
+              <span>Standby • No Active Job</span>
+            </div>
+            <p className="text-[11px] text-[#8C8F97]">
+              {currentStatus === 'IDLE' ? 'Machine idle, awaiting order dispatch' : 'No active production order bound'}
+            </p>
+          </div>
+        )}
 
         {/* Live Metrics Grid */}
         <div className="grid grid-cols-2 gap-2 mb-4">
@@ -118,7 +137,7 @@ export const MachineCard: React.FC<MachineCardProps> = ({
                   isSlowCycle ? 'text-[#9E4C00]' : 'text-[#292A2E]'
                 }`}
               >
-                {cycleTime > 0 ? cycleTime.toFixed(1) : '--'}s
+                {isMachineRunning && cycleTime > 0 ? `${cycleTime.toFixed(1)}s` : '0.0s'}
               </span>
               <span className="text-xs text-[#6B6E76]">/ {idealCycleTime}s</span>
             </div>
@@ -142,9 +161,11 @@ export const MachineCard: React.FC<MachineCardProps> = ({
               <span>Pressure</span>
             </div>
             <span className="text-xs font-semibold font-mono text-[#292A2E]">
-              {machine.latestMetrics?.injectionPressureBar
-                ? `${Math.round(machine.latestMetrics.injectionPressureBar)} bar`
-                : '128 bar'}
+              {(machine.latestMetrics?.injectionPressureBar ?? machine.latestMetrics?.peakInjectionPressureBar) !== undefined
+                ? `${Math.round(machine.latestMetrics?.injectionPressureBar ?? machine.latestMetrics?.peakInjectionPressureBar ?? 0)} bar`
+                : currentStatus === 'RUNNING'
+                ? '— bar'
+                : '0 bar'}
             </span>
           </div>
 
@@ -157,7 +178,9 @@ export const MachineCard: React.FC<MachineCardProps> = ({
             <span className="text-xs font-semibold font-mono text-[#292A2E]">
               {machine.latestMetrics?.barrelTemperatures?.zone3
                 ? `${Math.round(machine.latestMetrics.barrelTemperatures.zone3)}°C`
-                : '228°C'}
+                : currentStatus === 'RUNNING'
+                ? '—°C'
+                : '24°C'}
             </span>
           </div>
         </div>

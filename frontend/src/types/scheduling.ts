@@ -1,5 +1,5 @@
 export interface TimelineBlockConflict {
-  type: 'TONNAGE_MISMATCH' | 'TOOLING_COLLISION' | 'MACHINE_OVERLAP';
+  type: 'TONNAGE_MISMATCH' | 'TOOLING_COLLISION' | 'MACHINE_OVERLAP' | 'DUE_DATE_RISK';
   severity: 'WARNING' | 'CRITICAL';
   message: string;
 }
@@ -11,6 +11,10 @@ export interface TimelineBlock {
   blockType: TimelineBlockType;
   orderId?: string;
   orderNumber?: string;
+  externalOrderRef?: string;
+  dueDate?: string;
+  externalSyncStatus?: string;
+  suggestedMachineCode?: string;
   productName?: string;
   moldId?: string;
   moldCode?: string;

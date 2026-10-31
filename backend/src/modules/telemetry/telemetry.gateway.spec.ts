@@ -9,7 +9,12 @@ describe('TelemetryGateway', () => {
   let emittedRooms: Record<string, { event: string; payload: any }[]>;
 
   beforeEach(() => {
-    gateway = new TelemetryGateway();
+    const mockTelemetryService = {
+      telemetryStream$: {
+        subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
+      },
+    };
+    gateway = new TelemetryGateway(mockTelemetryService as any);
     emittedRooms = {};
 
     mockServer = {

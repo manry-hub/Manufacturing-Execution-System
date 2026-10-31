@@ -1,10 +1,13 @@
-import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import crypto from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service.js';
 import { CreatePackagingUnitDto } from './dto/create-packaging-unit.dto.js';
 import { TelemetryGateway } from '../telemetry/telemetry.gateway.js';
 
 @Injectable()
 export class PackagingService {
+  private readonly logger = new Logger(PackagingService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly gateway?: TelemetryGateway,
@@ -13,7 +16,13 @@ export class PackagingService {
   async createPackagingUnit(dto: CreatePackagingUnitDto, packagerId: string) {
     const run = await this.prisma.productionRun.findUnique({
       where: { id: dto.runId },
-      include: { productionOrder: true },
+      include: {
+        productionOrder: {
+          include: { product: true },
+        },
+        machine: true,
+        mold: true,
+      },
     });
 
     if (!run) {
@@ -97,7 +106,81 @@ export class PackagingService {
       }
     }
 
+    // Dispatch outbound signed HTTP webhook to WMS finished goods intake
+    try {
+      await this.dispatchWmsWebhook({
+        cartonBarcode: unit.barcode,
+        orderNumber: run.productionOrder.orderNumber,
+        partNumber: (run.productionOrder as any).product?.partNumber ?? 'UNKNOWN',
+        quantityPacked: unit.partCount,
+        unitOfMeasure: 'PCS',
+        machineId: (run as any).machine?.code,
+        moldCode: (run as any).mold?.code,
+      });
+    } catch (webhookErr) {
+      this.logger.warn(`Failed to dispatch WMS webhook for unit ${unit.barcode}: ${(webhookErr as Error).message}`);
+    }
+
     return unit;
+  }
+
+  /**
+   * Dispatches signed HMAC SHA-256 packaging webhook event to WMS
+   */
+  async dispatchWmsWebhook(data: {
+    cartonBarcode: string;
+    orderNumber: string;
+    partNumber: string;
+    quantityPacked: number;
+    unitOfMeasure?: string;
+    machineId?: string;
+    moldCode?: string;
+  }): Promise<boolean> {
+    const webhookUrl = process.env.WMS_WEBHOOK_URL || 'http://localhost:8000/api/v1/webhooks/mes';
+    const webhookSecret = process.env.WMS_WEBHOOK_SECRET || 'test-mes-secret-key';
+
+    const eventId = `EVT-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    const payload = {
+      eventId,
+      eventType: 'packaging.unit_created',
+      timestamp: new Date().toISOString(),
+      data: {
+        cartonBarcode: data.cartonBarcode,
+        orderNumber: data.orderNumber,
+        partNumber: data.partNumber,
+        quantityPacked: data.quantityPacked,
+        unitOfMeasure: data.unitOfMeasure ?? 'PCS',
+        machineId: data.machineId,
+        moldCode: data.moldCode,
+      },
+    };
+
+    const rawBody = JSON.stringify(payload);
+    const signature = crypto.createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-MES-Signature': signature,
+          'X-MES-Event-Id': eventId,
+        },
+        body: rawBody,
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (!response.ok) {
+        this.logger.warn(`WMS webhook rejected with status ${response.status}: ${await response.text().catch(() => '')}`);
+        return false;
+      }
+
+      this.logger.log(`WMS webhook delivered successfully for carton ${data.cartonBarcode} (eventId: ${eventId})`);
+      return true;
+    } catch (err) {
+      this.logger.warn(`WMS webhook delivery error: ${(err as Error).message}`);
+      return false;
+    }
   }
 
   async findAllUnits(runId?: string, palletId?: string) {

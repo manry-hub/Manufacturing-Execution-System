@@ -64,7 +64,7 @@ export interface ExecutiveOeeAnalyticsResponse {
   filter: {
     areaId: string;
     machineId: string;
-    window: 'SHIFT' | 'DAY' | 'WEEK';
+    window?: 'SHIFT' | 'DAY' | 'WEEK';
     startTime: string;
     endTime: string;
   };
@@ -107,7 +107,9 @@ export interface ExecutiveOeeAnalyticsResponse {
     downtimeSeconds: number;
     setupSeconds: number;
     plannedSeconds: number;
+    nonScheduledSeconds?: number;
     totalSeconds: number;
+    calendarSeconds?: number;
   };
   trendOverTime: Array<{
     date: string;

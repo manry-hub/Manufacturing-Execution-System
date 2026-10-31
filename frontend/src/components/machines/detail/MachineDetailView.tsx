@@ -49,9 +49,12 @@ export const MachineDetailView: React.FC<MachineDetailViewProps> = ({
   const isRunning = currentStatus === 'RUNNING';
   const hasHeaterFault = machine.isFaultActive && machine.activeFaultCode === 'ALM-TEMP-04';
 
-  const totalShots = machine.cycleCounter ?? activeRun?.totalShots ?? 0;
-  const goodQuantity = activeRun?.goodQuantity ?? totalShots * 4;
-  const scrapQuantity = activeRun?.rejectQuantity ?? 24;
+  const tonnageValue = machine.clampingTonnage ?? machine.tonnage ?? 150;
+  const totalShots = activeRun
+    ? (activeRun.totalShots ?? 0) + (machine.cycleCounter ?? 0)
+    : (machine.cycleCounter ?? 0);
+  const goodQuantity = activeRun ? activeRun.goodQuantity : 0;
+  const scrapQuantity = activeRun ? activeRun.rejectQuantity : 0;
   const totalParts = goodQuantity + scrapQuantity;
   const scrapRate = totalParts > 0 ? ((scrapQuantity / totalParts) * 100).toFixed(2) : '0.00';
 
@@ -150,7 +153,11 @@ export const MachineDetailView: React.FC<MachineDetailViewProps> = ({
           <div className="space-y-1 text-xs">
             <div className="flex justify-between">
               <span className="text-[#505258]">Clamping force:</span>
-              <span className="font-mono font-semibold text-[#292A2E]">{machine.tonnage} metric tons</span>
+              <span className="font-mono font-semibold text-[#292A2E]">{tonnageValue} metric tons</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[#505258]">Total shots:</span>
+              <span className="font-mono text-[#292A2E]">{totalShots.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#505258]">Shot capacity:</span>
@@ -169,20 +176,29 @@ export const MachineDetailView: React.FC<MachineDetailViewProps> = ({
             <span>Active tooling & order</span>
             <Layers className="h-4 w-4 text-[#1868DB]" />
           </div>
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between">
-              <span className="text-[#505258]">Order:</span>
-              <span className="font-medium text-[#292A2E]">{activeRun?.productionOrder?.orderNumber ?? 'PO-2026-IMM01'}</span>
+          {activeRun ? (
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between">
+                <span className="text-[#505258]">Order:</span>
+                <span className="font-medium text-[#292A2E]">{activeRun.productionOrder?.orderNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#505258]">Part:</span>
+                <span className="font-mono text-[#292A2E]">{activeRun.productionOrder?.product?.partNumber ?? '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#505258]">Mold:</span>
+                <span className="font-mono text-[#292A2E]">
+                  {activeRun.mold ? `${activeRun.mold.code} (${activeRun.mold.cavityCount} cav)` : 'Unassigned'}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-[#505258]">Part:</span>
-              <span className="font-mono text-[#292A2E]">{activeRun?.productionOrder?.product?.partNumber ?? 'PART-BEZEL-01'}</span>
+          ) : (
+            <div className="py-2.5 px-2 text-center bg-[#F8F9FA] rounded border border-dashed border-[#8C8F97]/30 my-auto">
+              <span className="text-xs font-semibold text-[#505258] block">Standby • No Active Job</span>
+              <span className="text-[11px] text-[#8C8F97] block mt-0.5">Awaiting production run dispatch</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-[#505258]">Mold:</span>
-              <span className="font-mono text-[#292A2E]">{activeRun?.mold?.code ?? 'MLD-BEZEL-01'} (4 cav)</span>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Production Tally */}
@@ -191,21 +207,28 @@ export const MachineDetailView: React.FC<MachineDetailViewProps> = ({
             <span>Good output vs scrap</span>
             <CheckCircle2 className="h-4 w-4 text-[#6A9A23]" />
           </div>
-          <div className="flex items-baseline justify-between">
-            <div>
-              <span className="text-xl font-bold font-mono text-[#37471F]">
-                {goodQuantity.toLocaleString()}
-              </span>
-              <span className="text-xs text-[#505258] block">Good parts</span>
+          {activeRun ? (
+            <div className="flex items-baseline justify-between">
+              <div>
+                <span className="text-xl font-bold font-mono text-[#37471F]">
+                  {goodQuantity.toLocaleString()}
+                </span>
+                <span className="text-xs text-[#505258] block">Good parts</span>
+              </div>
+              <div className="text-right">
+                <span className="text-sm font-bold font-mono text-[#5D1F1A] flex items-center justify-end gap-1">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>{scrapQuantity}</span>
+                </span>
+                <span className="text-xs text-[#505258] block">Scrap ({scrapRate}%)</span>
+              </div>
             </div>
-            <div className="text-right">
-              <span className="text-sm font-bold font-mono text-[#5D1F1A] flex items-center justify-end gap-1">
-                <Trash2 className="h-3.5 w-3.5" />
-                <span>{scrapQuantity}</span>
-              </span>
-              <span className="text-xs text-[#505258] block">Scrap ({scrapRate}%)</span>
+          ) : (
+            <div className="py-2.5 px-2 text-center bg-[#F8F9FA] rounded border border-dashed border-[#8C8F97]/30 my-auto">
+              <span className="text-xs font-medium text-[#8C8F97] block">0 parts recorded</span>
+              <span className="text-[11px] text-[#8C8F97] block mt-0.5">Run not active</span>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Active Scenario / Diagnostics */}

@@ -10,15 +10,7 @@ export const OeeTrendOverTimeChart: React.FC<OeeTrendOverTimeChartProps> = ({ da
 
   const series = data?.trendOverTime && data.trendOverTime.length > 0
     ? data.trendOverTime
-    : [
-        { date: '10/24', oee: 62.4, availability: 88.0, performance: 75.0, quality: 94.5, goal: 80.0 },
-        { date: '10/25', oee: 68.1, availability: 91.2, performance: 78.4, quality: 95.2, goal: 80.0 },
-        { date: '10/26', oee: 59.8, availability: 82.5, performance: 76.0, quality: 95.5, goal: 80.0 },
-        { date: '10/27', oee: 72.3, availability: 92.0, performance: 81.5, quality: 96.5, goal: 80.0 },
-        { date: '10/28', oee: 65.5, availability: 89.0, performance: 79.0, quality: 93.0, goal: 80.0 },
-        { date: '10/29', oee: 74.2, availability: 93.5, performance: 83.0, quality: 95.6, goal: 80.0 },
-        { date: '10/30', oee: 69.4, availability: 90.0, performance: 80.0, quality: 96.4, goal: 80.0 },
-      ];
+    : [];
 
   // SVG Chart Dimensions
   const svgWidth = 620;
@@ -29,6 +21,21 @@ export const OeeTrendOverTimeChart: React.FC<OeeTrendOverTimeChartProps> = ({ da
   const padBottom = 35;
   const chartW = svgWidth - padLeft - padRight;
   const chartH = svgHeight - padTop - padBottom;
+
+  if (series.length === 0) {
+    return (
+      <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-5 shadow-xs flex flex-col justify-between h-full relative">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-[#292A2E] tracking-tight">
+            Trend Over Time
+          </h3>
+        </div>
+        <div className="flex-1 flex items-center justify-center text-xs text-[#8993A4] py-16">
+          No trend records available for the selected time window.
+        </div>
+      </div>
+    );
+  }
 
   const getX = (index: number) => {
     if (series.length <= 1) return padLeft + chartW / 2;
@@ -148,7 +155,7 @@ export const OeeTrendOverTimeChart: React.FC<OeeTrendOverTimeChartProps> = ({ da
             const isHovered = hoveredIndex === i;
 
             return (
-              <g key={d.date}>
+              <g key={`${d.date}-${i}`}>
                 {/* Vertical Cursor on hover */}
                 {isHovered && (
                   <line

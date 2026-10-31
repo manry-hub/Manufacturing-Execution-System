@@ -24,8 +24,12 @@ describe('UsersService', () => {
       userRoleAssignment: {
         deleteMany: vi.fn(),
         create: vi.fn(),
+        count: vi.fn().mockResolvedValue(2),
       },
-      $transaction: vi.fn(async (cb) => cb(mockPrisma)),
+      refreshToken: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      $transaction: vi.fn(async (arg) => (typeof arg === 'function' ? arg(mockPrisma) : Promise.all(arg))),
     };
 
     mockAudit = {

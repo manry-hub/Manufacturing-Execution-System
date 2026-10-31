@@ -1,11 +1,20 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { Request } from 'express';
 
+export interface ScopedAssignment {
+  role: string;
+  scopeType: 'GLOBAL' | 'PLANT' | 'AREA' | 'MACHINE';
+  scopeId: string;
+}
+
 export interface CurrentUserPayload {
   userId: string;
   username: string;
-  email: string;
+  email?: string;
   roles: string[];
+  permissions?: string[];
+  scopes?: ScopedAssignment[];
+  principalType?: 'HUMAN' | 'SERVICE';
 }
 
 export const CurrentUser = createParamDecorator(

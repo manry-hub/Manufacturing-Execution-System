@@ -18,7 +18,7 @@ export class AuditController {
   @Get()
   @Roles(
     RoleEnum.SYSTEM_ADMINISTRATOR,
-    RoleEnum.MANAGEMENT_ANALYST,
+    RoleEnum.PRODUCTION_ANALYST,
     RoleEnum.PRODUCTION_SUPERVISOR,
   )
   async getAuditLogs(@Query() query: AuditQueryDto): Promise<AuditPaginatedResponseDto> {
@@ -28,7 +28,7 @@ export class AuditController {
   @Get('stats')
   @Roles(
     RoleEnum.SYSTEM_ADMINISTRATOR,
-    RoleEnum.MANAGEMENT_ANALYST,
+    RoleEnum.PRODUCTION_ANALYST,
     RoleEnum.PRODUCTION_SUPERVISOR,
   )
   async getAuditStats(): Promise<AuditStatsDto> {
@@ -38,7 +38,7 @@ export class AuditController {
   @Get('entities')
   @Roles(
     RoleEnum.SYSTEM_ADMINISTRATOR,
-    RoleEnum.MANAGEMENT_ANALYST,
+    RoleEnum.PRODUCTION_ANALYST,
     RoleEnum.PRODUCTION_SUPERVISOR,
   )
   async getDistinctEntityTypes(): Promise<string[]> {
@@ -48,7 +48,7 @@ export class AuditController {
   @Get('actions')
   @Roles(
     RoleEnum.SYSTEM_ADMINISTRATOR,
-    RoleEnum.MANAGEMENT_ANALYST,
+    RoleEnum.PRODUCTION_ANALYST,
     RoleEnum.PRODUCTION_SUPERVISOR,
   )
   async getDistinctActions(): Promise<string[]> {

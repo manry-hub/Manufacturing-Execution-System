@@ -1,27 +1,39 @@
 export type UserRole =
   | 'admin'
-  | 'plant_manager'
+  | 'production_manager'
   | 'production_supervisor'
   | 'operator'
-  | 'maintenance_lead'
-  | 'maintenance_technician'
-  | 'quality_inspector'
-  | 'material_handler'
-  | 'planner';
+  | 'production_analyst';
+
+export interface ScopedAssignment {
+  role: string;
+  scopeType: 'GLOBAL' | 'PLANT' | 'AREA' | 'MACHINE';
+  scopeId: string;
+}
 
 export interface User {
   id: string;
   username: string;
   name?: string;
+  email?: string;
   role: UserRole;
+  roles?: string[];
+  permissions?: string[];
+  scopes?: ScopedAssignment[];
   token?: string;
 }
 
 export interface LoginResponse {
   accessToken: string;
+  refreshToken?: string;
+  expiresIn?: number;
   user: {
     id: string;
     username: string;
-    role: UserRole;
+    email?: string;
+    role?: UserRole;
+    roles: string[];
+    permissions?: string[];
+    scopes?: ScopedAssignment[];
   };
 }
