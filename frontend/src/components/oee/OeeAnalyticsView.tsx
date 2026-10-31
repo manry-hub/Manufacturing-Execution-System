@@ -17,10 +17,15 @@ interface OeeAnalyticsViewProps {
 }
 
 export const OeeAnalyticsView: React.FC<OeeAnalyticsViewProps> = ({ machines }) => {
-  const [filter, setFilter] = useState<ExecutiveOeeFilterParams>({
-    areaId: 'ALL',
-    machineId: 'ALL',
-    window: 'SHIFT',
+  const [filter, setFilter] = useState<ExecutiveOeeFilterParams>(() => {
+    const end = new Date();
+    const start = new Date(end.getTime() - 8 * 3600 * 1000);
+    return {
+      areaId: 'ALL',
+      machineId: 'ALL',
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+    };
   });
   const [activeTab, setActiveTab] = useState<'dashboard' | 'fleet' | 'loss_cascade' | 'pareto'>('dashboard');
   const [executiveData, setExecutiveData] = useState<ExecutiveOeeAnalyticsResponse | null>(null);
@@ -30,9 +35,15 @@ export const OeeAnalyticsView: React.FC<OeeAnalyticsViewProps> = ({ machines }) 
   const fetchAnalytics = useCallback(async () => {
     setIsLoading(true);
     try {
+      const hours =
+        filter.startDate && filter.endDate
+          ? (new Date(filter.endDate).getTime() - new Date(filter.startDate).getTime()) / 3600000
+          : 8;
+      const derivedWindow: 'SHIFT' | 'DAY' = hours > 12 ? 'DAY' : 'SHIFT';
+
       const [execRes, plantRes] = await Promise.all([
         api.getExecutiveOeeAnalytics(filter),
-        api.getPlantOee(filter.window === 'WEEK' ? 'DAY' : filter.window ?? 'SHIFT'),
+        api.getPlantOee(derivedWindow),
       ]);
       setExecutiveData(execRes);
       setPlantOee(plantRes);
@@ -63,6 +74,12 @@ export const OeeAnalyticsView: React.FC<OeeAnalyticsViewProps> = ({ machines }) 
 
   const machineBreakdown = plantOee?.machineBreakdown ?? [];
 
+  const filterHours =
+    filter.startDate && filter.endDate
+      ? (new Date(filter.endDate).getTime() - new Date(filter.startDate).getTime()) / 3600000
+      : 8;
+  const currentWindowType: 'SHIFT' | 'DAY' = filterHours > 12 ? 'DAY' : 'SHIFT';
+
   return (
     <div className="space-y-4">
       {/* 1. Header Bar with Tabs */}
@@ -71,7 +88,7 @@ export const OeeAnalyticsView: React.FC<OeeAnalyticsViewProps> = ({ machines }) 
           <div className="flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-[#1868DB]" />
             <h1 className="text-xl font-bold text-[#292A2E] tracking-tight">
-              ISO 22400-2 OEE executive analytics
+              OEE executive analytics
             </h1>
           </div>
           <p className="text-xs text-[#505258] mt-1">
@@ -165,14 +182,14 @@ export const OeeAnalyticsView: React.FC<OeeAnalyticsViewProps> = ({ machines }) 
 
       {activeTab === 'fleet' && (
         <div className="space-y-4">
-          <FleetOeeBarChart breakdown={machineBreakdown} windowType={filter.window === 'WEEK' ? 'DAY' : filter.window ?? 'SHIFT'} />
+          <FleetOeeBarChart breakdown={machineBreakdown} windowType={currentWindowType} />
         </div>
       )}
 
       {activeTab === 'loss_cascade' && (
         <div className="space-y-4">
           {plantOee?.metrics && (
-            <OeeLossBreakdownChart metrics={plantOee.metrics} windowType={filter.window === 'WEEK' ? 'DAY' : filter.window ?? 'SHIFT'} />
+            <OeeLossBreakdownChart metrics={plantOee.metrics} windowType={currentWindowType} />
           )}
         </div>
       )}

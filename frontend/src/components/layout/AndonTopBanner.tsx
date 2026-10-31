@@ -21,9 +21,8 @@ export const AndonTopBanner: React.FC<AndonTopBannerProps> = ({
 
   const first = openTickets[0];
   const canAcknowledge =
-    role === 'maintenance_technician' ||
-    role === 'maintenance_lead' ||
     role === 'production_supervisor' ||
+    role === 'production_manager' ||
     role === 'admin';
 
   return (

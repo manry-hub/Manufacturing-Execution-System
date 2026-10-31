@@ -63,7 +63,7 @@ const CircularRing: React.FC<{
             isPrimary ? 'text-2xl sm:text-3xl tracking-tight' : 'text-base sm:text-lg font-bold'
           }`}
         >
-          {percentage.toFixed(0)}%
+          {percentage > 0 && percentage < 1 ? percentage.toFixed(1) : percentage.toFixed(0)}%
         </span>
         <span
           className={`font-bold uppercase tracking-wider text-[#505258] ${
@@ -90,8 +90,10 @@ export const OeeKpiRingsCard: React.FC<OeeKpiRingsCardProps> = ({ data }) => {
   const expectedQty = productQuantity?.expectedQuantity ?? 8685;
   const targetQty = productQuantity?.targetQuantity ?? 27000;
 
-  const actualPercent = targetQty > 0 ? Math.min(100, (actualQty / targetQty) * 100) : 0;
-  const expectedPercent = targetQty > 0 ? Math.min(100, (expectedQty / targetQty) * 100) : 0;
+  const rawActualPercent = targetQty > 0 ? (actualQty / targetQty) * 100 : 0;
+  const actualPercent = Math.min(100, rawActualPercent);
+  const rawExpectedPercent = targetQty > 0 ? (expectedQty / targetQty) * 100 : 0;
+  const expectedPercent = Math.min(100, rawExpectedPercent);
 
   return (
     <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-5 shadow-xs flex flex-col justify-between h-full">
@@ -137,7 +139,7 @@ export const OeeKpiRingsCard: React.FC<OeeKpiRingsCardProps> = ({ data }) => {
           <div className="flex flex-col items-center">
             <CircularRing
               percentage={eff}
-              label="EFF"
+              label="PER"
               size={82}
               strokeWidth={9}
               strokeColor="#1868DB"
@@ -161,7 +163,14 @@ export const OeeKpiRingsCard: React.FC<OeeKpiRingsCardProps> = ({ data }) => {
       <div className="mt-5 pt-4 border-t border-[#0B120E14]">
         <div className="flex items-center justify-between text-xs font-semibold text-[#505258] mb-1.5">
           <span>Product Quantity</span>
-          <span>{actualPercent.toFixed(1)}% of Target</span>
+          <span className="flex items-center">
+            <span>{rawActualPercent.toFixed(1)}% of Target</span>
+            {rawActualPercent > 100 && (
+              <span className="text-[#37471F] bg-[#EFFFD6] text-[10px] px-1.5 py-0.2 rounded ml-1.5 font-bold border border-[#6A9A23]">
+                +{(rawActualPercent - 100).toFixed(1)}%
+              </span>
+            )}
+          </span>
         </div>
 
         {/* Multi-tier horizontal progress bar */}

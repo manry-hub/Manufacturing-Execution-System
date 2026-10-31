@@ -57,7 +57,7 @@ describe('Simulator & Telemetry Engine (e2e)', () => {
       .post('/api/v1/auth/login')
       .send({
         username: 'admin',
-        password: 'AdminPassword123!',
+        password: 'password123',
       });
     adminToken = loginRes.body.accessToken;
   });

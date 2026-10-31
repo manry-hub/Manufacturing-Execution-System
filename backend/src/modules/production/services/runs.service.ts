@@ -107,7 +107,7 @@ export class RunsService implements OnModuleInit {
           productionOrderId: order.id,
           machineId: machine.id,
           moldId: mold.id,
-          status: dto.status ?? 'SETUP',
+          status: dto.status ?? 'ACTIVE',
           startTime: new Date(),
           totalShots: 0,
           goodQuantity: 0,
@@ -309,7 +309,7 @@ export class RunsService implements OnModuleInit {
       const activeRun = await this.prisma.productionRun.findFirst({
         where: {
           machineId,
-          status: 'ACTIVE',
+          status: { in: ['ACTIVE', 'SETUP'] },
         },
         include: { mold: true },
       });

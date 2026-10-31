@@ -199,6 +199,54 @@
 
 ---
 
+### 2.5 Factory Calendar, Shifts & Machine Operating Schedules
+
+#### `factory_calendar_days`
+
+| Column | Type | Constraints | Index | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `NVARCHAR(1000)` | PK, UUID | PRIMARY | Unique calendar day record |
+| `plant_id` | `NVARCHAR(1000)` | NOT NULL, FK `plants(id)` | `idx_fcd_plant_date` | Operational facility |
+| `calendar_date` | `DATE` | NOT NULL | `uq_factory_calendar_day` | Day date |
+| `day_type` | `VARCHAR(30)` | NOT NULL | | `WORKDAY`, `WEEKEND`, `HOLIDAY`, `SHUTDOWN` |
+| `description` | `VARCHAR(150)` | NULL | | Holiday / maintenance note |
+| `is_operating` | `BIT` | NOT NULL, DEFAULT `1` | | Whether plant operates |
+| `created_at` | `DATETIME2` | NOT NULL, DEFAULT `CURRENT_TIMESTAMP` | | |
+
+#### `shift_definitions`
+
+| Column | Type | Constraints | Index | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `NVARCHAR(1000)` | PK, UUID | PRIMARY | Unique shift record |
+| `plant_id` | `NVARCHAR(1000)` | NOT NULL, FK `plants(id)` | | Operational facility |
+| `shift_number` | `INT` | NOT NULL | `uq_shift_plant_number` | 1 (Pagi), 2 (Siang/Sore), 3 (Malam) |
+| `code` | `VARCHAR(30)` | NOT NULL | | `SHIFT_1`, `SHIFT_2`, `SHIFT_3` |
+| `name` | `VARCHAR(100)` | NOT NULL | | Display label |
+| `start_time` | `VARCHAR(8)` | NOT NULL | | Shift start (e.g. `07:00:00`) |
+| `end_time` | `VARCHAR(8)` | NOT NULL | | Shift end (e.g. `15:00:00`) |
+| `duration_minutes` | `INT` | NOT NULL, DEFAULT `480` | | 8 hours = 480m |
+| `planned_break_minutes` | `INT` | NOT NULL, DEFAULT `60` | | Scheduled break (excluded from PPT) |
+| `crosses_midnight` | `BIT` | NOT NULL, DEFAULT `0` | | True for Shift 3 |
+| `is_active` | `BIT` | NOT NULL, DEFAULT `1` | | Shift status |
+| `created_at` | `DATETIME2` | NOT NULL, DEFAULT `CURRENT_TIMESTAMP` | | |
+
+#### `machine_operating_schedules`
+
+| Column | Type | Constraints | Index | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `NVARCHAR(1000)` | PK, UUID | PRIMARY | Unique schedule assignment |
+| `machine_id` | `NVARCHAR(1000)` | NOT NULL, FK `machines(id)` | `idx_mos_machine_window` | Machine assignment |
+| `shift_id` | `NVARCHAR(1000)` | NOT NULL, FK `shift_definitions(id)` | | Associated shift |
+| `schedule_date` | `DATE` | NOT NULL | `idx_mos_date`, `uq_machine_shift_schedule` | Schedule day |
+| `operating_mode` | `VARCHAR(30)` | NOT NULL, DEFAULT `'PRODUCTION'` | | `PRODUCTION`, `STANDBY`, `PREVENTIVE_MAINTENANCE`, `SHUTDOWN` |
+| `planned_duration_minutes` | `INT` | NOT NULL, DEFAULT `420` | | Net Planned Production Time (PPT) |
+| `planned_start_time` | `DATETIME2` | NOT NULL | `idx_mos_machine_window` | Start boundary |
+| `planned_end_time` | `DATETIME2` | NOT NULL | `idx_mos_machine_window` | End boundary |
+| `notes` | `VARCHAR(255)` | NULL | | Remark |
+| `created_at` | `DATETIME2` | NOT NULL, DEFAULT `CURRENT_TIMESTAMP` | | |
+
+---
+
 ### 2.6 Digital Andon & Downtime Tickets
 
 #### `andon_tickets`
@@ -222,26 +270,36 @@
 
 ### 2.7 Security & Audit Trail
 
-#### `users`, `roles`, & `user_role_assignments`
+#### Identity, Production Scoped-RBAC & Service Accounts
 
-| Table                   | Key Fields                                              | Constraints                         | Notes                     |
-| ----------------------- | ------------------------------------------------------- | ----------------------------------- | ------------------------- |
-| `users`                 | `id`, `username`, `email`, `password_hash`, `is_active` | `username` & `email` UNIQUE         | Core user accounts        |
-| `roles`                 | `id`, `name`, `description`                             | `name` UNIQUE                       | 9 Canonical roles per PRD |
-| `user_role_assignments` | `user_id`, `role_id`                                    | Composite PK (`user_id`, `role_id`) | Many-to-many role mapping |
+| Table | Key Fields | Constraints / Indexes | Notes |
+| ----- | ---------- | --------------------- | ----- |
+| `users` | `id`, `username`, `email`, `password_hash`, `is_active` | `username` & `email` UNIQUE | Production user accounts only |
+| `roles` | `id`, `name`, `description` | `name` UNIQUE | 5 Production roles (`System Administrator`, `Production Manager`, `Production Supervisor`, `Machine Operator`, `Production Read-only Analyst`) |
+| `permissions` | `id`, `key`, `module`, `action`, `resource`, `valid_scope`, `risk`, `is_audited` | `key` UNIQUE | Application-owned permissions catalog (33 keys) |
+| `role_permissions` | `id`, `role_id`, `permission_id` | `uq_role_permission` UNIQUE | Mapping permissions to production roles |
+| `user_role_assignments` | `id`, `user_id`, `role_id`, `scope_type`, `scope_id` | `uq_user_role_scope` UNIQUE | Scoped assignments (`GLOBAL`, `PLANT`, `AREA`, `MACHINE`) |
+| `refresh_tokens` | `id`, `user_id`, `token_hash`, `family`, `is_revoked`, `expires_at`, `replaced_by` | `token_hash` UNIQUE, `idx_refresh_user_family` | Opaque refresh token rotation with reuse family invalidation |
+| `service_accounts` | `id`, `name`, `client_id`, `secret_hash`, `scope_type`, `scope_id`, `permissions`, `is_active` | `name` & `client_id` UNIQUE | External service principals (PPSS, WMS, QMS, MMS, ERP) via Client Credentials |
 
 #### `audit_logs`
 
-| Column        | Type            | Constraints                      | Index              | Notes                                                |
-| ------------- | --------------- | -------------------------------- | ------------------ | ---------------------------------------------------- |
-| `id`          | `BIGINT`        | PK, IDENTITY(1,1)                | PRIMARY            | Sequential primary key                               |
-| `user_id`     | `VARCHAR(36)`   | NULL, FK `users(id)`             | `idx_audit_user`   | Actor executing mutation                             |
-| `action`      | `VARCHAR(100)`  | NOT NULL                         |                    | `ORDER_STATUS_CHANGED`, `MASTER_DATA_MODIFIED`, etc. |
-| `entity_type` | `VARCHAR(50)`   | NOT NULL                         | `idx_audit_entity` | Target table / aggregate root                        |
-| `entity_id`   | `VARCHAR(36)`   | NOT NULL                         |                    | Target entity primary key                            |
-| `old_values`  | `NVARCHAR(MAX)` | NULL                             |                    | Pre-mutation JSON snapshot                           |
-| `new_values`  | `NVARCHAR(MAX)` | NULL                             |                    | Post-mutation JSON snapshot                          |
-| `created_at`  | `DATETIME2`     | NOT NULL, DEFAULT `GETUTCDATE()` |                    | Immutable audit timestamp                            |
+| Column | Type | Constraints | Index | Notes |
+| ------ | ---- | ----------- | ----- | ----- |
+| `id` | `BIGINT` | PK, IDENTITY(1,1) | PRIMARY | Sequential primary key |
+| `user_id` | `VARCHAR(36)` | NULL, FK `users(id)` | | Optional user ID |
+| `principal_type` | `VARCHAR(20)` | NOT NULL, DEFAULT `'HUMAN'` | | Principal type (`HUMAN`, `SERVICE`) |
+| `actor` | `VARCHAR(100)` | NOT NULL, DEFAULT `'system'` | `idx_audit_actor` | Username, service clientId, or actor string |
+| `action` | `VARCHAR(100)` | NOT NULL | | Action key (e.g., `AUTH_LOGIN_SUCCESS`, `ORDER_STATUS_CHANGED`) |
+| `entity_type` | `VARCHAR(50)` | NOT NULL | `idx_audit_query` | Target entity / aggregate root |
+| `entity_id` | `VARCHAR(50)` | NOT NULL | `idx_audit_query` | Target entity primary key |
+| `scope` | `VARCHAR(50)` | NULL | | Operational scope context (e.g. `IMM-01`, `PLANT-01`) |
+| `status` | `VARCHAR(20)` | NOT NULL, DEFAULT `'SUCCESS'` | | Outcome status (`SUCCESS`, `FAILED`, `REVOKED`) |
+| `old_values` | `NVARCHAR(MAX)` | NULL | | Pre-mutation JSON snapshot |
+| `new_values` | `NVARCHAR(MAX)` | NULL | | Post-mutation JSON snapshot |
+| `ip_address` | `VARCHAR(50)` | NULL | | Client source IP address |
+| `user_agent` | `VARCHAR(255)` | NULL | | Client user-agent string |
+| `created_at` | `DATETIME2` | NOT NULL, DEFAULT `GETUTCDATE()` | `idx_audit_query` | Monotonic audit creation timestamp |
 
 ---
 

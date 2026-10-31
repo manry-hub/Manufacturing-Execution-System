@@ -235,6 +235,22 @@ export class UsersService {
       }
     }
 
+    // Prevent removal/disabling of final active System Administrator
+    if (dto.isActive === false || (dto.roles && !dto.roles.includes('System Administrator'))) {
+      const isAdmin = user.userRoles.some((ur) => ur.role.name === 'System Administrator');
+      if (isAdmin) {
+        const activeAdminCount = await this.prisma.userRoleAssignment.count({
+          where: {
+            role: { name: 'System Administrator' },
+            user: { isActive: true },
+          },
+        });
+        if (activeAdminCount <= 1) {
+          throw new BadRequestException('Operation rejected: Cannot disable or remove the final active System Administrator');
+        }
+      }
+    }
+
     const updated = await this.prisma.$transaction(async (tx) => {
       if (matchingRoles) {
         // Clear previous assignments and re-assign
@@ -247,9 +263,19 @@ export class UsersService {
             data: {
               userId: id,
               roleId: role.id,
+              scopeType: 'GLOBAL',
+              scopeId: 'GLOBAL',
             },
           });
         }
+      }
+
+      // If user is deactivated, revoke all active sessions
+      if (dto.isActive === false) {
+        await tx.refreshToken.updateMany({
+          where: { userId: id, isRevoked: false },
+          data: { isRevoked: true },
+        });
       }
 
       return tx.user.update({
@@ -305,10 +331,16 @@ export class UsersService {
     }
 
     const passwordHash = await bcrypt.hash(dto.newPassword, 10);
-    await this.prisma.user.update({
-      where: { id },
-      data: { passwordHash },
-    });
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id },
+        data: { passwordHash },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId: id, isRevoked: false },
+        data: { isRevoked: true },
+      }),
+    ]);
 
     await this.auditService.record({
       userId: currentUserId,

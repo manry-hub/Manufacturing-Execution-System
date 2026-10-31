@@ -10,11 +10,8 @@ import {
   Wifi,
   WifiOff,
   UserCheck,
-  ShieldCheck,
   Package,
-  Wrench,
   PackageCheck,
-  Calendar,
   FileCheck,
   ChevronDown,
   ChevronRight,
@@ -31,14 +28,11 @@ export type ActiveTab =
   | 'shopfloor'
   | 'machines'
   | 'orders'
-  | 'scheduling'
   | 'packaging'
-  | 'quality'
+  | 'traveler'
   | 'materials'
-  | 'maintenance'
   | 'andon'
   | 'oee'
-  | 'traveler'
   | 'analytics'
   | 'admin';
 
@@ -72,7 +66,7 @@ export const NAV_GROUPS: NavGroupConfig[] = [
   },
   {
     id: 'operations',
-    title: 'Operations',
+    title: 'Operations & Ingestion',
     items: [
       {
         id: 'shopfloor',
@@ -92,7 +86,7 @@ export const NAV_GROUPS: NavGroupConfig[] = [
   },
   {
     id: 'execution',
-    title: 'Execution & routing',
+    title: 'Execution & Packing',
     items: [
       {
         id: 'orders',
@@ -100,13 +94,6 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         label: 'Orders & runs',
         shortLabel: 'Orders',
         icon: PlaySquare,
-      },
-      {
-        id: 'scheduling',
-        path: '/scheduling',
-        label: 'Production scheduling',
-        shortLabel: 'Scheduling',
-        icon: Calendar,
       },
       {
         id: 'packaging',
@@ -118,16 +105,9 @@ export const NAV_GROUPS: NavGroupConfig[] = [
     ],
   },
   {
-    id: 'quality',
-    title: 'Quality & materials',
+    id: 'traceability',
+    title: 'Traceability & Materials',
     items: [
-      {
-        id: 'quality',
-        path: '/quality',
-        label: 'Quality gates & first-piece',
-        shortLabel: 'Quality',
-        icon: ShieldCheck,
-      },
       {
         id: 'traveler',
         path: '/traveler',
@@ -138,27 +118,20 @@ export const NAV_GROUPS: NavGroupConfig[] = [
       {
         id: 'materials',
         path: '/materials',
-        label: 'Materials & genealogy',
+        label: 'Line-side material lots',
         shortLabel: 'Materials',
         icon: Package,
       },
     ],
   },
   {
-    id: 'maintenance',
-    title: 'Reliability & maintenance',
+    id: 'reliability',
+    title: 'Plant Alerting',
     items: [
-      {
-        id: 'maintenance',
-        path: '/maintenance',
-        label: 'Tooling & mold PM',
-        shortLabel: 'Tooling PM',
-        icon: Wrench,
-      },
       {
         id: 'andon',
         path: '/andon',
-        label: 'Digital andon',
+        label: 'Digital andon board',
         shortLabel: 'Andon',
         icon: AlertTriangle,
       },

@@ -9,11 +9,17 @@ import {
 
 export interface RecordAuditParams {
   userId?: string;
+  principalType?: string;
+  actor?: string;
   action: string;
   entityType: string;
   entityId: string;
+  scope?: string;
+  status?: string;
   oldValues?: Record<string, unknown> | null;
   newValues?: Record<string, unknown> | null;
+  ipAddress?: string;
+  userAgent?: string;
 }
 
 export interface QueryAuditParams {
@@ -37,11 +43,17 @@ export class AuditService {
       const log = await this.prisma.auditLog.create({
         data: {
           userId: params.userId,
+          principalType: params.principalType || 'HUMAN',
+          actor: params.actor || params.userId || 'system',
           action: params.action,
           entityType: params.entityType,
           entityId: params.entityId,
+          scope: params.scope,
+          status: params.status || 'SUCCESS',
           oldValues: oldValuesJson,
           newValues: newValuesJson,
+          ipAddress: params.ipAddress,
+          userAgent: params.userAgent,
         },
       });
 

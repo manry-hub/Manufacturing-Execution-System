@@ -12,12 +12,9 @@ export const getActiveTabFromPath = (pathname: string): ActiveTab => {
   if (pathname.startsWith('/shopfloor')) return 'shopfloor';
   if (pathname.startsWith('/machines')) return 'machines';
   if (pathname.startsWith('/orders')) return 'orders';
-  if (pathname.startsWith('/scheduling')) return 'scheduling';
   if (pathname.startsWith('/packaging')) return 'packaging';
-  if (pathname.startsWith('/quality')) return 'quality';
   if (pathname.startsWith('/traveler')) return 'traveler';
   if (pathname.startsWith('/materials')) return 'materials';
-  if (pathname.startsWith('/maintenance')) return 'maintenance';
   if (pathname.startsWith('/andon')) return 'andon';
   if (pathname.startsWith('/oee')) return 'oee';
   if (pathname.startsWith('/analytics')) return 'analytics';
@@ -61,23 +58,14 @@ export const AppLayout: React.FC = () => {
       case 'orders':
         void navigate('/orders');
         break;
-      case 'scheduling':
-        void navigate('/scheduling');
-        break;
       case 'packaging':
         void navigate('/packaging');
-        break;
-      case 'quality':
-        void navigate('/quality');
         break;
       case 'traveler':
         void navigate('/traveler');
         break;
       case 'materials':
         void navigate('/materials');
-        break;
-      case 'maintenance':
-        void navigate('/maintenance');
         break;
       case 'andon':
         void navigate('/andon');

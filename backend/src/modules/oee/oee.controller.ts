@@ -11,16 +11,16 @@ export class OeeController {
   async getExecutiveAnalytics(
     @Query('machineId') machineId?: string,
     @Query('areaId') areaId?: string,
-    @Query('window') window?: 'SHIFT' | 'DAY' | 'WEEK',
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('window') window?: 'SHIFT' | 'DAY' | 'WEEK',
   ) {
     return this.oeeService.getExecutiveAnalytics({
       machineId,
       areaId,
-      window,
       startDate,
       endDate,
+      window,
     });
   }
 

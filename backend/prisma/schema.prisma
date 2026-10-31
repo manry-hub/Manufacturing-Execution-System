@@ -8,7 +8,7 @@ generator client {
 }
 
 // -----------------------------------------------------------------------------
-// Identity, Roles & Access Control
+// Identity, Roles & Access Control (Production Scoped-RBAC & Service Accounts)
 // -----------------------------------------------------------------------------
 
 model User {
@@ -21,6 +21,7 @@ model User {
   updatedAt    DateTime             @default(now()) @updatedAt @map("updated_at")
 
   userRoles       UserRoleAssignment[]
+  refreshTokens   RefreshToken[]
   auditLogs       AuditLog[]
   reportedTickets AndonTicket[]        @relation("ReportedTickets")
   assignedTickets AndonTicket[]        @relation("AssignedTickets")
@@ -34,39 +35,110 @@ model User {
 }
 
 model Role {
-  id          String               @id @default(uuid())
-  name        String               @unique
+  id          String   @id @default(uuid())
+  name        String   @unique
   description String?
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  userRoles UserRoleAssignment[]
+  userRoles       UserRoleAssignment[]
+  rolePermissions RolePermission[]
 
   @@map("roles")
 }
 
+model Permission {
+  id         String   @id @default(uuid())
+  key        String   @unique @db.VarChar(100)
+  module     String   @db.VarChar(50)
+  action     String   @db.VarChar(150)
+  resource   String   @db.VarChar(100)
+  validScope String   @map("valid_scope") @db.VarChar(50)
+  risk       String   @default("Low") @db.VarChar(20)
+  isAudited  Boolean  @default(false) @map("is_audited")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String @id @default(uuid())
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+
+  @@unique([roleId, permissionId], name: "uq_role_permission")
+  @@map("role_permissions")
+}
+
 model UserRoleAssignment {
-  userId String @map("user_id")
-  roleId String @map("role_id")
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  scopeType String   @default("GLOBAL") @map("scope_type") @db.VarChar(20)
+  scopeId   String   @default("GLOBAL") @map("scope_id") @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: Cascade)
   role Role @relation(fields: [roleId], references: [id], onUpdate: NoAction, onDelete: Cascade)
 
-  @@id([userId, roleId])
+  @@id([userId, roleId, scopeType, scopeId])
   @@map("user_role_assignments")
 }
 
+model RefreshToken {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  tokenHash  String    @unique @map("token_hash") @db.VarChar(255)
+  family     String    @db.VarChar(64)
+  isRevoked  Boolean   @default(false) @map("is_revoked")
+  expiresAt  DateTime  @map("expires_at")
+  replacedBy String?   @map("replaced_by") @db.VarChar(255)
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+
+  @@index([userId, family], name: "idx_refresh_user_family")
+  @@map("refresh_tokens")
+}
+
+model ServiceAccount {
+  id          String   @id @default(uuid())
+  name        String   @unique @db.VarChar(50)
+  clientId    String   @unique @map("client_id") @db.VarChar(50)
+  secretHash  String   @map("secret_hash") @db.VarChar(255)
+  scopeType   String   @default("PLANT") @map("scope_type") @db.VarChar(20)
+  scopeId     String   @default("GLOBAL") @map("scope_id") @db.VarChar(50)
+  permissions String   @db.NVarChar(Max)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("service_accounts")
+}
+
 model AuditLog {
-  id         BigInt   @id @default(autoincrement())
-  userId     String?  @map("user_id")
-  action     String   @db.VarChar(100)
-  entityType String   @map("entity_type") @db.VarChar(50)
-  entityId   String   @map("entity_id") @db.VarChar(36)
-  oldValues  String?  @map("old_values") @db.NVarChar(Max)
-  newValues  String?  @map("new_values") @db.NVarChar(Max)
-  createdAt  DateTime @default(now()) @map("created_at")
+  id            BigInt   @id @default(autoincrement())
+  userId        String?  @map("user_id")
+  principalType String   @default("HUMAN") @map("principal_type") @db.VarChar(20)
+  actor         String   @default("system") @db.VarChar(100)
+  action        String   @db.VarChar(100)
+  entityType    String   @map("entity_type") @db.VarChar(50)
+  entityId      String   @map("entity_id") @db.VarChar(50)
+  scope         String?  @db.VarChar(50)
+  status        String   @default("SUCCESS") @db.VarChar(20)
+  oldValues     String?  @map("old_values") @db.NVarChar(Max)
+  newValues     String?  @map("new_values") @db.NVarChar(Max)
+  ipAddress     String?  @map("ip_address") @db.VarChar(50)
+  userAgent     String?  @map("user_agent") @db.VarChar(255)
+  createdAt     DateTime @default(now()) @map("created_at")
 
   user User? @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: SetNull)
 
   @@index([entityType, entityId, createdAt(sort: Desc)], name: "idx_audit_query")
+  @@index([actor, createdAt(sort: Desc)], name: "idx_audit_actor")
   @@map("audit_logs")
 }
 
@@ -83,6 +155,8 @@ model Plant {
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
   productionAreas ProductionArea[]
+  calendarDays    FactoryCalendarDay[]
+  shifts          ShiftDefinition[]
 
   @@map("plants")
 }
@@ -119,10 +193,73 @@ model Machine {
   andonTickets          AndonTicket[]
   productionRuns        ProductionRun[]
   maintenanceWorkOrders MaintenanceWorkOrder[]
-  scheduledOrders       ProductionOrder[]      @relation("MachineScheduledOrders")
+  scheduledOrders       ProductionOrder[]          @relation("MachineScheduledOrders")
+  operatingSchedules    MachineOperatingSchedule[]
 
   @@index([areaId], name: "idx_machine_area")
   @@map("machines")
+}
+
+// -----------------------------------------------------------------------------
+// Production Calendar, Shift Management & Machine Operating Schedules
+// -----------------------------------------------------------------------------
+
+model FactoryCalendarDay {
+  id           String   @id @default(uuid())
+  plantId      String   @map("plant_id")
+  calendarDate DateTime @map("calendar_date") @db.Date
+  dayType      String   @map("day_type") @db.VarChar(30) // WORKDAY, WEEKEND, HOLIDAY, SHUTDOWN
+  description  String?  @db.VarChar(150)
+  isOperating  Boolean  @default(true) @map("is_operating")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  plant Plant @relation(fields: [plantId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+
+  @@unique([plantId, calendarDate], name: "uq_factory_calendar_day")
+  @@index([plantId, calendarDate], name: "idx_fcd_plant_date")
+  @@map("factory_calendar_days")
+}
+
+model ShiftDefinition {
+  id                  String   @id @default(uuid())
+  plantId             String   @map("plant_id")
+  shiftNumber         Int      @map("shift_number") // 1, 2, 3
+  code                String   @db.VarChar(30) // SHIFT_1, SHIFT_2, SHIFT_3
+  name                String   @db.VarChar(100) // Shift 1 (Pagi), Shift 2 (Siang/Sore), Shift 3 (Malam)
+  startTime           String   @map("start_time") @db.VarChar(8) // "07:00:00"
+  endTime             String   @map("end_time") @db.VarChar(8) // "15:00:00"
+  durationMinutes     Int      @default(480) @map("duration_minutes") // 8 hours = 480m
+  plannedBreakMinutes Int      @default(60) @map("planned_break_minutes") // 60 min meal/rest break
+  crossesMidnight     Boolean  @default(false) @map("crosses_midnight")
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  plant              Plant                     @relation(fields: [plantId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  operatingSchedules MachineOperatingSchedule[]
+
+  @@unique([plantId, shiftNumber], name: "uq_shift_plant_number")
+  @@map("shift_definitions")
+}
+
+model MachineOperatingSchedule {
+  id                     String   @id @default(uuid())
+  machineId              String   @map("machine_id")
+  shiftId                String   @map("shift_id")
+  scheduleDate           DateTime @map("schedule_date") @db.Date
+  operatingMode          String   @default("PRODUCTION") @map("operating_mode") @db.VarChar(30) // PRODUCTION, STANDBY, PREVENTIVE_MAINTENANCE, SHUTDOWN
+  plannedDurationMinutes Int      @default(420) @map("planned_duration_minutes") // Net planned operating minutes (480 - 60 = 420m)
+  plannedStartTime       DateTime @map("planned_start_time")
+  plannedEndTime         DateTime @map("planned_end_time")
+  notes                  String?  @db.VarChar(255)
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  machine Machine         @relation(fields: [machineId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  shift   ShiftDefinition @relation(fields: [shiftId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@unique([machineId, scheduleDate, shiftId], name: "uq_machine_shift_schedule")
+  @@index([machineId, plannedStartTime, plannedEndTime], name: "idx_mos_machine_window")
+  @@index([scheduleDate], name: "idx_mos_date")
+  @@map("machine_operating_schedules")
 }
 
 // -----------------------------------------------------------------------------

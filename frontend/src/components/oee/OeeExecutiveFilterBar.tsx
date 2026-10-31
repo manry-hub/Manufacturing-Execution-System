@@ -34,7 +34,7 @@ export const OeeExecutiveFilterBar: React.FC<OeeExecutiveFilterBarProps> = ({
 
   return (
     <div className="bg-[#FFFFFF] border border-[#0B120E24] rounded-lg p-3 shadow-xs mb-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
         {/* 1. Select Area */}
         <div>
           <label htmlFor="filter-area" className="block text-xs font-semibold text-[#505258] mb-1">
@@ -75,24 +75,7 @@ export const OeeExecutiveFilterBar: React.FC<OeeExecutiveFilterBarProps> = ({
           </select>
         </div>
 
-        {/* 3. Select View */}
-        <div>
-          <label htmlFor="filter-view" className="block text-xs font-semibold text-[#505258] mb-1">
-            Select View
-          </label>
-          <select
-            id="filter-view"
-            value={filter.window ?? 'SHIFT'}
-            onChange={(e) => onFilterChange({ window: e.target.value as 'SHIFT' | 'DAY' | 'WEEK' })}
-            className="w-full text-xs font-medium bg-[#FAFBFC] border border-[#0B120E24] rounded-[3px] px-2.5 py-1.5 text-[#292A2E] focus:outline-none focus:ring-1 focus:ring-[#1868DB] transition"
-          >
-            <option value="SHIFT">Current Shift (8h)</option>
-            <option value="DAY">Full Day (24h / Yesterday)</option>
-            <option value="WEEK">Last 7 Days (Weekly)</option>
-          </select>
-        </div>
-
-        {/* 4. Start Time */}
+        {/* 3. Start Time */}
         <div>
           <label htmlFor="filter-start-time" className="block text-xs font-semibold text-[#505258] mb-1 flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5 text-[#505258]" />
@@ -103,11 +86,11 @@ export const OeeExecutiveFilterBar: React.FC<OeeExecutiveFilterBarProps> = ({
             type="datetime-local"
             value={formatDatetimeLocal(filter.startDate)}
             onChange={(e) => onFilterChange({ startDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
-            className="w-full text-xs font-mono bg-[#FAFBFC] border border-[#0B120E24] rounded-[3px] px-2 py-1 text-[#292A2E] focus:outline-none focus:ring-1 focus:ring-[#1868DB] transition"
+            className="w-full text-xs font-mono bg-[#FAFBFC] border border-[#0B120E24] rounded-[3px] px-2 py-1.5 text-[#292A2E] focus:outline-none focus:ring-1 focus:ring-[#1868DB] transition"
           />
         </div>
 
-        {/* 5. End Time */}
+        {/* 4. End Time */}
         <div>
           <label htmlFor="filter-end-time" className="block text-xs font-semibold text-[#505258] mb-1 flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5 text-[#505258]" />
@@ -118,11 +101,11 @@ export const OeeExecutiveFilterBar: React.FC<OeeExecutiveFilterBarProps> = ({
             type="datetime-local"
             value={formatDatetimeLocal(filter.endDate)}
             onChange={(e) => onFilterChange({ endDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
-            className="w-full text-xs font-mono bg-[#FAFBFC] border border-[#0B120E24] rounded-[3px] px-2 py-1 text-[#292A2E] focus:outline-none focus:ring-1 focus:ring-[#1868DB] transition"
+            className="w-full text-xs font-mono bg-[#FAFBFC] border border-[#0B120E24] rounded-[3px] px-2 py-1.5 text-[#292A2E] focus:outline-none focus:ring-1 focus:ring-[#1868DB] transition"
           />
         </div>
 
-        {/* 6. Actions */}
+        {/* 5. Actions */}
         <div className="flex items-center gap-2">
           <button
             type="button"

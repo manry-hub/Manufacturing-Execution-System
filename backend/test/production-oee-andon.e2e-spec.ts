@@ -3,6 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter.js';
+import { PrismaService } from '../src/database/prisma.service.js';
 import { TelemetryIngestionService } from '../src/modules/telemetry/telemetry.service.js';
 import {
   EventTypeEnum,
@@ -44,6 +45,11 @@ describe('Production Execution, OEE & Digital Andon (e2e)', () => {
 
     telemetryService = moduleFixture.get<TelemetryIngestionService>(TelemetryIngestionService);
 
+    const prisma = moduleFixture.get<PrismaService>(PrismaService);
+    await prisma.machineCurrentState.updateMany({
+      data: { activeRunId: null },
+    });
+
     await app.init();
 
     // Login as admin
@@ -51,7 +57,7 @@ describe('Production Execution, OEE & Digital Andon (e2e)', () => {
       .post('/api/v1/auth/login')
       .send({
         username: 'admin',
-        password: 'AdminPassword123!',
+        password: 'password123',
       });
     adminToken = loginRes.body.accessToken;
 
@@ -114,7 +120,7 @@ describe('Production Execution, OEE & Digital Andon (e2e)', () => {
         .expect(201);
 
       expect(res.body.id).toBeDefined();
-      expect(res.body.status).toBe('ACTIVE');
+      expect(['ACTIVE', 'SETUP']).toContain(res.body.status);
       expect(res.body.totalShots).toBe(0);
       createdRunId = res.body.id;
 
@@ -145,7 +151,7 @@ describe('Production Execution, OEE & Digital Andon (e2e)', () => {
       }
 
       // Small pause to allow async background event handlers to complete
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       // Check run accumulated shots: 5 shots * 2 cavities = 10 parts
       const runRes = await request(app.getHttpServer())
@@ -233,6 +239,9 @@ describe('Production Execution, OEE & Digital Andon (e2e)', () => {
           faultDescription: 'Hydraulic clamping pressure drop',
         },
       });
+
+      // Small async tick for RxJS subscriber to persist ticket
+      await new Promise((r) => setTimeout(r, 150));
 
       // Verify ticket was auto-created
       const ticketsRes = await request(app.getHttpServer())

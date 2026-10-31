@@ -50,9 +50,8 @@ export const ProductionOrdersView: React.FC<ProductionOrdersViewProps> = ({
 
   const canRelease =
     role === 'production_supervisor' ||
-    role === 'planner' ||
-    role === 'admin' ||
-    role === 'plant_manager';
+    role === 'production_manager' ||
+    role === 'admin';
 
   return (
     <div className="space-y-6">

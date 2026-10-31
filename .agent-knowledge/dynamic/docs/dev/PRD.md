@@ -21,19 +21,27 @@ Injection molding facilities face persistent operational challenges:
 4. **Siloed Maintenance and Quality Data:** Maintenance work orders, mold service records, and scrap/defect reports exist in isolated spreadsheets, disconnected from the machine events that caused them.
 5. **Incomplete Material Traceability:** Inability to track which specific resin lots or molds produced a given finished serialized product during quality containment investigations.
 
-### Target Users
+### Target Users (Production Department Only)
 
-| Role                               | Description                                      | Primary Needs                                                                                                                                              |
-| ---------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **System Administrator**           | System governance and platform administrator     | User administration, role-based access control (RBAC), data source/simulator connectivity configuration, and immutable system audit trails.                |
-| **Production Planner**             | Work scheduler and plant capacity planner        | Creating and releasing production orders, setting target quantities and deadlines, assigning operation routings, and tracking planned vs. actual output.   |
-| **Production Supervisor**          | Daily shop floor supervisor and line coordinator | Assigning orders to work centers, real-time multi-machine monitoring across all plant areas, authorizing mold changeovers, and managing escalation queues. |
-| **Machine Operator**               | Workstation operator at individual machines      | Viewing active job instructions, initiating/pausing runs, logging manual scrap reasons, and triggering Digital Andon tickets.                              |
-| **Quality Inspector**              | Quality assurance and inspection officer         | Defining sampling inspection plans, recording defect codes/quantities, and applying `HOLD`, `RELEASED`, or `REWORK` lot status.                            |
-| **Maintenance Technician**         | Shop floor maintenance engineer                  | Receiving real-time Andon alerts, acknowledging tasks, recording diagnostic root causes, and executing corrective maintenance actions.                     |
-| **Maintenance Supervisor**         | Equipment reliability and asset manager          | Managing preventive maintenance schedules, tracking MTTR/MTBF, and analyzing recurring breakdown patterns.                                                 |
-| **Material Handler**               | Warehouse and raw material coordinator           | Registering resin material lots, assigning lots to machines/orders, and managing WIP transfer between stations.                                            |
-| **Management / Read-only Analyst** | Executive leadership and industrial engineers    | High-level OEE trend analytics, downtime Pareto charts, reject loss breakdowns, and plant/shift efficiency comparisons.                                    |
+In strict accordance with ISA-95 separation of concerns, MES is operated exclusively by the **Production Department**. External departmental systems (**PPSS**, **WMS**, **QMS**, **MMS**, **ERP**) integrate via authenticated machine-to-machine service accounts and retain their own operational workflows.
+
+| Role | Department | Scope | Primary Needs |
+| ---- | ---------- | ----- | ------------- |
+| **System Administrator** | Production / IT | `GLOBAL` | System governance, fine-grained permission assignments, service credential lifecycle, security audit trail analysis, and break-glass operations. |
+| **Production Manager** | Production | `PLANT` / `AREA` / `MACHINE` | Production-performance ownership, plant line throughput oversight, OEE analysis, shift tracking, and production run sign-offs. |
+| **Production Supervisor** | Production | `PLANT` / `AREA` / `MACHINE` | Shop floor supervision, active run dispatching, line-side staging verification, and immediate response to Digital Andon escalations. |
+| **Machine Operator** | Production | `MACHINE` | Touch-friendly workstation guidance, starting/pausing runs, recording actual cycle output and scrap reasons, e-signing travelers, and raising Andon calls. |
+| **Production Read-only Analyst** | Production | `PLANT` / `AREA` / `MACHINE` | Read-only OEE dashboards, cycle time distribution, downtime Pareto loss analysis, and production report generation. |
+
+### Connected Departmental Systems (Integrated via Service Accounts)
+
+| System | Full Name | Primary Department | Core Function | MES Integration Scope |
+| --- | --- | --- | --- | --- |
+| **PPSS** | Production Planning and Scheduling System | PPIC | Plans and schedules production based on demand, capacity, and material availability. | Ingests dispatched schedules (`service-ppss`); MES reports actual run progress. |
+| **WMS** | Warehouse Management System | Warehouse | Manages storage locations, inventory balances, receipt, issue, and material transfers. | Delivers staged raw material lots (`service-wms`); MES posts actual consumption & finished goods. |
+| **QMS** | Quality Management System | Quality Assurance / Quality Control | Manages inspection plans, non-conformance records (NCR), and corrective actions (CAPA). | Determines quality disposition (`service-qms`); MES triggers inspection events and locks runs on HOLD status. |
+| **MMS** | Maintenance Management System | Maintenance / Engineering | Manages machine maintenance, preventive maintenance (PM) schedules, breakdowns, and repair jobs. | Manages PM calendars & repair orders (`service-mms`); MES reports cycle counters & alarms; reads machine release status. |
+| **ERP** | Enterprise Resource Planning | Finance & Accounting / Cross-departmental | Integrates enterprise business transactions such as procurement, sales, costing, and resource planning. | Originates parent master/sales orders (`service-erp`); MES confirms actual completion & scrap quantities for COGS valuation. |
 
 ### 1.4 Execution Philosophy: Hybrid ISA-95 Work Center Architecture
 

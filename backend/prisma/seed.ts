@@ -1,46 +1,96 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import {
+  CANONICAL_PERMISSIONS,
+  ROLE_DEFAULT_PERMISSIONS,
+  SERVICE_ACCOUNT_PERMISSIONS,
+} from '../src/common/constants/permissions.constant.js';
+import { seedRealisticMonth } from './seed-realistic-month.js';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting database seeding...');
 
-  // 1. Roles
-  const roles = [
-    { name: 'System Administrator', description: 'System governance, security, and full administrative configuration' },
-    { name: 'Production Planner', description: 'Production scheduling, work orders, and routing definitions' },
-    { name: 'Production Supervisor', description: 'Shop floor monitoring, machine dispatch, and escalation management' },
-    { name: 'Machine Operator', description: 'Machine station operation, scrap reporting, and Andon triggers' },
-    { name: 'Quality Inspector', description: 'Quality inspection sampling, defect coding, and lot dispositioning' },
-    { name: 'Maintenance Technician', description: 'Breakdown response, repair execution, and Andon ticket resolution' },
-    { name: 'Maintenance Supervisor', description: 'Equipment reliability management and PM scheduling' },
-    { name: 'Material Handler', description: 'Material lot management and WIP movement' },
-    { name: 'Management / Read-only Analyst', description: 'Executive OEE reporting and operational analytics' },
+  // 1. Seed Application-Owned Permissions Catalog
+  const permissionMap = new Map<string, string>();
+  for (const perm of CANONICAL_PERMISSIONS) {
+    const p = await prisma.permission.upsert({
+      where: { key: perm.key },
+      update: {
+        module: perm.module,
+        action: perm.action,
+        resource: perm.resource,
+        validScope: perm.validScope,
+        risk: perm.risk,
+        isAudited: perm.isAudited,
+      },
+      create: {
+        key: perm.key,
+        module: perm.module,
+        action: perm.action,
+        resource: perm.resource,
+        validScope: perm.validScope,
+        risk: perm.risk,
+        isAudited: perm.isAudited,
+      },
+    });
+    permissionMap.set(p.key, p.id);
+  }
+  console.log(`✓ Seeded ${CANONICAL_PERMISSIONS.length} canonical permissions in application catalog.`);
+
+  // 2. Canonical Production Human Roles
+  const productionRoles = [
+    { name: 'System Administrator', description: 'Full MES administration and audited break-glass operational access' },
+    { name: 'Production Manager', description: 'Production-performance ownership and plant oversight' },
+    { name: 'Production Supervisor', description: 'Active production supervision and shop-floor exception response' },
+    { name: 'Machine Operator', description: 'Execution and recording at assigned machines' },
+    { name: 'Production Read-only Analyst', description: 'Production execution and performance visibility' },
   ];
 
   const createdRoles = new Map<string, string>();
-  for (const roleData of roles) {
+  for (const roleData of productionRoles) {
     const role = await prisma.role.upsert({
       where: { name: roleData.name },
       update: { description: roleData.description },
       create: roleData,
     });
     createdRoles.set(role.name, role.id);
-  }
-  console.log(`✓ Seeded ${roles.length} canonical roles.`);
 
-  // 2. Default Users & Role Assignments
+    // Map role permissions
+    const allowedKeys = ROLE_DEFAULT_PERMISSIONS[role.name] || [];
+    for (const permKey of allowedKeys) {
+      const permId = permissionMap.get(permKey);
+      if (permId) {
+        await prisma.rolePermission.upsert({
+          where: {
+            uq_role_permission: {
+              roleId: role.id,
+              permissionId: permId,
+            },
+          },
+          update: {},
+          create: {
+            roleId: role.id,
+            permissionId: permId,
+          },
+        });
+      }
+    }
+  }
+  console.log(`✓ Seeded ${productionRoles.length} canonical production roles with mapped permissions.`);
+
+  // 3. Default Production Users & Scoped Role Assignments
   const defaultPasswordHash = await bcrypt.hash('password123', 10);
   const demoUsers = [
-    { username: 'admin', email: 'admin@mes.local', role: 'System Administrator' },
-    { username: 'supervisor', email: 'supervisor@mes.local', role: 'Production Supervisor' },
-    { username: 'operator', email: 'operator@mes.local', role: 'Machine Operator' },
-    { username: 'technician', email: 'technician@mes.local', role: 'Maintenance Technician' },
-    { username: 'planner', email: 'planner@mes.local', role: 'Production Planner' },
-    { username: 'quality_inspector', email: 'quality@mes.local', role: 'Quality Inspector' },
+    { username: 'admin', email: 'admin@mes.local', role: 'System Administrator', scopeType: 'GLOBAL', scopeId: 'GLOBAL' },
+    { username: 'manager', email: 'manager@mes.local', role: 'Production Manager', scopeType: 'PLANT', scopeId: 'PLANT-01' },
+    { username: 'supervisor', email: 'supervisor@mes.local', role: 'Production Supervisor', scopeType: 'PLANT', scopeId: 'PLANT-01' },
+    { username: 'operator', email: 'operator@mes.local', role: 'Machine Operator', scopeType: 'MACHINE', scopeId: 'IMM-01' },
+    { username: 'analyst', email: 'analyst@mes.local', role: 'Production Read-only Analyst', scopeType: 'PLANT', scopeId: 'PLANT-01' },
   ];
 
+  const createdUsers = new Map<string, string>();
   for (const u of demoUsers) {
     const user = await prisma.user.upsert({
       where: { username: u.username },
@@ -52,25 +102,65 @@ async function main() {
         isActive: true,
       },
     });
+    createdUsers.set(u.username, user.id);
 
     const roleId = createdRoles.get(u.role);
     if (roleId) {
       await prisma.userRoleAssignment.upsert({
         where: {
-          userId_roleId: {
+          userId_roleId_scopeType_scopeId: {
             userId: user.id,
             roleId,
+            scopeType: u.scopeType,
+            scopeId: u.scopeId,
           },
         },
         update: {},
         create: {
           userId: user.id,
           roleId,
+          scopeType: u.scopeType,
+          scopeId: u.scopeId,
         },
       });
     }
   }
-  console.log(`✓ Seeded ${demoUsers.length} standard demo users with password "password123".`);
+  console.log(`✓ Seeded ${demoUsers.length} standard production demo users with password "password123".`);
+
+  // 4. External System Service Accounts (Client Credentials)
+  const serviceAccountConfigs = [
+    { name: 'PPSS', clientId: 'service-ppss', secret: 'PpssSecret2026!' },
+    { name: 'WMS', clientId: 'service-wms', secret: 'WmsSecret2026!' },
+    { name: 'QMS', clientId: 'service-qms', secret: 'QmsSecret2026!' },
+    { name: 'MMS', clientId: 'service-mms', secret: 'MmsSecret2026!' },
+    { name: 'ERP', clientId: 'service-erp', secret: 'ErpSecret2026!' },
+  ];
+
+  for (const sa of serviceAccountConfigs) {
+    const meta = SERVICE_ACCOUNT_PERMISSIONS[sa.name];
+    const secretHash = await bcrypt.hash(sa.secret, 10);
+    await prisma.serviceAccount.upsert({
+      where: { clientId: sa.clientId },
+      update: {
+        name: sa.name,
+        secretHash,
+        permissions: JSON.stringify(meta?.permissions || []),
+        scopeType: meta?.scopeType || 'PLANT',
+        scopeId: 'PLANT-01',
+        isActive: true,
+      },
+      create: {
+        name: sa.name,
+        clientId: sa.clientId,
+        secretHash,
+        permissions: JSON.stringify(meta?.permissions || []),
+        scopeType: meta?.scopeType || 'PLANT',
+        scopeId: 'PLANT-01',
+        isActive: true,
+      },
+    });
+  }
+  console.log(`✓ Seeded 5 external system service accounts (PPSS, WMS, QMS, MMS, ERP).`);
 
   // 3. Factory Topology (Plant 01, 4 Areas, 10 Virtual Machines)
   const plant = await prisma.plant.upsert({
@@ -232,12 +322,14 @@ async function main() {
     { code: 'UNP-RESIN-STARVE', category: 'MATERIAL_SHORTAGE', description: 'Hopper resin level below minimum threshold', isPlanned: false },
   ];
 
+  const downtimeReasonIds = new Map<string, string>();
   for (const reason of downtimeReasons) {
-    await prisma.downtimeReason.upsert({
+    const record = await prisma.downtimeReason.upsert({
       where: { code: reason.code },
       update: { category: reason.category, description: reason.description, isPlanned: reason.isPlanned },
       create: reason,
     });
+    downtimeReasonIds.set(record.code, record.id);
   }
   console.log(`✓ Seeded ${downtimeReasons.length} standard downtime reasons.`);
 
@@ -465,7 +557,38 @@ async function main() {
   }
   console.log(`✓ Seeded ${changeovers.length} mold changeover standard transition rules.`);
 
-  // 10. Demo Hybrid Production Order & Routing Steps (ISA-95 Hybrid Demonstration)
+  // 10. Transactional Execution Wipe & 30-Day Realistic Operational Seeding
+  console.log('🧹 Clearing old execution & transactional data (Master Data & RBAC preserved)...');
+  await prisma.$executeRawUnsafe(`
+    UPDATE machine_current_states SET active_run_id = NULL;
+    DELETE FROM packaging_units;
+    DELETE FROM run_material_consumptions;
+    DELETE FROM quality_check_samples;
+    DELETE FROM quality_checks;
+    DELETE FROM andon_tickets;
+    DELETE FROM machine_time_segments;
+    DELETE FROM machine_event_logs;
+    DELETE FROM oee_results;
+    DELETE FROM production_runs;
+    DELETE FROM order_operation_steps;
+    DELETE FROM production_orders;
+    DELETE FROM machine_operating_schedules;
+    DELETE FROM factory_calendar_days;
+    DELETE FROM shift_definitions;
+  `);
+
+  await seedRealisticMonth(prisma, {
+    plantId: plant.id,
+    createdMachines,
+    createdProducts,
+    createdMolds,
+    downtimeReasonIds,
+    adminUserId: createdUsers.get('admin')!,
+    supervisorUserId: createdUsers.get('supervisor')!,
+    operatorUserId: createdUsers.get('operator')!,
+  });
+
+  // 11. Demo Hybrid Production Order & Routing Steps (ISA-95 Hybrid Demonstration)
   const now = new Date();
   const demoOrder = await prisma.productionOrder.upsert({
     where: { orderNumber: 'WO-DEMO-2026-001' },

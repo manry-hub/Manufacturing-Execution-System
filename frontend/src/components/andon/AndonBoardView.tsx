@@ -41,9 +41,8 @@ export const AndonBoardView: React.FC<AndonBoardViewProps> = ({
   const [selectedMachineForCreate, setSelectedMachineForCreate] = useState<Machine | null>(null);
 
   const canAcknowledgeOrResolve =
-    role === 'maintenance_technician' ||
-    role === 'maintenance_lead' ||
     role === 'production_supervisor' ||
+    role === 'production_manager' ||
     role === 'admin';
 
   // Group tickets into 3 Kanban columns

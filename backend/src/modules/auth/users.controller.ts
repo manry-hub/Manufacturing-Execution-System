@@ -32,7 +32,7 @@ export class UsersController {
   @Get()
   @Roles(
     RoleEnum.SYSTEM_ADMINISTRATOR,
-    RoleEnum.MANAGEMENT_ANALYST,
+    RoleEnum.PRODUCTION_ANALYST,
     RoleEnum.PRODUCTION_SUPERVISOR,
   )
   async findAll(@Query() query: UserQueryDto): Promise<UserResponseDto[]> {
@@ -47,7 +47,7 @@ export class UsersController {
   @Get(':id')
   @Roles(
     RoleEnum.SYSTEM_ADMINISTRATOR,
-    RoleEnum.MANAGEMENT_ANALYST,
+    RoleEnum.PRODUCTION_ANALYST,
     RoleEnum.PRODUCTION_SUPERVISOR,
   )
   async findById(@Param('id') id: string): Promise<UserResponseDto> {
