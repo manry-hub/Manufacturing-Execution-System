@@ -134,6 +134,7 @@ async function main() {
     { name: 'QMS', clientId: 'service-qms', secret: 'QmsSecret2026!' },
     { name: 'MMS', clientId: 'service-mms', secret: 'MmsSecret2026!' },
     { name: 'ERP', clientId: 'service-erp', secret: 'ErpSecret2026!' },
+    { name: 'PLM', clientId: 'service-plm', secret: 'PlmSecret2026!' },
   ];
 
   for (const sa of serviceAccountConfigs) {
@@ -160,7 +161,7 @@ async function main() {
       },
     });
   }
-  console.log(`✓ Seeded 5 external system service accounts (PPSS, WMS, QMS, MMS, ERP).`);
+  console.log(`✓ Seeded 6 external system service accounts (PPSS, WMS, QMS, MMS, ERP, PLM).`);
 
   // 3. Factory Topology (Plant 01, 4 Areas, 10 Virtual Machines)
   const plant = await prisma.plant.upsert({
@@ -310,6 +311,53 @@ async function main() {
     });
   }
   console.log(`✓ Seeded ${products.length} products, ${molds.length} molds, and compatibility records.`);
+
+  // 4b. PLM Validated Injection Process Recipes
+  const bumperMoldId = createdMolds.get('MOLD-BUMP-2C')!;
+  const bumperProdId = createdProducts.get('PRD-AUTO-BUMPER')!;
+  await prisma.recipeMaster.upsert({
+    where: {
+      recipeCode: 'RCP-AUTO-BUMPER-MOLD-BUMP-2C-REVA',
+    },
+    update: {
+      barrelTempZones: JSON.stringify([200, 205, 210, 215, 220]),
+      tempTolerance: 5.0,
+      injectionPressureBar: 140.0,
+      holdingPressureBar: 95.0,
+      holdingTimeSec: 6.5,
+      coolingTimeSec: 12.0,
+      cushionLimitMm: 4.5,
+      cushionToleranceMm: 0.5,
+      clampingTonnage: 350,
+      resinGrade: 'PP-IM-750',
+      masterbatchGrade: 'MB-BLACK-01',
+      masterbatchRatio: 2.0,
+      regrindAllowedPct: 15.0,
+      cadInstructionUrl: 'https://docs.manufacturing.local/cad/auto-bumper-rev-a.pdf',
+    },
+    create: {
+      recipeCode: 'RCP-AUTO-BUMPER-MOLD-BUMP-2C-REVA',
+      productId: bumperProdId,
+      moldId: bumperMoldId,
+      revision: 'REV-A',
+      status: 'APPROVED',
+      barrelTempZones: JSON.stringify([200, 205, 210, 215, 220]),
+      tempTolerance: 5.0,
+      injectionPressureBar: 140.0,
+      holdingPressureBar: 95.0,
+      holdingTimeSec: 6.5,
+      coolingTimeSec: 12.0,
+      cushionLimitMm: 4.5,
+      cushionToleranceMm: 0.5,
+      clampingTonnage: 350,
+      resinGrade: 'PP-IM-750',
+      masterbatchGrade: 'MB-BLACK-01',
+      masterbatchRatio: 2.0,
+      regrindAllowedPct: 15.0,
+      cadInstructionUrl: 'https://docs.manufacturing.local/cad/auto-bumper-rev-a.pdf',
+    },
+  });
+  console.log(`✓ Seeded PLM canonical injection process recipe for bumper.`);
 
   // 5. Downtime Reasons
   const downtimeReasons = [

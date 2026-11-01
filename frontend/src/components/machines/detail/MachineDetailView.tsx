@@ -12,7 +12,6 @@ import {
 import type { Machine } from '../../../types/machine.js';
 import type { ProductionRun } from '../../../types/production.js';
 import { StatusBadge } from '../../common/StatusBadge.js';
-import { CyclePhaseBar } from './CyclePhaseBar.js';
 import { TelemetryGauges } from './TelemetryGauges.js';
 import { BarrelHeatingZones } from './BarrelHeatingZones.js';
 import { Euromap77DiagnosticsCard } from './Euromap77DiagnosticsCard.js';
@@ -46,7 +45,6 @@ export const MachineDetailView: React.FC<MachineDetailViewProps> = ({
   onRefresh,
 }) => {
   const currentStatus = machine.currentState?.normalizedStatus ?? machine.status ?? 'UNKNOWN';
-  const isRunning = currentStatus === 'RUNNING';
   const hasHeaterFault = machine.isFaultActive && machine.activeFaultCode === 'ALM-TEMP-04';
 
   const tonnageValue = machine.clampingTonnage ?? machine.tonnage ?? 150;
@@ -267,11 +265,7 @@ export const MachineDetailView: React.FC<MachineDetailViewProps> = ({
         </div>
       </div>
 
-      {/* 6-Phase Cycle Sequence Progression Bar */}
-      <CyclePhaseBar
-        currentPhase={machine.currentPhase}
-        isMachineRunning={isRunning}
-      />
+     
 
       {/* Real-time Injection Pressures & Cushion Gauges */}
       <TelemetryGauges metrics={machine.latestMetrics} />

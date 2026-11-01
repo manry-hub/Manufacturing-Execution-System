@@ -42,6 +42,9 @@ export const CANONICAL_PERMISSIONS: PermissionDefinition[] = [
   { key: 'integration.wms.inventory.write', module: 'Integration', action: 'Post permitted MES inventory movements to WMS', resource: 'WMS inventory exchange', validScope: 'PLANT', risk: 'High', isAudited: true, principal: 'Human, Service' },
   { key: 'integration.erp.order.read', module: 'Integration', action: 'Read ERP order/status exchange state', resource: 'ERP order exchange', validScope: 'PLANT', risk: 'Medium', isAudited: true, principal: 'Human, Service' },
   { key: 'integration.erp.order.write', module: 'Integration', action: 'Post permitted MES production status to ERP', resource: 'ERP order exchange', validScope: 'PLANT', risk: 'High', isAudited: true, principal: 'Human, Service' },
+  { key: 'integration.plm.recipe.read', module: 'Integration', action: 'Read PLM recipe parameters and specifications', resource: 'PLM recipe', validScope: 'PLANT', risk: 'Medium', isAudited: true, principal: 'Human, Service' },
+  { key: 'integration.plm.recipe.write', module: 'Integration', action: 'Sync or update PLM recipe parameters', resource: 'PLM recipe', validScope: 'PLANT', risk: 'High', isAudited: true, principal: 'Human, Service' },
+  { key: 'integration.qms.qc.write', module: 'Integration', action: 'Release or reject First-Piece QC status from QMS', resource: 'QMS QC release', validScope: 'PLANT / AREA / MACHINE', risk: 'High', isAudited: true, principal: 'Service' },
   { key: 'integration.webhook.configure', module: 'Integration', action: 'Configure outbound webhook endpoint/events', resource: 'Webhook configuration', validScope: 'GLOBAL', risk: 'Critical', isAudited: true, principal: 'Human' },
 ];
 
@@ -128,7 +131,11 @@ export const SERVICE_ACCOUNT_PERMISSIONS: Record<string, { clientId: string; per
   },
   QMS: {
     clientId: 'service-qms',
-    permissions: ['integration.qms.disposition.read', 'integration.qms.event.write'],
+    permissions: [
+      'integration.qms.disposition.read',
+      'integration.qms.event.write',
+      'integration.qms.qc.write',
+    ],
     scopeType: 'PLANT',
   },
   MMS: {
@@ -139,6 +146,15 @@ export const SERVICE_ACCOUNT_PERMISSIONS: Record<string, { clientId: string; per
   ERP: {
     clientId: 'service-erp',
     permissions: ['integration.erp.order.read', 'integration.erp.order.write', 'production.order.read', 'oee.read'],
+    scopeType: 'PLANT',
+  },
+  PLM: {
+    clientId: 'service-plm',
+    permissions: [
+      'integration.plm.recipe.read',
+      'integration.plm.recipe.write',
+      'masterdata.read',
+    ],
     scopeType: 'PLANT',
   },
 };
