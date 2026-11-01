@@ -126,12 +126,14 @@ Manufacturing execution in real-world injection facilities spans two production 
 | US-009 | As an Operator, I want to trigger Digital Andon tickets when machines or processes encounter issues so that support teams respond quickly.     | P1       | Ticket records Machine ID, active Order ID, category, and timestamp; automated machine fault events do not create duplicate tickets if one is already active. |
 | US-010 | As a Technician, I want to acknowledge tickets and record root causes and corrective actions so that response and resolution times are logged. | P1       | System captures response timestamp, resolution timestamp, confirmed root cause, and assigns the verified downtime classification to the OEE engine.           |
 
-### Epic 6: Identity, Access & Audit
+### Epic 6: Identity, Scoped-RBAC & Audit
 
 | ID     | User Story                                                                                                                              | Priority | Acceptance Criteria                                                                                                                                     |
 | ------ | --------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | US-011 | As a User, I want to log in with secure credentials and access features authorized for my role so that operational safety is preserved. | P0       | JWT authentication with argon2/bcrypt password hashing; backend RBAC guards reject unauthorized cross-role requests with HTTP 403.                      |
 | US-012 | As an Administrator, I want to inspect audit logs for critical data mutations so that system actions are fully accountable.             | P0       | Mutations to order states, master configurations, and maintenance resolutions are recorded in `audit_logs` with actor ID, timestamp, and payload diffs. |
+| US-027 | As a System Administrator, I want to manage an ISA-95 Materialized Path Scope Tree (`GLOBAL -> PLANT -> AREA -> MACHINE`) and assign scoped roles with downward inheritance so that multi-plant boundaries and identical machine codes are disambiguated. | P0 | Scope nodes enforce trailing slash paths (`/global/plant-01/`); segment-boundary safe prefix matching; downward inheritance; last SysAdmin lockout protection. |
+| US-028 | As a System Administrator, I want to inspect effective user access across scope nodes and dry-run role permission changes so that access impact is predictable and verified. | P0 | Live `can()` evaluation debugger; effective access union inspector; dry-run preview displaying affected active users before committing role changes. |
 
 ### Epic 7: Material Management & Bidirectional Genealogy
 
@@ -194,7 +196,7 @@ Manufacturing execution in real-world injection facilities spans two production 
 | 7   | OEE Calculation Engine        | Rigorous ISO 22400-2 OEE engine (Availability, Performance, Quality) with time conservation and multi-machine weighted aggregation. | Epic 4 |
 | 8   | Digital Andon System          | Dispatch workflow: ticket creation, technician assignment, acknowledgement tracking, and root cause classification.                 | Epic 5 |
 | 9   | Downtime Pareto & Analytics   | Downtime Pareto rankings, scrap defect distribution, and multi-machine comparative performance views.                               | Epic 4 |
-| 10  | RBAC & Security Audit Trail   | Local JWT authentication, 9 canonical user roles, endpoint authorization guards, and immutable audit logging.                       | Epic 6 |
+| 10  | Enterprise Hierarchical IAM & Scoped-RBAC | ISA-95 Materialized Path Scope Tree (`GLOBAL -> PLANT -> AREA -> MACHINE`), downward inheritance, System Administrator super-user authority, dry-run user impact preview, live `can()` evaluation debugger, and tamper-evident audit logs. | Epic 6 |
 
 ### Post-MVP / Future
 
