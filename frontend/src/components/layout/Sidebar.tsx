@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   TrendingUp,
+  FolderTree,
   X,
 } from 'lucide-react';
 import { useAuth, DEMO_ROLES } from '../../context/AuthContext.js';
@@ -32,7 +33,8 @@ export type ActiveTab =
   | 'andon'
   | 'oee'
   | 'analytics'
-  | 'admin';
+  | 'admin'
+  | 'iam';
 
 export interface NavItemConfig {
   id: ActiveTab;
@@ -159,6 +161,13 @@ export const NAV_GROUPS: NavGroupConfig[] = [
     id: 'admin_security',
     title: 'Governance & Security',
     items: [
+      {
+        id: 'iam',
+        path: '/iam',
+        label: 'Hierarchical IAM & scopes',
+        shortLabel: 'IAM & Scopes',
+        icon: FolderTree,
+      },
       {
         id: 'admin',
         path: '/admin',

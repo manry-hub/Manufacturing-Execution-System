@@ -40,22 +40,47 @@ export class AuditService {
       const oldValuesJson = params.oldValues ? JSON.stringify(params.oldValues) : null;
       const newValuesJson = params.newValues ? JSON.stringify(params.newValues) : null;
 
-      const log = await this.prisma.auditLog.create({
-        data: {
-          userId: params.userId,
-          principalType: params.principalType || 'HUMAN',
-          actor: params.actor || params.userId || 'system',
-          action: params.action,
-          entityType: params.entityType,
-          entityId: params.entityId,
-          scope: params.scope,
-          status: params.status || 'SUCCESS',
-          oldValues: oldValuesJson,
-          newValues: newValuesJson,
-          ipAddress: params.ipAddress,
-          userAgent: params.userAgent,
-        },
-      });
+      let log;
+      try {
+        log = await this.prisma.auditLog.create({
+          data: {
+            userId: params.userId,
+            principalType: params.principalType || 'HUMAN',
+            actor: params.actor || params.userId || 'system',
+            action: params.action,
+            entityType: params.entityType,
+            entityId: params.entityId,
+            scope: params.scope,
+            status: params.status || 'SUCCESS',
+            oldValues: oldValuesJson,
+            newValues: newValuesJson,
+            ipAddress: params.ipAddress,
+            userAgent: params.userAgent,
+          },
+        });
+      } catch (innerError: any) {
+        // If foreign key constraint failed on user_id (e.g. non-UUID or non-existent actor), retry with userId: null
+        if (innerError?.message?.includes('audit_logs_user_id_fkey') || innerError?.code === 'P2003') {
+          log = await this.prisma.auditLog.create({
+            data: {
+              userId: null,
+              principalType: params.principalType || 'HUMAN',
+              actor: params.actor || params.userId || 'system',
+              action: params.action,
+              entityType: params.entityType,
+              entityId: params.entityId,
+              scope: params.scope,
+              status: params.status || 'SUCCESS',
+              oldValues: oldValuesJson,
+              newValues: newValuesJson,
+              ipAddress: params.ipAddress,
+              userAgent: params.userAgent,
+            },
+          });
+        } else {
+          throw innerError;
+        }
+      }
 
       return {
         ...log,

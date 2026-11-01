@@ -20,6 +20,7 @@ import { TravelerModule } from './modules/traveler/traveler.module.js';
 import { IotGatewayModule } from './modules/iot-gateway/iot-gateway.module.js';
 import { AnalyticsModule } from './modules/analytics/analytics.module.js';
 import { IntegrationModule } from './modules/integration/integration.module.js';
+import { IamModule } from './modules/iam/iam.module.js';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { IntegrationModule } from './modules/integration/integration.module.js';
     IotGatewayModule,
     AnalyticsModule,
     IntegrationModule,
+    IamModule,
   ],
   controllers: [AppController],
   providers: [AppService],

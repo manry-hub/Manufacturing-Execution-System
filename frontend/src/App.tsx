@@ -17,6 +17,7 @@ import { AndonBoardPage } from './pages/AndonBoardPage.js';
 import { OeeAnalyticsPage } from './pages/OeeAnalyticsPage.js';
 import { AnalyticsPage } from './pages/AnalyticsPage.js';
 import { AdminPage } from './pages/AdminPage.js';
+import { IamPage } from './pages/IamPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 
 export function App() {
@@ -41,6 +42,7 @@ export function App() {
               <Route path="oee" element={<OeeAnalyticsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="admin" element={<AdminPage />} />
+              <Route path="iam" element={<IamPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>
