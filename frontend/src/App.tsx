@@ -18,6 +18,7 @@ import { OeeAnalyticsPage } from './pages/OeeAnalyticsPage.js';
 import { AnalyticsPage } from './pages/AnalyticsPage.js';
 import { AdminPage } from './pages/AdminPage.js';
 import { IamPage } from './pages/IamPage.js';
+import { IntegrationHubPage } from './pages/IntegrationHubPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 
 export function App() {
@@ -41,6 +42,7 @@ export function App() {
               <Route path="andon" element={<AndonBoardPage />} />
               <Route path="oee" element={<OeeAnalyticsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="integrations" element={<IntegrationHubPage />} />
               <Route path="admin" element={<AdminPage />} />
               <Route path="iam" element={<IamPage />} />
               <Route path="*" element={<NotFoundPage />} />
