@@ -32,6 +32,8 @@ export interface AuditLogEntry {
   id: number;
   userId: string | null;
   username: string | null;
+  actor?: string | null;
+  scope?: string | null;
   action: string;
   entityType: string;
   entityId: string;

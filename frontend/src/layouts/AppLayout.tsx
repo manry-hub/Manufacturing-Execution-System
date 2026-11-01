@@ -19,6 +19,7 @@ export const getActiveTabFromPath = (pathname: string): ActiveTab => {
   if (pathname.startsWith('/oee')) return 'oee';
   if (pathname.startsWith('/analytics')) return 'analytics';
   if (pathname.startsWith('/admin')) return 'admin';
+  if (pathname.startsWith('/iam')) return 'iam';
   return 'overview';
 };
 
@@ -78,6 +79,9 @@ export const AppLayout: React.FC = () => {
         break;
       case 'admin':
         void navigate('/admin');
+        break;
+      case 'iam':
+        void navigate('/iam');
         break;
       default:
         void navigate('/');

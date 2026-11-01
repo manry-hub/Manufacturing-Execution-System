@@ -12,15 +12,17 @@ generator client {
 // -----------------------------------------------------------------------------
 
 model User {
-  id           String               @id @default(uuid())
-  username     String               @unique
-  email        String               @unique
-  passwordHash String               @map("password_hash")
-  isActive     Boolean              @default(true) @map("is_active")
-  createdAt    DateTime             @default(now()) @map("created_at")
-  updatedAt    DateTime             @default(now()) @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  username     String   @unique
+  name         String?  @db.VarChar(100)
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
 
   userRoles       UserRoleAssignment[]
+  roleAssignments RoleAssignment[]
   refreshTokens   RefreshToken[]
   auditLogs       AuditLog[]
   reportedTickets AndonTicket[]        @relation("ReportedTickets")
@@ -35,30 +37,38 @@ model User {
 }
 
 model Role {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
+  id                  String   @id @default(uuid())
+  name                String   @unique
+  description         String?
+  isBuiltin           Boolean  @default(false) @map("is_builtin")
+  applicableNodeTypes String   @default("[\"GLOBAL\",\"PLANT\",\"AREA\",\"MACHINE\"]") @map("applicable_node_types") @db.VarChar(255)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
 
   userRoles       UserRoleAssignment[]
+  roleAssignments RoleAssignment[]
   rolePermissions RolePermission[]
 
   @@map("roles")
 }
 
 model Permission {
-  id         String   @id @default(uuid())
-  key        String   @unique @db.VarChar(100)
-  module     String   @db.VarChar(50)
-  action     String   @db.VarChar(150)
-  resource   String   @db.VarChar(100)
-  validScope String   @map("valid_scope") @db.VarChar(50)
-  risk       String   @default("Low") @db.VarChar(20)
-  isAudited  Boolean  @default(false) @map("is_audited")
-  createdAt  DateTime @default(now()) @map("created_at")
+  id          String   @id @default(uuid())
+  key         String   @unique @db.VarChar(100)
+  code        String   @default("") @db.VarChar(100)
+  module      String   @db.VarChar(50)
+  action      String   @db.VarChar(150)
+  resource    String   @db.VarChar(100)
+  validScope  String   @map("valid_scope") @db.VarChar(50)
+  description String?  @db.VarChar(255)
+  risk        String   @default("Low") @db.VarChar(20)
+  isCritical  Boolean  @default(false) @map("is_critical")
+  isAudited   Boolean  @default(false) @map("is_audited")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   rolePermissions RolePermission[]
 
+  @@index([code], name: "idx_permission_code")
   @@map("permissions")
 }
 
@@ -72,6 +82,50 @@ model RolePermission {
 
   @@unique([roleId, permissionId], name: "uq_role_permission")
   @@map("role_permissions")
+}
+
+model ScopeNode {
+  id        String   @id @default(uuid())
+  parentId  String?  @map("parent_id")
+  type      String   @db.VarChar(20) // GLOBAL, PLANT, AREA, MACHINE
+  code      String   @db.VarChar(50)
+  name      String   @db.VarChar(150)
+  path      String   @unique @db.VarChar(500)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Optional direct links to physical master data
+  plantId   String? @map("plant_id")
+  areaId    String? @map("area_id")
+  machineId String? @map("machine_id")
+
+  parent          ScopeNode?       @relation("ScopeTree", fields: [parentId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  children        ScopeNode[]      @relation("ScopeTree")
+  roleAssignments RoleAssignment[]
+
+  @@index([parentId], name: "idx_scope_node_parent")
+  @@index([path], name: "idx_scope_node_path")
+  @@map("scope_nodes")
+}
+
+model RoleAssignment {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  roleId      String    @map("role_id")
+  scopeNodeId String    @map("scope_node_id")
+  validFrom   DateTime  @default(now()) @map("valid_from")
+  validTo     DateTime? @map("valid_to")
+  grantedBy   String    @map("granted_by") @db.VarChar(100)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user      User      @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  role      Role      @relation(fields: [roleId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  scopeNode ScopeNode @relation(fields: [scopeNodeId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@index([userId, validFrom, validTo], name: "idx_role_asgn_active")
+  @@index([scopeNodeId], name: "idx_role_asgn_scope")
+  @@map("role_assignments")
 }
 
 model UserRoleAssignment {
@@ -89,14 +143,14 @@ model UserRoleAssignment {
 }
 
 model RefreshToken {
-  id         String    @id @default(uuid())
-  userId     String    @map("user_id")
-  tokenHash  String    @unique @map("token_hash") @db.VarChar(255)
-  family     String    @db.VarChar(64)
-  isRevoked  Boolean   @default(false) @map("is_revoked")
-  expiresAt  DateTime  @map("expires_at")
-  replacedBy String?   @map("replaced_by") @db.VarChar(255)
-  createdAt  DateTime  @default(now()) @map("created_at")
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  tokenHash  String   @unique @map("token_hash") @db.VarChar(255)
+  family     String   @db.VarChar(64)
+  isRevoked  Boolean  @default(false) @map("is_revoked")
+  expiresAt  DateTime @map("expires_at")
+  replacedBy String?  @map("replaced_by") @db.VarChar(255)
+  createdAt  DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: Cascade)
 
@@ -185,7 +239,7 @@ model Machine {
   isVirtual       Boolean  @default(true) @map("is_virtual")
   createdAt       DateTime @default(now()) @map("created_at")
 
-  area                  ProductionArea         @relation(fields: [areaId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  area                  ProductionArea             @relation(fields: [areaId], references: [id], onUpdate: NoAction, onDelete: Cascade)
   currentState          MachineCurrentState?
   eventLogs             MachineEventLog[]
   timeSegments          MachineTimeSegment[]
@@ -234,7 +288,7 @@ model ShiftDefinition {
   isActive            Boolean  @default(true) @map("is_active")
   createdAt           DateTime @default(now()) @map("created_at")
 
-  plant              Plant                     @relation(fields: [plantId], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  plant              Plant                      @relation(fields: [plantId], references: [id], onUpdate: NoAction, onDelete: Cascade)
   operatingSchedules MachineOperatingSchedule[]
 
   @@unique([plantId, shiftNumber], name: "uq_shift_plant_number")
@@ -281,12 +335,12 @@ model Product {
 }
 
 model Mold {
-  id          String   @id @default(uuid())
-  code        String   @unique @db.VarChar(50)
-  name        String   @db.VarChar(150)
-  cavityCount Int      @default(1) @map("cavity_count")
-  totalShots  BigInt   @default(0) @map("total_shots")
-  status      String   @default("AVAILABLE") @db.VarChar(30)
+  id          String @id @default(uuid())
+  code        String @unique @db.VarChar(50)
+  name        String @db.VarChar(150)
+  cavityCount Int    @default(1) @map("cavity_count")
+  totalShots  BigInt @default(0) @map("total_shots")
+  status      String @default("AVAILABLE") @db.VarChar(30)
 
   compatibilities       MoldProductCompatibility[]
   productionRuns        ProductionRun[]
@@ -339,7 +393,7 @@ model ProductionOrder {
   schedulingNotes   String?   @map("scheduling_notes") @db.VarChar(255)
 
   // External PPSS Integration extensions
-  externalOrderRef     String?   @unique @map("external_order_ref") @db.VarChar(100)
+  externalOrderRef     String?   @map("external_order_ref") @db.VarChar(100)
   dueDate              DateTime? @map("due_date")
   externalSyncStatus   String    @default("LOCAL") @map("external_sync_status") @db.VarChar(30) // LOCAL, SYNCED_FROM_PPSS, DESYNC_ALERT
   suggestedMachineCode String?   @map("suggested_machine_code") @db.VarChar(50)
@@ -406,17 +460,17 @@ model MachineCurrentState {
 }
 
 model MachineEventLog {
-  id                 BigInt   @id @default(autoincrement())
-  eventId            String   @unique @map("event_id") @db.VarChar(64)
-  machineId          String   @map("machine_id")
-  eventType          String   @map("event_type") @db.VarChar(50)
-  normalizedStatus   String   @map("normalized_status") @db.VarChar(30)
-  sourceTimestamp    DateTime @map("source_timestamp")
-  receivedTimestamp  DateTime @default(now()) @map("received_timestamp")
-  cycleCounter       BigInt?  @map("cycle_counter")
-  faultCode          String?  @map("fault_code") @db.VarChar(50)
-  rawPayload         String?  @map("raw_payload") @db.NVarChar(Max)
-  isSimulated        Boolean  @default(true) @map("is_simulated")
+  id                BigInt   @id @default(autoincrement())
+  eventId           String   @unique @map("event_id") @db.VarChar(64)
+  machineId         String   @map("machine_id")
+  eventType         String   @map("event_type") @db.VarChar(50)
+  normalizedStatus  String   @map("normalized_status") @db.VarChar(30)
+  sourceTimestamp   DateTime @map("source_timestamp")
+  receivedTimestamp DateTime @default(now()) @map("received_timestamp")
+  cycleCounter      BigInt?  @map("cycle_counter")
+  faultCode         String?  @map("fault_code") @db.VarChar(50)
+  rawPayload        String?  @map("raw_payload") @db.NVarChar(Max)
+  isSimulated       Boolean  @default(true) @map("is_simulated")
 
   machine Machine @relation(fields: [machineId], references: [id], onUpdate: NoAction, onDelete: Cascade)
 
