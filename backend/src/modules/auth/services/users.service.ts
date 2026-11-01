@@ -237,15 +237,45 @@ export class UsersService {
 
     // Prevent removal/disabling of final active System Administrator
     if (dto.isActive === false || (dto.roles && !dto.roles.includes('System Administrator'))) {
-      const isAdmin = user.userRoles.some((ur) => ur.role.name === 'System Administrator');
-      if (isAdmin) {
-        const activeAdminCount = await this.prisma.userRoleAssignment.count({
+      const isLegacyAdmin = user.userRoles.some((ur) => ur.role.name === 'System Administrator');
+      const isScopedAdmin = this.prisma.roleAssignment
+        ? (await this.prisma.roleAssignment.count({
+            where: {
+              userId: id,
+              role: { name: 'System Administrator' },
+              validFrom: { lte: new Date() },
+              OR: [{ validTo: null }, { validTo: { gte: new Date() } }],
+            },
+          })) > 0
+        : false;
+
+      if (isLegacyAdmin || isScopedAdmin) {
+        const now = new Date();
+        const activeScopedAdmins = this.prisma.roleAssignment
+          ? await this.prisma.roleAssignment.findMany({
+              where: {
+                role: { name: 'System Administrator' },
+                user: { isActive: true },
+                validFrom: { lte: now },
+                OR: [{ validTo: null }, { validTo: { gte: now } }],
+              },
+              select: { userId: true },
+              distinct: ['userId'],
+            })
+          : [];
+        const activeLegacyAdmins = await this.prisma.userRoleAssignment.findMany({
           where: {
             role: { name: 'System Administrator' },
             user: { isActive: true },
           },
+          select: { userId: true },
+          distinct: ['userId'],
         });
-        if (activeAdminCount <= 1) {
+        const totalAdminUserIds = new Set([
+          ...activeScopedAdmins.map((a) => a.userId),
+          ...activeLegacyAdmins.map((a) => a.userId),
+        ]);
+        if (totalAdminUserIds.has(id) && totalAdminUserIds.size <= 1) {
           throw new BadRequestException('Operation rejected: Cannot disable or remove the final active System Administrator');
         }
       }

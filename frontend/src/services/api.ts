@@ -37,6 +37,15 @@ import type {
   AuditStats,
   AuditFilterParams,
 } from '../types/user-admin.js';
+import type {
+  ScopeNode,
+  IamPermission,
+  IamRole,
+  IamRoleAssignment,
+  RoleImpactPreview,
+  EffectiveAccessResponse,
+  CanCheckResponse,
+} from '../types/iam.js';
 
 const API_BASE_URL = '/api/v1';
 
@@ -828,6 +837,158 @@ class ApiService {
 
   public async getAuditActions(): Promise<string[]> {
     return this.request<string[]>('/audit/actions');
+  }
+
+  // --- Hierarchical IAM & Scoped RBAC ---
+
+  public async getIamPermissions(): Promise<IamPermission[]> {
+    return this.request<IamPermission[]>('/iam/permissions');
+  }
+
+  public async getIamRoles(): Promise<IamRole[]> {
+    return this.request<IamRole[]>('/iam/roles');
+  }
+
+  public async getIamRole(id: string): Promise<IamRole> {
+    return this.request<IamRole>(`/iam/roles/${encodeURIComponent(id)}`);
+  }
+
+  public async createIamRole(payload: {
+    name: string;
+    description?: string;
+    applicableNodeTypes: string[];
+    permissionIds: string[];
+  }): Promise<IamRole> {
+    return this.request<IamRole>('/iam/roles', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  public async previewIamRoleUpdate(
+    id: string,
+    permissionIds?: string[],
+  ): Promise<RoleImpactPreview> {
+    return this.request<RoleImpactPreview>(`/iam/roles/${encodeURIComponent(id)}/preview`, {
+      method: 'POST',
+      body: JSON.stringify({ permissionIds }),
+    });
+  }
+
+  public async updateIamRole(
+    id: string,
+    payload: {
+      name?: string;
+      description?: string;
+      applicableNodeTypes?: string[];
+      permissionIds?: string[];
+    },
+  ): Promise<IamRole> {
+    return this.request<IamRole>(`/iam/roles/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  public async deleteIamRole(id: string): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/iam/roles/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  public async getScopeTree(includeInactive = false): Promise<ScopeNode[]> {
+    return this.request<ScopeNode[]>(`/iam/scope-nodes/tree?includeInactive=${includeInactive}`);
+  }
+
+  public async getScopeNode(id: string): Promise<ScopeNode> {
+    return this.request<ScopeNode>(`/iam/scope-nodes/${encodeURIComponent(id)}`);
+  }
+
+  public async createScopeNode(payload: {
+    parentId?: string | null;
+    type: string;
+    code: string;
+    name: string;
+    plantId?: string;
+    areaId?: string;
+    machineId?: string;
+  }): Promise<ScopeNode> {
+    return this.request<ScopeNode>('/iam/scope-nodes', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  public async updateScopeNode(
+    id: string,
+    payload: {
+      parentId?: string | null;
+      code?: string;
+      name?: string;
+      isActive?: boolean;
+    },
+  ): Promise<ScopeNode> {
+    return this.request<ScopeNode>(`/iam/scope-nodes/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  public async deactivateScopeNode(id: string): Promise<ScopeNode> {
+    return this.request<ScopeNode>(`/iam/scope-nodes/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  public async getRoleAssignments(params?: {
+    userId?: string;
+    roleId?: string;
+    scopeNodeId?: string;
+    activeOnly?: boolean;
+  }): Promise<IamRoleAssignment[]> {
+    const query = new URLSearchParams();
+    if (params?.userId) query.set('userId', params.userId);
+    if (params?.roleId) query.set('roleId', params.roleId);
+    if (params?.scopeNodeId) query.set('scopeNodeId', params.scopeNodeId);
+    if (params?.activeOnly) query.set('activeOnly', 'true');
+
+    return this.request<IamRoleAssignment[]>(`/iam/assignments?${query.toString()}`);
+  }
+
+  public async createRoleAssignment(payload: {
+    userId: string;
+    roleId: string;
+    scopeNodeId: string;
+    validFrom?: string;
+    validTo?: string | null;
+  }): Promise<IamRoleAssignment> {
+    return this.request<IamRoleAssignment>('/iam/assignments', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  public async revokeRoleAssignment(id: string): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/iam/assignments/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  public async getEffectiveAccess(userId: string, nodeId: string): Promise<EffectiveAccessResponse> {
+    return this.request<EffectiveAccessResponse>(
+      `/iam/users/${encodeURIComponent(userId)}/effective-access?node_id=${encodeURIComponent(nodeId)}`,
+    );
+  }
+
+  public async checkIamPermission(payload: {
+    userId: string;
+    permission: string;
+    nodeId: string;
+  }): Promise<CanCheckResponse> {
+    return this.request<CanCheckResponse>('/iam/check', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   }
 }
 
