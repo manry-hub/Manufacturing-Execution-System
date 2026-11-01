@@ -102,12 +102,15 @@ export class RunsService implements OnModuleInit {
 
     // 4. Create Run Transactionally
     const run = await this.prisma.$transaction(async (tx) => {
+      // Hard First-Piece QC Gating: new runs start in SETUP until First-Piece QC release
+      const initialStatus = dto.status === 'ACTIVE' ? 'ACTIVE' : (dto.status ?? 'SETUP');
+
       const createdRun = await tx.productionRun.create({
         data: {
           productionOrderId: order.id,
           machineId: machine.id,
           moldId: mold.id,
-          status: dto.status ?? 'ACTIVE',
+          status: initialStatus,
           startTime: new Date(),
           totalShots: 0,
           goodQuantity: 0,

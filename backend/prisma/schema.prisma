@@ -330,6 +330,7 @@ model Product {
   compatibilities  MoldProductCompatibility[]
   productionOrders ProductionOrder[]
   inspectionPlans  InspectionPlan[]
+  recipes          RecipeMaster[]
 
   @@map("products")
 }
@@ -349,6 +350,7 @@ model Mold {
   fromChangeovers       MoldChangeover[]           @relation("FromMoldChangeovers")
   toChangeovers         MoldChangeover[]           @relation("ToMoldChangeovers")
   scheduledOrders       ProductionOrder[]          @relation("MoldScheduledOrders")
+  recipes               RecipeMaster[]
 
   @@map("molds")
 }
@@ -366,6 +368,46 @@ model MoldProductCompatibility {
   @@index([moldId], name: "idx_comp_mold")
   @@index([productId], name: "idx_comp_product")
   @@map("mold_product_compatibilities")
+}
+
+model RecipeMaster {
+  id                   String   @id @default(uuid())
+  recipeCode           String   @unique @map("recipe_code") @db.VarChar(100)
+  productId            String   @map("product_id")
+  moldId               String   @map("mold_id")
+  revision             String   @default("REV-A") @db.VarChar(30)
+  status               String   @default("APPROVED") @db.VarChar(30) // DRAFT, APPROVED, OBSOLETE
+
+  // Injection Process Parameters
+  barrelTempZones      String   @map("barrel_temp_zones") @db.NVarChar(500) // JSON array: [200, 205, 210, 215, 220]
+  tempTolerance        Decimal  @default(5.0) @map("temp_tolerance") @db.Decimal(4, 1) // +/- degrees C
+  injectionPressureBar Decimal  @map("injection_pressure_bar") @db.Decimal(8, 2)
+  holdingPressureBar   Decimal  @map("holding_pressure_bar") @db.Decimal(8, 2)
+  holdingTimeSec       Decimal  @map("holding_time_sec") @db.Decimal(6, 2)
+  coolingTimeSec       Decimal  @map("cooling_time_sec") @db.Decimal(6, 2)
+  cushionLimitMm       Decimal  @map("cushion_limit_mm") @db.Decimal(6, 2)
+  cushionToleranceMm   Decimal  @default(0.5) @map("cushion_tolerance_mm") @db.Decimal(4, 2)
+  clampingTonnage      Int      @map("clamping_tonnage")
+
+  // mBOM Formula
+  resinGrade           String   @map("resin_grade") @db.VarChar(100)
+  masterbatchGrade     String?  @map("masterbatch_grade") @db.VarChar(100)
+  masterbatchRatio     Decimal? @default(0.0) @map("masterbatch_ratio") @db.Decimal(5, 2)
+  regrindAllowedPct    Decimal  @default(0.0) @map("regrind_allowed_pct") @db.Decimal(5, 2)
+
+  // Engineering & PLM Metadata
+  cadInstructionUrl    String?  @map("cad_instruction_url") @db.VarChar(500)
+  plmApprovedAt        DateTime @default(now()) @map("plm_approved_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  mold    Mold    @relation(fields: [moldId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@unique([productId, moldId, revision], name: "uq_recipe_product_mold_rev")
+  @@index([productId], name: "idx_recipe_product")
+  @@index([moldId], name: "idx_recipe_mold")
+  @@map("recipe_masters")
 }
 
 // -----------------------------------------------------------------------------
