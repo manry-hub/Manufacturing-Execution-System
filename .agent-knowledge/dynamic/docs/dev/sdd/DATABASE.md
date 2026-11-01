@@ -268,19 +268,51 @@
 
 ---
 
-### 2.7 Security & Audit Trail
+### 2.7 Security, Hierarchical IAM & Audit Trail
 
-#### Identity, Production Scoped-RBAC & Service Accounts
+#### Identity, Hierarchical Scoped-RBAC & Service Accounts
 
 | Table | Key Fields | Constraints / Indexes | Notes |
 | ----- | ---------- | --------------------- | ----- |
-| `users` | `id`, `username`, `email`, `password_hash`, `is_active` | `username` & `email` UNIQUE | Production user accounts only |
-| `roles` | `id`, `name`, `description` | `name` UNIQUE | 5 Production roles (`System Administrator`, `Production Manager`, `Production Supervisor`, `Machine Operator`, `Production Read-only Analyst`) |
-| `permissions` | `id`, `key`, `module`, `action`, `resource`, `valid_scope`, `risk`, `is_audited` | `key` UNIQUE | Application-owned permissions catalog (33 keys) |
-| `role_permissions` | `id`, `role_id`, `permission_id` | `uq_role_permission` UNIQUE | Mapping permissions to production roles |
-| `user_role_assignments` | `id`, `user_id`, `role_id`, `scope_type`, `scope_id` | `uq_user_role_scope` UNIQUE | Scoped assignments (`GLOBAL`, `PLANT`, `AREA`, `MACHINE`) |
+| `users` | `id`, `username`, `name`, `email`, `password_hash`, `is_active` | `username` & `email` UNIQUE | Production user accounts |
+| `roles` | `id`, `name`, `description`, `is_builtin`, `applicable_node_types` | `name` UNIQUE | Built-in and custom roles with node-type compatibility |
+| `permissions` | `id`, `key`, `code`, `module`, `action`, `resource`, `valid_scope`, `risk`, `is_critical`, `is_audited` | `key` UNIQUE, `idx_permission_code` | Application-owned permissions catalog (including injection molding critical permissions) |
+| `role_permissions` | `id`, `role_id`, `permission_id` | `uq_role_permission` UNIQUE | Mapping permissions to roles |
+| `scope_nodes` | `id`, `parent_id`, `type`, `code`, `name`, `path`, `is_active`, `plant_id`, `area_id`, `machine_id` | `path` UNIQUE, `idx_scope_node_parent` | ISA-95 Materialized Path Scope Tree (`GLOBAL -> PLANT -> AREA -> MACHINE`) |
+| `role_assignments` | `id`, `user_id`, `role_id`, `scope_node_id`, `valid_from`, `valid_to`, `granted_by` | `idx_role_asgn_active`, `idx_role_asgn_scope` | Scoped role assignments with downward inheritance and validity periods |
+| `user_role_assignments` | `id`, `user_id`, `role_id`, `scope_type`, `scope_id` | `uq_user_role_scope` UNIQUE | Legacy scoped assignments (`GLOBAL`, `PLANT`, `AREA`, `MACHINE`) |
 | `refresh_tokens` | `id`, `user_id`, `token_hash`, `family`, `is_revoked`, `expires_at`, `replaced_by` | `token_hash` UNIQUE, `idx_refresh_user_family` | Opaque refresh token rotation with reuse family invalidation |
 | `service_accounts` | `id`, `name`, `client_id`, `secret_hash`, `scope_type`, `scope_id`, `permissions`, `is_active` | `name` & `client_id` UNIQUE | External service principals (PPSS, WMS, QMS, MMS, ERP) via Client Credentials |
+
+#### `scope_nodes`
+
+| Column | Type | Constraints | Index | Notes |
+| ------ | ---- | ----------- | ----- | ----- |
+| `id` | `VARCHAR(36)` | PK, UUID | PRIMARY | Scope node identifier |
+| `parent_id` | `VARCHAR(36)` | NULL, FK `scope_nodes(id)` | `idx_scope_node_parent` | Parent node for hierarchical nesting |
+| `type` | `VARCHAR(20)` | NOT NULL | | `GLOBAL`, `PLANT`, `AREA`, `MACHINE` |
+| `code` | `VARCHAR(50)` | NOT NULL | | Node slug (e.g. `plant-01`, `fin-insp`, `imm-01`) |
+| `name` | `VARCHAR(150)` | NOT NULL | | Display name (e.g. `Plant 01 (Cikarang)`) |
+| `path` | `VARCHAR(500)` | NOT NULL, UNIQUE | `uq_scope_node_path` | Materialized path with trailing slashes (e.g. `/global/plant-01/inj-mold/imm-01/`) |
+| `is_active` | `BIT` | NOT NULL, DEFAULT `1` | | Active status (soft deletion) |
+| `plant_id` | `VARCHAR(36)` | NULL | | Optional link to physical `plants(id)` |
+| `area_id` | `VARCHAR(36)` | NULL | | Optional link to physical `production_areas(id)` |
+| `machine_id` | `VARCHAR(36)` | NULL | | Optional link to physical `machines(id)` |
+| `created_at` | `DATETIME2` | NOT NULL, DEFAULT `GETUTCDATE()` | | Record creation timestamp |
+| `updated_at` | `DATETIME2` | NOT NULL, DEFAULT `GETUTCDATE()` | | Record update timestamp |
+
+#### `role_assignments`
+
+| Column | Type | Constraints | Index | Notes |
+| ------ | ---- | ----------- | ----- | ----- |
+| `id` | `VARCHAR(36)` | PK, UUID | PRIMARY | Role assignment identifier |
+| `user_id` | `VARCHAR(36)` | NOT NULL, FK `users(id)` | `idx_role_asgn_active` | Principal user receiving the assignment |
+| `role_id` | `VARCHAR(36)` | NOT NULL, FK `roles(id)` | | Role containing permissions |
+| `scope_node_id` | `VARCHAR(36)` | NOT NULL, FK `scope_nodes(id)` | `idx_role_asgn_scope` | Target scope node where role applies |
+| `valid_from` | `DATETIME2` | NOT NULL, DEFAULT `GETUTCDATE()` | `idx_role_asgn_active` | Effective start timestamp |
+| `valid_to` | `DATETIME2` | NULL | `idx_role_asgn_active` | Expiration timestamp (NULL for permanent) |
+| `granted_by` | `VARCHAR(100)` | NOT NULL | | Admin identity granting assignment |
+| `created_at` | `DATETIME2` | NOT NULL, DEFAULT `GETUTCDATE()` | | Timestamp of creation |
 
 #### `audit_logs`
 
