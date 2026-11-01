@@ -85,6 +85,32 @@
 | `product_id`       | `VARCHAR(36)`  | NOT NULL, FK `products(id)` | `idx_comp_product` |                                                           |
 | `ideal_cycle_time` | `DECIMAL(8,2)` | NOT NULL                    |                    | Theoretic target cycle time for this specific combination |
 
+#### `recipe_masters`
+
+| Column                   | Type            | Constraints                 | Index                          | Notes                                                            |
+| ------------------------ | --------------- | --------------------------- | ------------------------------ | ---------------------------------------------------------------- |
+| `id`                     | `VARCHAR(36)`   | PK, UUID                    | PRIMARY                        |                                                                  |
+| `recipe_code`            | `VARCHAR(100)`  | NOT NULL, UNIQUE            | `uq_recipe_code`               | Canonical recipe code (e.g., `RCP-AUTO-BUMPER-MOLD-BUMP-2C-REVA`)|
+| `product_id`             | `VARCHAR(36)`   | NOT NULL, FK `products(id)` | `idx_recipe_product`           | Target product reference                                         |
+| `mold_id`                | `VARCHAR(36)`   | NOT NULL, FK `molds(id)`    | `idx_recipe_mold`              | Target mold tooling reference                                    |
+| `revision`               | `VARCHAR(30)`   | NOT NULL, DEFAULT `'REV-A'` |                                | Engineering revision code from PLM                              |
+| `status`                 | `VARCHAR(30)`   | NOT NULL, DEFAULT `'APPROVED'`|                             | `DRAFT`, `APPROVED`, `OBSOLETE`                                  |
+| `barrel_temp_zones`      | `NVARCHAR(500)` | NOT NULL                    |                                | JSON array of temperatures across heating zones 1–5 (°C)         |
+| `temp_tolerance`         | `DECIMAL(4,1)`  | NOT NULL, DEFAULT `5.0`     |                                | Allowed deviation envelope (±°C)                                 |
+| `injection_pressure_bar` | `DECIMAL(8,2)`  | NOT NULL                    |                                | Target hydraulic/servo injection pressure (bar)                  |
+| `holding_pressure_bar`   | `DECIMAL(8,2)`  | NOT NULL                    |                                | Target pack/hold pressure (bar)                                  |
+| `holding_time_sec`       | `DECIMAL(6,2)`  | NOT NULL                    |                                | Hold phase duration (seconds)                                    |
+| `cooling_time_sec`       | `DECIMAL(6,2)`  | NOT NULL                    |                                | In-mold cooling time duration (seconds)                          |
+| `cushion_limit_mm`       | `DECIMAL(6,2)`  | NOT NULL                    |                                | Target end-of-stroke cushion limit (mm)                          |
+| `cushion_tolerance_mm`   | `DECIMAL(4,2)`  | NOT NULL, DEFAULT `0.50`    |                                | Allowed cushion limit deviation (±mm)                            |
+| `clamping_tonnage`       | `INT`           | NOT NULL                    |                                | Required machine clamp tonnage (Ton)                             |
+| `resin_grade`            | `VARCHAR(100)`  | NOT NULL                    |                                | Specified mBOM plastic resin formulation                         |
+| `masterbatch_grade`      | `VARCHAR(100)`  | NULLABLE                    |                                | Specified colorant/masterbatch formulation                       |
+| `masterbatch_ratio`      | `DECIMAL(5,2)`  | NULLABLE, DEFAULT `0.00`    |                                | Target masterbatch mixture percentage (%)                        |
+| `regrind_allowed_pct`    | `DECIMAL(5,2)`  | NOT NULL, DEFAULT `0.00`    |                                | Maximum permitted recycled/regrind percentage (%)                |
+| `cad_instruction_url`    | `VARCHAR(500)`  | NULLABLE                    |                                | Reference link to PLM engineering drawing/SOP                    |
+| `plm_approved_at`        | `DATETIME2`     | NOT NULL, DEFAULT `now()`   |                                | Timestamp of PLM engineering release                            |
+
 ---
 
 ### 2.3 Production Execution & Work Orders

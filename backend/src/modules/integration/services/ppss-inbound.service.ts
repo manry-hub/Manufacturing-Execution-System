@@ -35,7 +35,7 @@ export class PpssInboundService {
     }
 
     // 2. Check for duplicate externalOrderRef
-    const existingRef = await this.prisma.productionOrder.findUnique({
+    const existingRef = await this.prisma.productionOrder.findFirst({
       where: { externalOrderRef: dto.externalOrderRef },
     });
 
@@ -125,7 +125,7 @@ export class PpssInboundService {
    * Updates an existing inbound order if it has not yet transitioned to execution.
    */
   async updateOrder(externalRef: string, dto: UpdateInboundOrderDto) {
-    const order = await this.prisma.productionOrder.findUnique({
+    const order = await this.prisma.productionOrder.findFirst({
       where: { externalOrderRef: externalRef },
     });
 
@@ -147,7 +147,7 @@ export class PpssInboundService {
     }
 
     const updated = await this.prisma.productionOrder.update({
-      where: { externalOrderRef: externalRef },
+      where: { id: order.id },
       data: {
         targetQuantity: dto.targetQuantity ?? order.targetQuantity,
         dueDate: dto.dueDate ? new Date(dto.dueDate) : order.dueDate,
@@ -194,7 +194,7 @@ export class PpssInboundService {
    * Cancels an order requested by PPSS if not yet active on the machine.
    */
   async cancelOrder(externalRef: string) {
-    const order = await this.prisma.productionOrder.findUnique({
+    const order = await this.prisma.productionOrder.findFirst({
       where: { externalOrderRef: externalRef },
     });
 
@@ -211,7 +211,7 @@ export class PpssInboundService {
     }
 
     const cancelled = await this.prisma.productionOrder.update({
-      where: { externalOrderRef: externalRef },
+      where: { id: order.id },
       data: {
         status: 'CANCELLED',
         assignedMachineId: null,

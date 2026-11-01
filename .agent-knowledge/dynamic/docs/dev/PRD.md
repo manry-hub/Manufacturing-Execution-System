@@ -42,6 +42,7 @@ In strict accordance with ISA-95 separation of concerns, MES is operated exclusi
 | **QMS** | Quality Management System | Quality Assurance / Quality Control | Manages inspection plans, non-conformance records (NCR), and corrective actions (CAPA). | Determines quality disposition (`service-qms`); MES triggers inspection events and locks runs on HOLD status. |
 | **MMS** | Maintenance Management System | Maintenance / Engineering | Manages machine maintenance, preventive maintenance (PM) schedules, breakdowns, and repair jobs. | Manages PM calendars & repair orders (`service-mms`); MES reports cycle counters & alarms; reads machine release status. |
 | **ERP** | Enterprise Resource Planning | Finance & Accounting / Cross-departmental | Integrates enterprise business transactions such as procurement, sales, costing, and resource planning. | Originates parent master/sales orders (`service-erp`); MES confirms actual completion & scrap quantities for COGS valuation. |
+| **PLM** | Product Lifecycle Management | Engineering / R&D / Tooling | Defines mBOM, CAD work instructions, mold specifications, and validated process parameter windows. | Pushes validated injection recipes (`service-plm`); MES enforces process envelope & mBOM compliance. |
 
 ### 1.4 Execution Philosophy: Hybrid ISA-95 Work Center Architecture
 
