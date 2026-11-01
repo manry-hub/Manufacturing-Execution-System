@@ -24,6 +24,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../common/guards/permissions.guard.js';
 import { ScopeGuard } from '../../common/guards/scope.guard.js';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator.js';
+import { PrismaService } from '../../database/prisma.service.js';
 
 @Controller('integration')
 @UseGuards(JwtAuthGuard, PermissionsGuard, ScopeGuard)
@@ -33,6 +34,7 @@ export class IntegrationController {
     private readonly webhookService: PpssWebhookService,
     private readonly plmService: PlmInboundService,
     private readonly qmsService: QmsInboundService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -118,6 +120,15 @@ export class IntegrationController {
   // ---------------------------------------------------------------------------
 
   /**
+   * List all synchronized PLM recipes.
+   */
+  @Get('plm/recipes')
+  @RequirePermissions('integration.plm.recipe.read')
+  async listPlmRecipes() {
+    return this.plmService.listRecipes();
+  }
+
+  /**
    * Synchronize or update an injection molding recipe from PLM.
    */
   @Put('plm/recipes')
@@ -151,5 +162,36 @@ export class IntegrationController {
   @RequirePermissions('integration.qms.qc.write')
   async processQmsQcRelease(@Body() dto: QmsQcReleaseDto) {
     return this.qmsService.processQcRelease(dto);
+  }
+
+  // ---------------------------------------------------------------------------
+  // M2M Service Accounts & System Health
+  // ---------------------------------------------------------------------------
+
+  /**
+   * List registered M2M service accounts and connection status.
+   */
+  @Get('service-accounts')
+  @RequirePermissions('masterdata.read')
+  async listServiceAccounts() {
+    const accounts = await this.prisma.serviceAccount.findMany({
+      select: {
+        id: true,
+        name: true,
+        clientId: true,
+        scopeType: true,
+        scopeId: true,
+        isActive: true,
+        permissions: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return accounts.map((sa) => ({
+      ...sa,
+      permissions: sa.permissions ? JSON.parse(sa.permissions) : [],
+    }));
   }
 }

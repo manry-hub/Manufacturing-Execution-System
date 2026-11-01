@@ -650,6 +650,29 @@ class ApiService {
     });
   }
 
+  // --- PLM & Enterprise Integration Endpoints ---
+  public async getPlmRecipes(): Promise<any[]> {
+    return this.request<any[]>('/integration/plm/recipes');
+  }
+
+  public async getServiceAccounts(): Promise<any[]> {
+    return this.request<any[]>('/integration/service-accounts');
+  }
+
+  public async syncPlmRecipe(dto: any): Promise<any> {
+    return this.request<any>('/integration/plm/recipes', {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  public async releaseQmsQc(dto: any): Promise<any> {
+    return this.request<any>('/integration/qms/qc-release', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
   // --- Digital Traveler & CoC Endpoints ---
   public async getTravelerRuns(): Promise<TravelerRunSummaryDto[]> {
     return this.request<TravelerRunSummaryDto[]>('/traveler/runs');
