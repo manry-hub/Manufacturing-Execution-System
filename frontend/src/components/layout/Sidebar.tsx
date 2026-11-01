@@ -17,6 +17,7 @@ import {
   PanelLeftOpen,
   TrendingUp,
   FolderTree,
+  Network,
   X,
 } from 'lucide-react';
 import { useAuth, DEMO_ROLES } from '../../context/AuthContext.js';
@@ -33,6 +34,7 @@ export type ActiveTab =
   | 'andon'
   | 'oee'
   | 'analytics'
+  | 'integrations'
   | 'admin'
   | 'iam';
 
@@ -159,8 +161,15 @@ export const NAV_GROUPS: NavGroupConfig[] = [
   },
   {
     id: 'admin_security',
-    title: 'Governance & Security',
+    title: 'Governance & Integration',
     items: [
+      {
+        id: 'integrations',
+        path: '/integrations',
+        label: 'External integration hub',
+        shortLabel: 'Integrations',
+        icon: Network,
+      },
       {
         id: 'iam',
         path: '/iam',

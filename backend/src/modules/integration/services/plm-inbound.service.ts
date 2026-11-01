@@ -198,4 +198,31 @@ export class PlmInboundService {
       regrindAllowedPct: Number(recipe.regrindAllowedPct),
     };
   }
+
+  /**
+   * List all synchronized recipes with product and tooling relations.
+   */
+  async listRecipes() {
+    const recipes = await this.prisma.recipeMaster.findMany({
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        product: { select: { id: true, partNumber: true, name: true } },
+        mold: { select: { id: true, code: true, name: true, cavityCount: true } },
+      },
+    });
+
+    return recipes.map((recipe) => ({
+      ...recipe,
+      barrelTempZones: JSON.parse(recipe.barrelTempZones),
+      injectionPressureBar: Number(recipe.injectionPressureBar),
+      holdingPressureBar: Number(recipe.holdingPressureBar),
+      holdingTimeSec: Number(recipe.holdingTimeSec),
+      coolingTimeSec: Number(recipe.coolingTimeSec),
+      cushionLimitMm: Number(recipe.cushionLimitMm),
+      tempTolerance: Number(recipe.tempTolerance),
+      cushionToleranceMm: Number(recipe.cushionToleranceMm),
+      masterbatchRatio: recipe.masterbatchRatio ? Number(recipe.masterbatchRatio) : 0,
+      regrindAllowedPct: Number(recipe.regrindAllowedPct),
+    }));
+  }
 }

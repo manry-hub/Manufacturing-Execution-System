@@ -14,6 +14,7 @@ describe('PpssInboundService', () => {
       },
       productionOrder: {
         findUnique: vi.fn(),
+        findFirst: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
       },
@@ -42,6 +43,7 @@ describe('PpssInboundService', () => {
         partNumber: 'PART-BUMP-001',
         name: 'Front Bumper Fascia',
       });
+      mockPrisma.productionOrder.findFirst.mockResolvedValue(null);
       mockPrisma.productionOrder.findUnique.mockResolvedValue(null);
       mockPrisma.productionOrder.create.mockImplementation((args: any) =>
         Promise.resolve({
@@ -83,6 +85,11 @@ describe('PpssInboundService', () => {
 
     it('should throw BadRequestException if externalOrderRef already exists in MES', async () => {
       mockPrisma.product.findUnique.mockResolvedValue({ id: 'prod-1' });
+      mockPrisma.productionOrder.findFirst.mockResolvedValue({
+        id: 'po-dup',
+        orderNumber: 'WO-EXISTING',
+        externalOrderRef: 'PPSS-PO-DUPLICATE',
+      });
       mockPrisma.productionOrder.findUnique.mockResolvedValue({
         id: 'po-dup',
         orderNumber: 'WO-EXISTING',
@@ -103,13 +110,15 @@ describe('PpssInboundService', () => {
 
   describe('updateOrder - Immutability Guards', () => {
     it('should allow updating an order if status is still DRAFT or SCHEDULED', async () => {
-      mockPrisma.productionOrder.findUnique.mockResolvedValue({
+      const existingOrder = {
         id: 'po-1',
         orderNumber: 'WO-001',
         externalOrderRef: 'PPSS-PO-1',
         status: 'DRAFT',
         targetQuantity: 1000,
-      });
+      };
+      mockPrisma.productionOrder.findFirst.mockResolvedValue(existingOrder);
+      mockPrisma.productionOrder.findUnique.mockResolvedValue(existingOrder);
       mockPrisma.productionOrder.update.mockResolvedValue({
         id: 'po-1',
         targetQuantity: 1500,
@@ -124,12 +133,14 @@ describe('PpssInboundService', () => {
     });
 
     it('should reject update if order is already RELEASED or IN_PROGRESS on shop floor', async () => {
-      mockPrisma.productionOrder.findUnique.mockResolvedValue({
+      const activeOrder = {
         id: 'po-1',
         orderNumber: 'WO-001',
         externalOrderRef: 'PPSS-PO-1',
         status: 'IN_PROGRESS',
-      });
+      };
+      mockPrisma.productionOrder.findFirst.mockResolvedValue(activeOrder);
+      mockPrisma.productionOrder.findUnique.mockResolvedValue(activeOrder);
 
       await expect(
         service.updateOrder('PPSS-PO-1', { targetQuantity: 2000 }),
@@ -139,11 +150,13 @@ describe('PpssInboundService', () => {
 
   describe('cancelOrder', () => {
     it('should cancel order in DRAFT status and set status to CANCELLED', async () => {
-      mockPrisma.productionOrder.findUnique.mockResolvedValue({
+      const draftOrder = {
         id: 'po-1',
         orderNumber: 'WO-001',
         status: 'DRAFT',
-      });
+      };
+      mockPrisma.productionOrder.findFirst.mockResolvedValue(draftOrder);
+      mockPrisma.productionOrder.findUnique.mockResolvedValue(draftOrder);
       mockPrisma.productionOrder.update.mockResolvedValue({
         id: 'po-1',
         status: 'CANCELLED',
@@ -154,11 +167,13 @@ describe('PpssInboundService', () => {
     });
 
     it('should reject cancellation if order is already IN_PROGRESS', async () => {
-      mockPrisma.productionOrder.findUnique.mockResolvedValue({
+      const activeOrder = {
         id: 'po-1',
         orderNumber: 'WO-001',
         status: 'IN_PROGRESS',
-      });
+      };
+      mockPrisma.productionOrder.findFirst.mockResolvedValue(activeOrder);
+      mockPrisma.productionOrder.findUnique.mockResolvedValue(activeOrder);
 
       await expect(service.cancelOrder('PPSS-PO-1')).rejects.toThrow(BadRequestException);
     });

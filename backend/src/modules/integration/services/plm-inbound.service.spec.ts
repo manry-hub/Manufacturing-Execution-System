@@ -138,4 +138,33 @@ describe('PlmInboundService', () => {
       await expect(service.getRecipe('PRD-BUMPER', 'MOLD-01')).rejects.toThrow(NotFoundException);
     });
   });
+
+  describe('listRecipes', () => {
+    it('should return list of all recipes with parsed numbers and zones', async () => {
+      mockPrisma.recipeMaster.findMany = vi.fn().mockResolvedValue([
+        {
+          id: 'rec-1',
+          recipeCode: 'RCP-BUMPER-001',
+          barrelTempZones: JSON.stringify([200, 205, 210, 215, 220]),
+          injectionPressureBar: '140.0',
+          holdingPressureBar: '95.0',
+          holdingTimeSec: '6.5',
+          coolingTimeSec: '12.0',
+          cushionLimitMm: '4.5',
+          tempTolerance: '5.0',
+          cushionToleranceMm: '0.5',
+          masterbatchRatio: '2.0',
+          regrindAllowedPct: '15.0',
+          product: { partNumber: 'PRD-BUMPER' },
+          mold: { code: 'MOLD-01' },
+        },
+      ]);
+
+      const res = await service.listRecipes();
+      expect(res).toHaveLength(1);
+      expect(res[0].recipeCode).toBe('RCP-BUMPER-001');
+      expect(res[0].barrelTempZones).toEqual([200, 205, 210, 215, 220]);
+      expect(res[0].injectionPressureBar).toBe(140.0);
+    });
+  });
 });
