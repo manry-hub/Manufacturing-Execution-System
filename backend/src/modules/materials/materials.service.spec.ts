@@ -100,6 +100,23 @@ describe('MaterialsService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('should throw BadRequestException if material lot is in QA_HOLD status', async () => {
+      mockPrisma.productionRun.findUnique.mockResolvedValue({ id: 'run-1' });
+      mockPrisma.materialLot.findUnique.mockResolvedValue({
+        id: 'lot-qa-1',
+        lotNumber: 'LOT-QA-01',
+        status: 'QA_HOLD',
+        remainingQtyKg: new Prisma.Decimal(100),
+      });
+
+      await expect(
+        service.loadHopper(
+          { runId: 'run-1', materialLotId: 'lot-qa-1', quantityKg: 50 },
+          'user-1',
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('should throw BadRequestException if load quantity exceeds remaining', async () => {
       mockPrisma.productionRun.findUnique.mockResolvedValue({ id: 'run-1' });
       mockPrisma.materialLot.findUnique.mockResolvedValue({
