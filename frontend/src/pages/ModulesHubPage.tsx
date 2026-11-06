@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Layers,
   Cpu,
@@ -19,6 +19,9 @@ import {
   WifiOff,
   CheckCircle2,
   Clock,
+  Search,
+  X,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useShopfloor } from '../context/ShopfloorContext.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -49,14 +52,16 @@ interface ModuleCategory {
   id: string;
   title: string;
   description: string;
+  icon: React.ComponentType<{ className?: string }>;
   modules: ModuleCardConfig[];
 }
 
-const MODULE_CATEGORIES: ModuleCategory[] = [
+export const MODULE_CATEGORIES: ModuleCategory[] = [
   {
     id: 'operations',
-    title: 'Manufacturing Operations & Ingestion',
-    description: 'Shop floor machine management, live telemetry streaming, and work order dispatching.',
+    title: 'Operations & Ingestion',
+    description: 'Shop floor machine telemetry matrix, virtual edge simulator, and industrial IoT protocols.',
+    icon: Layers,
     modules: [
       {
         id: 'shopfloor',
@@ -92,6 +97,14 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
         getLiveStat: () => 'OPC UA / Modbus / MQTT Active',
         ctaText: 'View Telemetry Profiles',
       },
+    ],
+  },
+  {
+    id: 'execution',
+    title: 'Execution & Packing',
+    description: 'Work order lifecycle execution, active runs, scrap tracking, and industrial label printing.',
+    icon: PlaySquare,
+    modules: [
       {
         id: 'orders',
         path: '/orders',
@@ -112,7 +125,7 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
       {
         id: 'packaging',
         path: '/packaging',
-        title: 'Packaging & Label Printing',
+        title: 'Packaging & Reconciliation',
         shortTag: 'Outbound',
         description: 'Carton pack reconciliation, camera/laser barcode scanning, and direct Zebra industrial thermal printing (Raw ZPL socket stream).',
         icon: PackageCheck,
@@ -129,9 +142,10 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
     ],
   },
   {
-    id: 'quality-traceability',
-    title: 'Digital Traceability & Materials',
-    description: '21 CFR Part 11 compliant digital travelers and line-side material consumption tracking.',
+    id: 'traceability',
+    title: 'Traceability & Materials',
+    description: '21 CFR Part 11 compliant digital travelers, electronic signatures, and line-side lot consumption tracking.',
+    icon: FileCheck,
     modules: [
       {
         id: 'traveler',
@@ -170,9 +184,10 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
     ],
   },
   {
-    id: 'reliability-alerting',
-    title: 'Plant Alerting & Escalation',
-    description: 'Instant plant-wide emergency alerting, escalation chimes, and operator assistance dispatch.',
+    id: 'reliability',
+    title: 'Plant Alerting',
+    description: 'Plant-wide visual escalation matrix, emergency audio chimes, resolution response timers, and operator dispatch.',
+    icon: AlertTriangle,
     modules: [
       {
         id: 'andon',
@@ -195,9 +210,10 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
     ],
   },
   {
-    id: 'analytics-governance',
-    title: 'Performance Analytics & Governance',
-    description: 'Overall Equipment Effectiveness (OEE), statistical process control, and regulatory audit trail.',
+    id: 'analytics',
+    title: 'Performance & Engineering',
+    description: 'Overall Equipment Effectiveness (OEE) fleet benchmark, Six Big Losses breakdown, and SPC & FMEA statistical control.',
+    icon: TrendingUp,
     modules: [
       {
         id: 'oee',
@@ -233,6 +249,14 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
         getLiveStat: () => 'Real-Time Cpk & RPN Engine',
         ctaText: 'Explore Statistical Analytics',
       },
+    ],
+  },
+  {
+    id: 'admin_security',
+    title: 'Governance & Integration',
+    description: 'Unified M2M external integration hub, hierarchical ISA-95 IAM scopes, and user admin audit trail explorer.',
+    icon: FolderTree,
+    modules: [
       {
         id: 'integrations',
         path: '/integrations',
@@ -293,20 +317,63 @@ export const ModulesHubPage: React.FC = () => {
   const { machines, runs, openTickets, connected, latencyMs } = useShopfloor();
   const { user, role } = useAuth();
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('all');
+
   const machinesCount = machines.length;
   const runningCount = runs.filter((r) => r.status === 'ACTIVE').length || runs.length;
   const openTicketsCount = openTickets.length;
 
+  // Filtered categories based on active group tab and search query
+  const filteredCategories = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return MODULE_CATEGORIES.map((category) => {
+      // Group filter check
+      if (selectedGroupId !== 'all' && category.id !== selectedGroupId) {
+        return null;
+      }
+
+      // Query filter check
+      if (!query) {
+        return category;
+      }
+
+      const matchingModules = category.modules.filter(
+        (m) =>
+          m.title.toLowerCase().includes(query) ||
+          m.description.toLowerCase().includes(query) ||
+          m.shortTag.toLowerCase().includes(query) ||
+          m.id.toLowerCase().includes(query) ||
+          category.title.toLowerCase().includes(query)
+      );
+
+      if (matchingModules.length === 0) {
+        return null;
+      }
+
+      return {
+        ...category,
+        modules: matchingModules,
+      };
+    }).filter((c): c is ModuleCategory => c !== null);
+  }, [searchQuery, selectedGroupId]);
+
+  const totalMatchingModules = filteredCategories.reduce((acc, c) => acc + c.modules.length, 0);
+
   return (
-    <div className="space-y-8 pb-12 max-w-7xl mx-auto">
+    <div className="space-y-8 pb-12 w-full max-w-7xl mx-auto">
       {/* Hero Banner / Command Center Header */}
       <section
         aria-label="Plant Command Center Overview"
         className="rounded-xl bg-[#FFFFFF] border border-[#0B120E24] p-6 sm:p-8 shadow-xs relative overflow-hidden"
       >
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-           
+          <div className="space-y-2.5 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#E9F2FE] border border-[#8FB8F6] text-[#123263] text-xs font-semibold">
+              <span className="w-2 h-2 rounded-full bg-[#1868DB] animate-pulse" />
+              <span>ISA-95 Level 3 Plant Directory</span>
+            </div>
 
             <h1 className="text-2xl sm:text-3xl font-bold text-[#292A2E] tracking-tight">
               Manufacturing Execution Portal
@@ -314,7 +381,7 @@ export const ModulesHubPage: React.FC = () => {
 
             <p className="text-sm text-[#505258] leading-relaxed">
               Unified command center for plant telemetry, production scheduling, quality gates, and digital lot travelers.
-              Select any operational module below to launch its dedicated interface.
+              Select any operational module below or filter by domain to launch its dedicated interface.
             </p>
           </div>
 
@@ -388,7 +455,7 @@ export const ModulesHubPage: React.FC = () => {
         </div>
 
         {/* User Role Lozenge Footer */}
-        <div className="mt-5 pt-4 border-t border-[#0B120E18] flex items-center justify-between text-xs text-[#6B6E76]">
+        <div className="mt-5 pt-4 border-t border-[#0B120E18] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#6B6E76]">
           <div className="flex items-center gap-2">
             <span>Signed in as:</span>
             <span className="font-semibold text-[#292A2E]">{user?.username ?? 'system.operator'}</span>
@@ -400,7 +467,7 @@ export const ModulesHubPage: React.FC = () => {
           <button
             type="button"
             onClick={() => void navigate('/shopfloor')}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1868DB] hover:text-[#1558BC] hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1868DB] hover:text-[#1558BC] hover:underline self-start sm:self-auto cursor-pointer"
           >
             <span>Jump directly to Shop Floor Matrix</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -408,78 +475,301 @@ export const ModulesHubPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Categorized Module Launchers */}
-      <div className="space-y-8">
-        {MODULE_CATEGORIES.map((category) => (
-          <section key={category.id} aria-labelledby={`category-${category.id}`} className="space-y-3.5">
-            <div className="flex items-center justify-between border-b border-[#0B120E24] pb-2">
-              <div>
-                <h2 id={`category-${category.id}`} className="text-base font-bold text-[#292A2E] tracking-tight">
-                  {category.title}
-                </h2>
-                <p className="text-xs text-[#6B6E76]">{category.description}</p>
-              </div>
+      {/* Search and Category Filter Toolbar */}
+      <section aria-label="Module directory filters" className="space-y-3.5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Search Input Bar */}
+          <div className="relative flex-1 max-w-lg">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#6B6E76]">
+              <Search className="h-4 w-4" />
             </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search modules (e.g. telemetry, OEE, traveler, ZPL, IAM)..."
+              className="w-full pl-9 pr-8 py-2 rounded-lg bg-[#FFFFFF] border border-[#0B120E24] text-xs text-[#292A2E] placeholder-[#6B6E76] focus:outline-none focus:border-[#1868DB] focus:ring-1 focus:ring-[#1868DB] transition-all shadow-xs"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-[#6B6E76] hover:text-[#292A2E]"
+                aria-label="Clear search input"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
 
-            {/* Modules Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {category.modules.map((mod) => {
-                const Icon = mod.icon;
-                const liveStat = mod.getLiveStat({ machinesCount, runningCount, openTicketsCount });
+          {/* Quick Result Counter */}
+          <div className="flex items-center gap-2 text-xs text-[#6B6E76]">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-[#6B6E76]" />
+            <span>
+              Showing <strong className="text-[#292A2E]">{totalMatchingModules}</strong> of 12 modules
+            </span>
+          </div>
+        </div>
 
-                return (
-                  <div
-                    key={mod.id}
-                    className="group bg-[#FFFFFF] rounded-xl border border-[#0B120E24] p-5 shadow-xs hover:border-[#8FB8F6] hover:shadow-md transition-all duration-150 flex flex-col justify-between"
-                  >
-                    <div>
-                      {/* Top Bar: Icon & Tag */}
-                      <div className="flex items-center justify-between mb-3.5">
-                        <div
-                          className={`w-10 h-10 rounded-lg ${mod.accentColor.bg} ${mod.accentColor.border} border flex items-center justify-center ${mod.accentColor.text} shadow-xs group-hover:scale-105 transition-transform`}
-                        >
-                          <Icon className="w-5 h-5" />
+        {/* Category Filter Chips Matching Sidebar */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 no-scrollbar">
+          <button
+            type="button"
+            onClick={() => setSelectedGroupId('all')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border flex items-center gap-1.5 cursor-pointer ${
+              selectedGroupId === 'all'
+                ? 'bg-[#1868DB] text-[#FFFFFF] border-[#1868DB] shadow-xs'
+                : 'bg-[#FFFFFF] text-[#505258] border-[#0B120E24] hover:bg-[#091E420F] hover:text-[#292A2E]'
+            }`}
+          >
+            <span>All Groups</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                selectedGroupId === 'all'
+                  ? 'bg-[#FFFFFF]/25 text-[#FFFFFF]'
+                  : 'bg-[#091E420F] text-[#505258]'
+              }`}
+            >
+              12
+            </span>
+          </button>
+
+          {MODULE_CATEGORIES.map((cat) => {
+            const isSelected = selectedGroupId === cat.id;
+            const CatIcon = cat.icon;
+
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedGroupId(cat.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border flex items-center gap-1.5 cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#1868DB] text-[#FFFFFF] border-[#1868DB] shadow-xs'
+                    : 'bg-[#FFFFFF] text-[#505258] border-[#0B120E24] hover:bg-[#091E420F] hover:text-[#292A2E]'
+                }`}
+              >
+                <CatIcon className="w-3.5 h-3.5" />
+                <span>{cat.title}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isSelected
+                      ? 'bg-[#FFFFFF]/25 text-[#FFFFFF]'
+                      : 'bg-[#091E420F] text-[#505258]'
+                  }`}
+                >
+                  {cat.modules.length}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* No Results Empty State */}
+      {filteredCategories.length === 0 && (
+        <div className="text-center py-12 px-4 rounded-xl border border-dashed border-[#0B120E24] bg-[#FFFFFF] space-y-3 shadow-xs">
+          <div className="w-12 h-12 mx-auto rounded-full bg-[#F4F5F7] flex items-center justify-center text-[#6B6E76]">
+            <Search className="w-5 h-5" />
+          </div>
+          <h3 className="text-base font-semibold text-[#292A2E]">No modules found</h3>
+          <p className="text-xs text-[#505258] max-w-md mx-auto">
+            No modules match your current search query "{searchQuery}". Try searching for terms like "telemetry", "oee", "orders", "zpl", or "iam".
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchQuery('');
+              setSelectedGroupId('all');
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1868DB] text-[#FFFFFF] hover:bg-[#1558BC] transition-colors cursor-pointer"
+          >
+            <span>Reset filters</span>
+          </button>
+        </div>
+      )}
+
+      {/* Categorized Module Launchers (Aligned 1-to-1 with Sidebar) */}
+      <div className="space-y-9">
+        {filteredCategories.map((category) => {
+          const CategoryIcon = category.icon;
+
+          return (
+            <section key={category.id} aria-labelledby={`category-${category.id}`} className="space-y-4">
+              {/* Category Group Header with Icon, Title, and Module Count */}
+              <div className="flex items-center justify-between border-b border-[#0B120E24] pb-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#E9F2FE] border border-[#8FB8F6] flex items-center justify-center text-[#1868DB] shadow-xs">
+                    <CategoryIcon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 id={`category-${category.id}`} className="text-base font-bold text-[#292A2E] tracking-tight">
+                        {category.title}
+                      </h2>
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#F4F5F7] text-[#505258] border border-[#0B120E18]">
+                        {category.modules.length} {category.modules.length === 1 ? 'Module' : 'Modules'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#6B6E76] mt-0.5">{category.description}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic Symmetric Cards Grid */}
+              <div
+                className={`grid gap-4.5 ${
+                  category.modules.length === 2
+                    ? 'grid-cols-1 md:grid-cols-2'
+                    : category.modules.length === 1
+                    ? 'grid-cols-1 md:grid-cols-2'
+                    : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                }`}
+              >
+                {category.modules.map((mod) => {
+                  const Icon = mod.icon;
+                  const liveStat = mod.getLiveStat({ machinesCount, runningCount, openTicketsCount });
+
+                  return (
+                    <Link
+                      key={mod.id}
+                      to={mod.path}
+                      className="group bg-[#FFFFFF] rounded-xl border border-[#0B120E24] p-5 shadow-xs hover:border-[#8FB8F6] hover:shadow-md transition-all duration-150 flex flex-col justify-between focus:outline-none focus:ring-2 focus:ring-[#1868DB] focus:ring-offset-2"
+                    >
+                      <div>
+                        {/* Top Bar: Icon & Tag */}
+                        <div className="flex items-center justify-between mb-3.5">
+                          <div
+                            className={`w-10 h-10 rounded-lg ${mod.accentColor.bg} ${mod.accentColor.border} border flex items-center justify-center ${mod.accentColor.text} shadow-xs group-hover:scale-105 transition-transform`}
+                          >
+                            <Icon className="w-5 h-5" />
+                          </div>
+
+                          <span
+                            className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-[4px] ${mod.accentColor.badgeBg} ${mod.accentColor.badgeText} border border-transparent`}
+                          >
+                            {mod.shortTag}
+                          </span>
                         </div>
 
-                        <span
-                          className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-[4px] ${mod.accentColor.badgeBg} ${mod.accentColor.badgeText} border border-transparent`}
+                        {/* Title & Description */}
+                        <h3 className="text-base font-semibold text-[#292A2E] group-hover:text-[#1868DB] transition-colors mb-1.5">
+                          {mod.title}
+                        </h3>
+
+                        <p className="text-xs text-[#505258] line-clamp-3 leading-relaxed mb-4">
+                          {mod.description}
+                        </p>
+                      </div>
+
+                      {/* Footer: Live Stat & CTA Button indicator */}
+                      <div className="pt-3.5 border-t border-[#0B120E14] space-y-3">
+                        <div className="flex items-center gap-1.5 text-xs text-[#6B6E76]">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#216E4E] flex-shrink-0" />
+                          <span className="truncate font-medium">{liveStat}</span>
+                        </div>
+
+                        <div className="w-full inline-flex items-center justify-between px-3.5 py-2 rounded-lg text-xs font-semibold bg-[#FAFBFC] text-[#292A2E] border border-[#0B120E24] group-hover:bg-[#1868DB] group-hover:text-[#FFFFFF] group-hover:border-[#1868DB] transition-all shadow-xs">
+                          <span>{mod.ctaText}</span>
+                          <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+
+                {/* If Plant Alerting has only 1 card, pair it with Live Escalation Status panel to balance the 2-column layout */}
+                {category.id === 'reliability' && category.modules.length === 1 && (
+                  <div
+                    className={`rounded-xl border p-5 shadow-xs flex flex-col justify-between ${
+                      openTicketsCount > 0
+                        ? 'bg-[#FFEBE6] border-[#FF8F73]'
+                        : 'bg-[#FAFBFC] border-[#0B120E24]'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3.5">
+                        <div
+                          className={`w-10 h-10 rounded-lg border flex items-center justify-center shadow-xs ${
+                            openTicketsCount > 0
+                              ? 'bg-[#FFEBE6] border-[#FF8F73] text-[#AE2E24]'
+                              : 'bg-[#EFFFD6] border-[#6A9A23] text-[#37471F]'
+                          }`}
                         >
-                          {mod.shortTag}
+                          <AlertTriangle
+                            className={`w-5 h-5 ${
+                              openTicketsCount > 0 ? 'animate-pulse text-[#C9372C]' : 'text-[#6A9A23]'
+                            }`}
+                          />
+                        </div>
+                        <span
+                          className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-[4px] border ${
+                            openTicketsCount > 0
+                              ? 'bg-[#FFECEB] text-[#5D1F1A] border-[#E2483D]'
+                              : 'bg-[#EFFFD6] text-[#37471F] border-[#6A9A23]'
+                          }`}
+                        >
+                          {openTicketsCount > 0 ? 'Active Escalations' : 'All Clear'}
                         </span>
                       </div>
 
-                      {/* Title & Description */}
-                      <h3 className="text-base font-semibold text-[#292A2E] group-hover:text-[#1868DB] transition-colors mb-1.5">
-                        {mod.title}
+                      <h3 className="text-base font-semibold text-[#292A2E] mb-1.5">
+                        {openTicketsCount > 0 ? 'Active Escalation Alerts' : 'Shop Floor Escalation Status'}
                       </h3>
 
-                      <p className="text-xs text-[#505258] line-clamp-3 leading-relaxed mb-4">
-                        {mod.description}
+                      <p className="text-xs text-[#505258] leading-relaxed mb-4">
+                        {openTicketsCount > 0
+                          ? `${openTicketsCount} machine cell(s) have triggered line-stop or assistance alerts requiring immediate supervisor attention.`
+                          : 'All 8 work centers are currently operating within nominal control parameters with zero active line-stop tickets.'}
                       </p>
+
+                      {openTickets.length > 0 && (
+                        <div className="space-y-1.5 mb-2">
+                          {openTickets.slice(0, 2).map((t) => (
+                            <div
+                              key={t.id}
+                              className="flex items-center justify-between p-2 rounded-md bg-[#FFFFFF] border border-[#FF8F73]/50 text-xs"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-[#AE2E24]">{t.machine?.code || t.machineId}</span>
+                                <span className="text-[#505258] truncate max-w-[140px] sm:max-w-[200px]">
+                                  {t.description}
+                                </span>
+                              </div>
+                              <span className="text-[11px] font-semibold text-[#AE2E24]">{t.priority}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Footer: Live Stat & CTA Button */}
-                    <div className="pt-3.5 border-t border-[#0B120E14] space-y-3">
-                      <div className="flex items-center gap-1.5 text-xs text-[#6B6E76]">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#216E4E] flex-shrink-0" />
-                        <span className="truncate font-medium">{liveStat}</span>
+                    <div className="pt-3.5 border-t border-[#0B120E14] flex items-center justify-between text-xs text-[#6B6E76]">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2
+                          className={`w-3.5 h-3.5 ${
+                            openTicketsCount > 0 ? 'text-[#C9372C]' : 'text-[#216E4E]'
+                          }`}
+                        />
+                        <span className="font-medium">
+                          {openTicketsCount > 0
+                            ? 'Rapid Response Protocol Active'
+                            : 'Audible Alarm System Ready'}
+                        </span>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => void navigate(mod.path)}
-                        className="w-full inline-flex items-center justify-between px-3.5 py-2 rounded-lg text-xs font-semibold bg-[#FAFBFC] hover:bg-[#1868DB] text-[#292A2E] hover:text-[#FFFFFF] border border-[#0B120E24] hover:border-[#1868DB] transition-all shadow-xs group-hover:bg-[#1868DB] group-hover:text-[#FFFFFF] group-hover:border-[#1868DB]"
+                      <Link
+                        to="/andon"
+                        className="text-xs font-semibold text-[#1868DB] hover:text-[#1558BC] hover:underline inline-flex items-center gap-1"
                       >
-                        <span>{mod.ctaText}</span>
-                        <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform" />
-                      </button>
+                        <span>Live Board</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+                )}
+              </div>
+            </section>
+          );
+        })}
       </div>
     </div>
   );
