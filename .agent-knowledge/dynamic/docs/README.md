@@ -5,6 +5,7 @@ Use this index to select only the project documents relevant to the task. Treat 
 | Document                     | Use for                                                                                         |
 | ---------------------------- | ----------------------------------------------------------------------------------------------- |
 | `dev/PRD.md`                 | Product vision, users, scope, features, user stories, and acceptance criteria.                  |
+| `dev/QMS-PRD.md`             | Blueprint, functional scope (10 domains), user stories, and contracts for the companion QMS.    |
 | `dev/sdd/ARCHITECTURE.md`    | System boundaries, architecture, components, integrations, security, deployment, and decisions. |
 | `dev/sdd/TECHNOLOGYSTACK.md` | Technology choices, versions, and roles.                                                        |
 | `dev/sdd/DATABASE.md`        | Database topology, schema, relations, indexes, migrations, and seed data.                       |

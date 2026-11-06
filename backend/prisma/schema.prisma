@@ -621,7 +621,7 @@ model MaterialLot {
   supplierLot    String?   @map("supplier_lot") @db.VarChar(100)
   initialQtyKg   Decimal   @map("initial_qty_kg") @db.Decimal(10, 2)
   remainingQtyKg Decimal   @map("remaining_qty_kg") @db.Decimal(10, 2)
-  status         String    @default("AVAILABLE") @db.VarChar(30) // AVAILABLE, CONSUMED, EXPIRED, QUARANTINE
+  status         String    @default("AVAILABLE") @db.VarChar(30) // AVAILABLE, QA_HOLD, QUARANTINE, EXPIRED, CONSUMED
   expirationDate DateTime? @map("expiration_date")
   receivedAt     DateTime  @default(now()) @map("received_at")
 
